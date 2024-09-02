@@ -1,9 +1,10 @@
 import * as anchor from "@coral-xyz/anchor";
-import { PublicKey, SystemProgram } from "@solana/web3.js";
-import { ENFORCED_OPTIONS_SEED, EVENT_SEED, LZ_RECEIVE_TYPES_SEED, OAPP_SEED, PEER_SEED, OftTools, getEndpointProgramId } from "@layerzerolabs/lz-solana-sdk-v2";
-import { addressToBytes32, Options} from "@layerzerolabs/lz-v2-utilities";
+import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
+import { OftTools } from "@layerzerolabs/lz-solana-sdk-v2";
+import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { getLzReceiveTypesPda, getOAppConfigPda, getPeerPda, getEventAuthorityPda, getOAppRegistryPda, setAnchor } from "./utils";
 import { DST_EID, ENDPOINT_PROGRAM_ID, PEER_ADDRESS, LZ_RECEIVE_GAS, LZ_COMPOSE_GAS, LZ_COMPOSE_VALUE, LZ_RECEIVE_VALUE } from "./constants";
+
 import OAppIdl from "../target/idl/solana_vault.json";
 import { SolanaVault } from "../target/types/solana_vault";
 const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
@@ -27,7 +28,9 @@ const oappRegistryPubkey = getOAppRegistryPda(oappConfigPda);
 console.log("OApp Registry PDA:", oappRegistryPubkey.toBase58());
 
 async function setup() {
-    const txInitOapp = await OAppProgram.methods.initOapp({
+    console.log("Setting up OApp...");
+
+    const ixInitOapp = await OAppProgram.methods.initOapp({
         admin: wallet.publicKey,
         endpointProgram: ENDPOINT_PROGRAM_ID
     }).accounts({
@@ -73,11 +76,13 @@ async function setup() {
                 pubkey: ENDPOINT_PROGRAM_ID
             },
         ]
-    ).signers([wallet.payer])
-    .rpc();
-    console.log("Transaction to init OApp:", txInitOapp);
+    ).instruction();
+    
+    const txInitOapp = new Transaction().add(ixInitOapp);
+    const sigInitOapp = await provider.sendAndConfirm(txInitOapp, [wallet.payer]);
+    console.log("Init OApp transaction confirmed:", sigInitOapp);
 
-    const TxSetPeer = await OAppProgram.methods.setPeer({
+    const ixSetPeer = await OAppProgram.methods.setPeer({
         dstEid: DST_EID,
         peer: Array.from(PEER_ADDRESS)
     }).accounts({
@@ -86,8 +91,11 @@ async function setup() {
         oappConfig: oappConfigPda,
         systemProgram: SystemProgram.programId
     }).signers([wallet.payer])
-    .rpc();
-    console.log("Transaction to set peer:", TxSetPeer);
+    .instruction();
+
+    const txSetPeer = new Transaction().add(ixSetPeer);
+    const sigSetPeer = await provider.sendAndConfirm(txSetPeer, [wallet.payer]);
+    console.log("Set Peer transaction confirmed:", sigSetPeer);
 
     const IxSetOption = await OftTools.createSetEnforcedOptionsIx(
         wallet.publicKey,
@@ -101,6 +109,7 @@ async function setup() {
     const txSetOption = await provider.sendAndConfirm(new anchor.web3.Transaction().add(IxSetOption), [wallet.payer]);
     console.log("Transaction to set options:", txSetOption);
 }
+
 
 setup();
 
