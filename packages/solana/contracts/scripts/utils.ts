@@ -1,7 +1,7 @@
-import { ENFORCED_OPTIONS_SEED, EVENT_SEED, LZ_RECEIVE_TYPES_SEED, OAPP_SEED, PEER_SEED, MESSAGE_LIB_SEED, SEND_LIBRARY_CONFIG_SEED, ENDPOINT_SEED, NONCE_SEED, ULN_SEED, SEND_CONFIG_SEED } from "@layerzerolabs/lz-solana-sdk-v2";
+import { ENFORCED_OPTIONS_SEED, EVENT_SEED, LZ_RECEIVE_TYPES_SEED, OAPP_SEED, PEER_SEED, MESSAGE_LIB_SEED, SEND_LIBRARY_CONFIG_SEED, ENDPOINT_SEED, NONCE_SEED, ULN_SEED, SEND_CONFIG_SEED, EXECUTOR_CONFIG_SEED, PRICE_FEED_SEED, DVN_CONFIG_SEED } from "@layerzerolabs/lz-solana-sdk-v2";
 import { PublicKey } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
-import { ENDPOINT_PROGRAM_ID, PEER_ADDRESS, SEND_LIB_PROGRAM_ID } from "./constants";
+import { DVN_PROGRAM_ID, ENDPOINT_PROGRAM_ID, EXECUTOR_PROGRAM_ID, PEER_ADDRESS, PRICE_FEED_PROGRAM_ID, SEND_LIB_PROGRAM_ID } from "./constants";
 
 export function getOAppConfigPda(OAPP_PROGRAM_ID: PublicKey): PublicKey {
     return PublicKey.findProgramAddressSync(
@@ -116,6 +116,27 @@ export function getUlnSettingPda(): PublicKey {
     return PublicKey.findProgramAddressSync(
         [Buffer.from(ULN_SEED, "utf8")],
         SEND_LIB_PROGRAM_ID
+    )[0];
+}
+
+export function getExecutorConfigPda(): PublicKey {
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from(EXECUTOR_CONFIG_SEED, "utf8")],
+        EXECUTOR_PROGRAM_ID
+    )[0];
+}
+
+export function getPriceFeedPda(): PublicKey {
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from(PRICE_FEED_SEED, "utf8")],
+        PRICE_FEED_PROGRAM_ID
+    )[0];
+}
+
+export function getDvnConfigPda(): PublicKey {
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from(DVN_CONFIG_SEED, "utf8")],
+        DVN_PROGRAM_ID
     )[0];
 }
 
