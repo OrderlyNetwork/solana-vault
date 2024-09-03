@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { PublicKey, sendAndConfirmTransaction, SystemProgram, Transaction } from "@solana/web3.js";
 import { OftTools } from "@layerzerolabs/lz-solana-sdk-v2";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
-import { setAnchor, getLzReceiveTypesPda, getOAppConfigPda, getPeerPda, getEventAuthorityPda, getOAppRegistryPda, getSendLibConfigPda } from "./utils";
+import { setAnchor, getLzReceiveTypesPda, getOAppConfigPda, getPeerPda, getEventAuthorityPda, getOAppRegistryPda, getSendLibConfigPda, getSendLibInfoPda, getSendLibPda } from "./utils";
 import { DST_EID, ENDPOINT_PROGRAM_ID, PEER_ADDRESS, LZ_RECEIVE_GAS, LZ_COMPOSE_GAS, LZ_COMPOSE_VALUE, LZ_RECEIVE_VALUE, SEND_LIB_PROGRAM_ID, RECEIVE_LIB_PROGRAM_ID } from "./constants";
 
 import OAppIdl from "../target/idl/solana_vault.json";
@@ -11,12 +11,20 @@ const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
 
 const [provider, wallet] = setAnchor();
 
-const sendLibConfigPda = getSendLibConfigPda();
+
 const oappConfigPda = getOAppConfigPda(OAPP_PROGRAM_ID);
 console.log("OApp Config PDA:", oappConfigPda.toBase58());
 
+const sendLibConfigPda = getSendLibConfigPda(oappConfigPda, DST_EID);
+console.log("Send Library Config PDA:", sendLibConfigPda.toBase58());
+
+const sendLibPda = getSendLibPda();
+console.log("Send Library PDA:", sendLibPda.toBase58());
+const sendLibInfoPda = getSendLibInfoPda(sendLibPda);
+console.log("Send Library Info PDA:", sendLibInfoPda.toBase58());
+
 async function setconfig() {
-    // await setSendConfig();
+    await setSendConfig();
     await setReceiveConfig();
 }
 

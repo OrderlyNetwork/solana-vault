@@ -24,8 +24,8 @@ console.log("Peer PDA:", peerPda.toBase58());
 const eventAuthorityPda = getEventAuthorityPda();
 console.log("Event Authority PDA:", eventAuthorityPda.toBase58());
 
-const oappRegistryPubkey = getOAppRegistryPda(oappConfigPda);
-console.log("OApp Registry PDA:", oappRegistryPubkey.toBase58());
+const oappRegistryPda = getOAppRegistryPda(oappConfigPda);
+console.log("OApp Registry PDA:", oappRegistryPda.toBase58());
 
 async function setup() {
     console.log("Setting up OApp...");
@@ -58,7 +58,7 @@ async function setup() {
             {
                 isSigner: false,
                 isWritable: true,
-                pubkey: oappRegistryPubkey
+                pubkey: oappRegistryPda
             },
             {
                 isSigner: false,
@@ -97,7 +97,7 @@ async function setup() {
     const sigSetPeer = await provider.sendAndConfirm(txSetPeer, [wallet.payer]);
     console.log("Set Peer transaction confirmed:", sigSetPeer);
 
-    const IxSetOption = await OftTools.createSetEnforcedOptionsIx(
+    const ixSetOption = await OftTools.createSetEnforcedOptionsIx(
         wallet.publicKey,
         oappConfigPda,
         DST_EID,
@@ -106,7 +106,7 @@ async function setup() {
         OAPP_PROGRAM_ID
     )
 
-    const txSetOption = await provider.sendAndConfirm(new anchor.web3.Transaction().add(IxSetOption), [wallet.payer]);
+    const txSetOption = await provider.sendAndConfirm(new anchor.web3.Transaction().add(ixSetOption), [wallet.payer]);
     console.log("Transaction to set options:", txSetOption);
 }
 
