@@ -9,7 +9,7 @@ import OAppIdl from "../target/idl/solana_vault.json";
 import { SolanaVault } from "../target/types/solana_vault";
 const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
 
-const [provider, wallet] = setAnchor();
+const [provider, wallet, rpc] = setAnchor();
 
 
 const oappConfigPda = getOAppConfigPda(OAPP_PROGRAM_ID);

@@ -1,7 +1,8 @@
 import { ENFORCED_OPTIONS_SEED, EVENT_SEED, LZ_RECEIVE_TYPES_SEED, OAPP_SEED, PEER_SEED, MESSAGE_LIB_SEED, SEND_LIBRARY_CONFIG_SEED, ENDPOINT_SEED, NONCE_SEED, ULN_SEED, SEND_CONFIG_SEED, EXECUTOR_CONFIG_SEED, PRICE_FEED_SEED, DVN_CONFIG_SEED, OFT_SEED } from "@layerzerolabs/lz-solana-sdk-v2";
-import { PublicKey, TransactionInstruction, VersionedTransaction, TransactionMessage } from "@solana/web3.js";
+import { PublicKey, TransactionInstruction, VersionedTransaction, TransactionMessage, AddressLookupTableProgram } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
-import { DVN_PROGRAM_ID, ENDPOINT_PROGRAM_ID, EXECUTOR_PROGRAM_ID, PEER_ADDRESS, PRICE_FEED_PROGRAM_ID, SEND_LIB_PROGRAM_ID } from "./constants";
+import { DVN_PROGRAM_ID, ENDPOINT_PROGRAM_ID, EXECUTOR_PROGRAM_ID, PEER_ADDRESS, PRICE_FEED_PROGRAM_ID, SEND_LIB_PROGRAM_ID, DEV_LOOKUP_TABLE_PROGRAM_ID, MAIN_LOOKUP_TABLE_PROGRAM_ID, LOCAL_RPC, DEV_RPC, MAIN_RPC, VAULT_DEPOSIT_AUTHORITY_SEED} from "./constants";
+import { seed } from "@coral-xyz/anchor/dist/cjs/idl";
 
 export function getOAppConfigPda(OAPP_PROGRAM_ID: PublicKey): PublicKey {
     return PublicKey.findProgramAddressSync(
@@ -161,18 +162,26 @@ export function getDvnConfigPda(): PublicKey {
     )[0];
 }
 
-
-export function setAnchor(): [anchor.AnchorProvider, anchor.Wallet] {
-    const provider = anchor.AnchorProvider.env();
-    anchor.setProvider(provider);
-    const wallet = provider.wallet as anchor.Wallet;
-    return [provider, wallet];
+export function getMessageLibPda(): PublicKey {
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from(MESSAGE_LIB_SEED, "utf8")],
+        SEND_LIB_PROGRAM_ID
+    )[0];
 }
 
-export async function createAndSendV0Tx(txInstructions: TransactionInstruction[], wallet: anchor.Wallet, provider: anchor.AnchorProvider) {
+
+export function setAnchor(): [anchor.AnchorProvider, anchor.Wallet, string] {
+    console.log("Setting Anchor...");
+    const provider = anchor.AnchorProvider.env();
+    const rpc = provider.connection.rpcEndpoint;
+    anchor.setProvider(provider);
+    const wallet = provider.wallet as anchor.Wallet;
+    return [provider, wallet, rpc];
+}
+
+export async function createAndSendV0Tx(txInstructions: TransactionInstruction[], provider: anchor.AnchorProvider, wallet: anchor.Wallet) {
     // Step 1 - Fetch Latest Blockhash
     let latestBlockhash = await provider.connection.getLatestBlockhash('finalized');
-    console.log("   ✅ - Fetched latest blockhash. Last valid height:", latestBlockhash.lastValidBlockHeight);
 
     // Step 2 - Generate Transaction Message
     const messageV0 = new TransactionMessage({
@@ -180,25 +189,104 @@ export async function createAndSendV0Tx(txInstructions: TransactionInstruction[]
         recentBlockhash: latestBlockhash.blockhash,
         instructions: txInstructions
     }).compileToV0Message();
-    console.log("   ✅ - Compiled transaction message");
     const transaction = new VersionedTransaction(messageV0);
 
     // Step 3 - Sign your transaction with the required `Signers`
     transaction.sign([wallet.payer]);
-    console.log("   ✅ - Transaction Signed");
 
     // Step 4 - Send our v0 transaction to the cluster
     const txid = await provider.connection.sendTransaction(transaction, { maxRetries: 5 });
-    console.log("   ✅ - Transaction sent to network");
+    console.log("   ✅ - Transaction sent to network", txid);
 
-    // Step 5 - Confirm Transaction 
-    console.log("tx id:", txid);    
-    
+    await new Promise((r) => setTimeout
+        (r, 2000));
 }
 
-export function getOftConfigPda(OFT_PROGRAM_ID: PublicKey, mintAccount: PublicKey): PublicKey {
+export async function createAndSendV0TxWithTable(txInstructions: TransactionInstruction[], provider: anchor.AnchorProvider, wallet: anchor.Wallet, address: PublicKey[]) {
+    const lookupTableAddress = await getLookupTableAddress(provider, wallet, provider.connection.rpcEndpoint);
+    await extendLookupTable(provider, wallet, lookupTableAddress, address);
+    const lookupTableAccount = await getLookupTableAccount(provider, lookupTableAddress);
+    const msg = new TransactionMessage({
+        payerKey: wallet.payer.publicKey,
+        recentBlockhash: (await provider.connection.getLatestBlockhash()).blockhash,
+        instructions:txInstructions
+    }).compileToV0Message([lookupTableAccount]);
+
+    const tx = new VersionedTransaction(msg);
+    tx.sign([wallet.payer]);
+    const sigSend = await provider.connection.sendTransaction(tx);
+    console.log("Send transaction confirmed:", sigSend);
+    await sleep(2);
+
+}
+
+export async function getLookupTableAddress(provider: anchor.AnchorProvider, wallet: anchor.Wallet, rpc: string): Promise<PublicKey> {
+    if (rpc === LOCAL_RPC) {
+        const recentSlot = await provider.connection.getSlot();
+        const [ixLookupTable, lookupTableAddress] = AddressLookupTableProgram.createLookupTable(
+            {
+                authority: wallet.publicKey,
+                payer: wallet.publicKey,
+                recentSlot:recentSlot - 200
+            }
+        );
+        console.log("Lookup Table Address: ", lookupTableAddress.toString());
+
+        await createAndSendV0Tx([ixLookupTable], provider, wallet);
+        // sleep for 1 seconds to wait for the lookup table to be created
+        await sleep(2);
+        return lookupTableAddress;
+    } else if (rpc === DEV_RPC) {
+        return DEV_LOOKUP_TABLE_PROGRAM_ID;
+    } else if (rpc === MAIN_RPC) {
+        return MAIN_LOOKUP_TABLE_PROGRAM_ID;
+    } else {
+        throw new Error("Invalid RPC");
+    }
+}
+
+export async function extendLookupTable(provider: anchor.AnchorProvider, wallet: anchor.Wallet, lookupTableAddress: PublicKey, addresses: PublicKey[]) {
+    const ixExtendLookupTable = AddressLookupTableProgram.extendLookupTable({
+        payer: wallet.publicKey,
+        authority: wallet.publicKey,
+        lookupTable: lookupTableAddress,
+        addresses: addresses
+    });
+    await createAndSendV0Tx([ixExtendLookupTable], provider, wallet);
+    // sleep for 2 seconds to wait for the lookup table to be updated
+    await sleep(2);
+}
+
+export async function getLookupTableAccount(provider: anchor.AnchorProvider, lookupTableAddress: PublicKey) {
+    const lookupTableAccount = (
+        await provider.connection.getAddressLookupTable(lookupTableAddress)
+      ).value;
+
+    return lookupTableAccount;
+}
+
+export async function getMintAccount(provider: anchor.AnchorProvider, rpc: string) {
+
+}
+
+export function getOftConfigPda(OFT_PROGRAM_ID: PublicKey, mintAccount: PublicKey) {
     return PublicKey.findProgramAddressSync(
         [Buffer.from(OFT_SEED, "utf8"), mintAccount.toBuffer()],
         OFT_PROGRAM_ID
     )[0];
 }
+
+
+export function getVaultDepositAuthorityPda(VAULT_PROGRAM_ID: PublicKey, mintAccount: PublicKey): PublicKey {
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from(VAULT_DEPOSIT_AUTHORITY_SEED, "utf8"), mintAccount.toBuffer()],
+        VAULT_PROGRAM_ID
+    )[0];
+}
+
+
+async function sleep(number: number) {
+    await new Promise((r) => setTimeout
+    (r, number* 1000));
+}
+

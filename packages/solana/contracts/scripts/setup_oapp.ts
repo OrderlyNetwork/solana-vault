@@ -10,7 +10,7 @@ import { SolanaVault } from "../target/types/solana_vault";
 const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
 const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
 
-const [provider, wallet] = setAnchor();
+const [provider, wallet, rpc] = setAnchor();
 
 const oappConfigPda = getOAppConfigPda(OAPP_PROGRAM_ID);
 console.log("OApp Config PDA:", oappConfigPda.toBase58());
@@ -29,6 +29,7 @@ console.log("OApp Registry PDA:", oappRegistryPda.toBase58());
 
 async function setup() {
     console.log("Setting up OApp...");
+
 
     const ixInitOapp = await OAppProgram.methods.initOapp({
         admin: wallet.publicKey,

@@ -10,7 +10,7 @@ import { SolanaVault } from "../target/types/solana_vault";
 const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
 const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
 
-const [provider, wallet] = setAnchor();
+const [provider, wallet, rpc] = setAnchor();
 
 const oappConfigPda = getOAppConfigPda(OAPP_PROGRAM_ID);
 
