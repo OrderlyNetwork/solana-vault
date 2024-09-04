@@ -43,7 +43,7 @@ pub struct VaultDeposit<'info> {
 //     uint128 tokenAmount;
 //     uint64 srcChainDepositNonce;
 // }
-#[derive(Debug, AnchorSerialize, AnchorDeserialize)]
+#[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct VaultDepositParams {
     pub account_id: [u8; 32],
     pub broker_hash: [u8; 32],
