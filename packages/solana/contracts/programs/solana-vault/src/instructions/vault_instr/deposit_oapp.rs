@@ -7,7 +7,7 @@ use anchor_spl::{
 
 use crate::deposit::DepositParams;
 use crate::events::VaultDeposited;
-use crate::initialize::VAULT_DEPOSIT_AUTHORITY_SEED;
+use crate::init_vault::VAULT_DEPOSIT_AUTHORITY_SEED;
 use crate::{
     state::{UserInfo, VaultDepositAuthority},
     VaultError,

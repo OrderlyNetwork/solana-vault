@@ -6,7 +6,7 @@ use anchor_spl::{
 };
 
 use crate::events::VaultDeposited;
-use crate::initialize::VAULT_DEPOSIT_AUTHORITY_SEED;
+use crate::init_vault::VAULT_DEPOSIT_AUTHORITY_SEED;
 use crate::vault_deposit::VaultDepositParams;
 
 use crate::{

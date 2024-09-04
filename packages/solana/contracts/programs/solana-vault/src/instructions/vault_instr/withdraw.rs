@@ -1,4 +1,4 @@
-use crate::initialize::VAULT_DEPOSIT_AUTHORITY_SEED;
+use crate::init_vault::VAULT_DEPOSIT_AUTHORITY_SEED;
 use crate::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};

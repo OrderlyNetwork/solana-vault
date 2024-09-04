@@ -19,7 +19,7 @@ use instructions::*;
 use oapp::endpoint::{MessagingFee, MessagingReceipt};
 use state::*;
 
-declare_id!("5seA2qXcGyC9najiKmUVK3u2hfotXZVHtaxuxfrwBLrX");
+declare_id!("EFLrsQmcfYTSvVrUiP4qruDhbYBtjbQNAhC6tkLJbBtQ");
 
 pub const OAPP_VERSION: u64 = 1;
 pub const OAPP_SDK_VERSION: u64 = 1;
@@ -36,12 +36,28 @@ pub mod solana_vault {
         InitVault::apply(&mut ctx)
     }
 
+    pub fn deposit<'info>(
+        mut ctx: Context<'_, '_, '_, 'info, Deposit<'info>>,
+        deposit_params: DepositParams,
+    ) -> Result<()> {
+        Deposit::apply(&mut ctx, &deposit_params)
+    }
+
     pub fn deposit_oapp<'info>(
         mut ctx: Context<'_, '_, '_, 'info, DepositOapp<'info>>,
         deposit_params: DepositParams,
         oapp_params: OAppSendParams,
     ) -> Result<()> {
         DepositOapp::apply(&mut ctx, &deposit_params, oapp_params)
+    }
+
+    pub fn deposit_entry<'info>(
+        mut ctx: Context<'_, '_, '_, 'info, DepositEntry<'info>>,
+        deposit_params: DepositParams,
+        oapp_params: OAppSendParams,
+    ) -> Result<MessagingReceipt> {
+        msg!("DepositParams: {:?}", deposit_params);
+        DepositEntry::apply(&mut ctx, deposit_params, oapp_params)
     }
 
     pub fn withdraw(

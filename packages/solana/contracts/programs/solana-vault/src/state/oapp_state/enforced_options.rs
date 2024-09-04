@@ -27,8 +27,11 @@ impl EnforcedOptions {
         compose_msg: &Option<Vec<u8>>,
         extra_options: &Vec<u8>,
     ) -> Result<Vec<u8>> {
-        let enforced_options =
-            if compose_msg.is_none() { self.send.clone() } else { self.send_and_call.clone() };
+        let enforced_options = if compose_msg.is_none() {
+            self.send.clone()
+        } else {
+            self.send_and_call.clone()
+        };
         oapp::options::combine_options(enforced_options, extra_options)
     }
 }

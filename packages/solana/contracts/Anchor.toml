@@ -7,7 +7,7 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-oft = "8XzyimNDN6RrzMkMDy5cR7byfk7iV45qewUfKzTvFvgx"
+oft = "HZuGXo97nFuv6UmvcYtt7T8L8vB3KAFRZTmohTA3k63m"
 solana-vault = "5seA2qXcGyC9najiKmUVK3u2hfotXZVHtaxuxfrwBLrX"
 
 [registry]
@@ -18,4 +18,10 @@ cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
+init_oapp = "yarn run ts-node scripts/init_oapp.ts"
+oft = "yarn run ts-node scripts/oft.ts"
+send_oapp = "yarn run ts-node scripts/send.ts"
+setconfig_oapp = "yarn run ts-node scripts/setconfig_oapp.ts"
+setup_oapp = "yarn run ts-node scripts/setup_oapp.ts"
+setup_vault = "yarn run ts-node scripts/setup_vault.ts"
 test = "yarn run ts-mocha -b -p ./tsconfig.json -t 1000000 tests/**/*.test.ts"
