@@ -27,14 +27,14 @@ pub struct DepositEntry<'info> {
         space = 8 + UserInfo::LEN,
         seeds = [user.key().as_ref()], bump
     )]
-    pub user_info: Account<'info, UserInfo>,
+    pub user_info: Box<Account<'info, UserInfo>>,
 
     #[account(
         mut,
         associated_token::mint = deposit_token,
         associated_token::authority = user
     )]
-    pub user_deposit_wallet: Account<'info, TokenAccount>,
+    pub user_deposit_wallet: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -42,7 +42,7 @@ pub struct DepositEntry<'info> {
         bump = vault_deposit_authority.bump,
         constraint = vault_deposit_authority.deposit_token == deposit_token.key()
     )]
-    pub vault_deposit_authority: Account<'info, VaultDepositAuthority>,
+    pub vault_deposit_authority: Box<Account<'info, VaultDepositAuthority>>,
 
     #[account(
         init_if_needed,
@@ -50,10 +50,10 @@ pub struct DepositEntry<'info> {
         associated_token::mint = deposit_token,
         associated_token::authority = vault_deposit_authority
     )]
-    pub vault_deposit_wallet: Account<'info, TokenAccount>,
+    pub vault_deposit_wallet: Box<Account<'info, TokenAccount>>,
 
     #[account()]
-    pub deposit_token: Account<'info, Mint>,
+    pub deposit_token: Box<Account<'info, Mint>>,
 
     #[account(mut)]
     pub user: Signer<'info>,
@@ -67,7 +67,7 @@ pub struct DepositEntry<'info> {
         ],
         bump = peer.bump
     )]
-    pub peer: Account<'info, Peer>,
+    pub peer: Box<Account<'info, Peer>>,
 
     #[account(
         seeds = [
@@ -77,13 +77,13 @@ pub struct DepositEntry<'info> {
         ],
         bump = enforced_options.bump
     )]
-    pub enforced_options: Account<'info, EnforcedOptions>,
+    pub enforced_options: Box<Account<'info, EnforcedOptions>>,
 
     #[account(
         seeds = [OAPP_SEED],
         bump = oapp_config.bump
     )]
-    pub oapp_config: Account<'info, OAppConfig>,
+    pub oapp_config: Box<Account<'info, OAppConfig>>,
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -143,6 +143,8 @@ impl<'info> DepositEntry<'info> {
         ctx.accounts.vault_deposit_authority.nonce += 1;
 
         emit!(Into::<VaultDeposited>::into(vault_deposit_params.clone()));
+
+        msg! {"VaultDepositParams: {:?}", vault_deposit_params};
 
         let receipt = oapp::endpoint_cpi::send(
             ctx.accounts.oapp_config.endpoint_program,
