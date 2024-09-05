@@ -5,7 +5,7 @@ import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { createAndSendV0Tx, getOutboundNoncePda, getSendConfigPda } from "./utils";
 // import { setAnchor, getLzReceiveTypesPda, getOAppConfigPda, getPeerPda, getEventAuthorityPda, getOAppRegistryPda, getSendLibConfigPda, getExecutorConfigPda, getPriceFeedPda, getDvnConfigPda, getEndorcedOptionsPda, getUlnEventAuthorityPda, getUlnSettingPda, getEndpointSettingPda, getDefaultSendLibConfigPda, getSendLibInfoPda, getSendLibPda, getDefaultSendConfigPda, getMessageLibPda, getLookupTableAddress, getLooupTableAccount, extendLookupTable } from "./utils";
 import * as utils from "./utils";
-import { DST_EID, ENDPOINT_PROGRAM_ID, PEER_ADDRESS, LZ_RECEIVE_GAS, LZ_COMPOSE_GAS, LZ_COMPOSE_VALUE, LZ_RECEIVE_VALUE, SEND_LIB_PROGRAM_ID, TREASURY_PROGRAM_ID, EXECUTOR_PROGRAM_ID, PRICE_FEED_PROGRAM_ID, DVN_PROGRAM_ID, LOCAL_RPC, DEV_RPC, MAIN_RPC, DEV_LOOKUP_TABLE_PROGRAM_ID, MAIN_LOOKUP_TABLE_PROGRAM_ID } from "./constants";
+import { DST_EID, ENDPOINT_PROGRAM_ID, PEER_ADDRESS, LZ_RECEIVE_GAS, LZ_COMPOSE_GAS, LZ_COMPOSE_VALUE, LZ_RECEIVE_VALUE, SEND_LIB_PROGRAM_ID, TREASURY_PROGRAM_ID, EXECUTOR_PROGRAM_ID, PRICE_FEED_PROGRAM_ID, DVN_PROGRAM_ID, LOCAL_RPC, DEV_RPC, MAIN_RPC, DEV_LOOKUP_TABLE_ADDRESS, MAIN_LOOKUP_TABLE_ADDRESS } from "./constants";
 import { BN } from 'bn.js'
 
 import OAppIdl from "../target/idl/solana_vault.json";

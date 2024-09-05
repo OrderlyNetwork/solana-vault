@@ -34,21 +34,25 @@ async function setSendConfig() {
             wallet.publicKey,
             oappConfigPda,
             DST_EID,
-            ENDPOINT_PROGRAM_ID
         ),        
     );
 
-    const sigInitSendLib = await sendAndConfirmTransaction(
-        provider.connection,
-        txInitSendLib,
-        [wallet.payer],
-        {
-            commitment: "confirmed",
-            preflightCommitment: "confirmed"
-        }
-    );
-
-    console.log("Init Send Library transaction confirmed:", sigInitSendLib);
+    try {
+        const sigInitSendLib = await sendAndConfirmTransaction(
+            provider.connection,
+            txInitSendLib,
+            [wallet.payer],
+            {
+                commitment: "confirmed",
+                preflightCommitment: "confirmed"
+            }
+        );
+    
+        console.log("Init Send Library transaction confirmed:", sigInitSendLib);
+    } catch (e) {
+        console.log("Send Library already initialized");
+    }
+    
 
     const txSetSendLib = new Transaction().add(
         await OftTools.createSetSendLibraryIx(
@@ -56,7 +60,6 @@ async function setSendConfig() {
             oappConfigPda,
             SEND_LIB_PROGRAM_ID,
             DST_EID,
-            ENDPOINT_PROGRAM_ID
         ),
     );
 
@@ -64,36 +67,37 @@ async function setSendConfig() {
         provider.connection,
         txSetSendLib,
         [wallet.payer],
-        {
-            commitment: "confirmed",
-            preflightCommitment: "confirmed"
-        }
     );
 
     console.log("Set Send Library transaction confirmed:", sigSetSendLib);
 }
 
 async function setReceiveConfig() {
-    const txInitReceiveLib = new Transaction().add(
-        await OftTools.createInitReceiveLibraryIx(
-            wallet.publicKey,
-            oappConfigPda,
-            DST_EID,
-            ENDPOINT_PROGRAM_ID
-        ),
-    );
 
-    const sigInitReceiveLib = await sendAndConfirmTransaction(
-        provider.connection,
-        txInitReceiveLib,
-        [wallet.payer],
-        {
-            commitment: "confirmed",
-            preflightCommitment: "confirmed"
-        }
-    );
-
-    console.log("Init Receive Library transaction confirmed:", sigInitReceiveLib);
+    try{
+        const txInitReceiveLib = new Transaction().add(
+            await OftTools.createInitReceiveLibraryIx(
+                wallet.publicKey,
+                oappConfigPda,
+                DST_EID,
+                ENDPOINT_PROGRAM_ID
+            ),
+        );
+    
+        const sigInitReceiveLib = await sendAndConfirmTransaction(
+            provider.connection,
+            txInitReceiveLib,
+            [wallet.payer],
+            {
+                commitment: "confirmed",
+                preflightCommitment: "confirmed"
+            }
+        );
+    
+        console.log("Init Receive Library transaction confirmed:", sigInitReceiveLib);
+    } catch (e) {
+        console.log("Receive Library already initialized");
+    }
 
     const txSetReceiveLib = new Transaction().add(
         await OftTools.createSetReceiveLibraryIx(
@@ -119,4 +123,16 @@ async function setReceiveConfig() {
     console.log("Set Receive Library transaction confirmed:", sigSetReceiveLib);
 }
 
-setconfig();
+// setconfig();
+
+async function getConfig() {
+    const config = await OftTools.getEndpointConfig(
+        provider.connection,
+        new PublicKey("5Lgo8UDHs9q76YZLtZpWMPFXzopTEqux4PLEJj5HG6Hs"),
+        DST_EID,
+    );
+
+    console.log("Config:", config);
+}
+
+getConfig();

@@ -1,8 +1,22 @@
 import { ENFORCED_OPTIONS_SEED, EVENT_SEED, LZ_RECEIVE_TYPES_SEED, OAPP_SEED, PEER_SEED, MESSAGE_LIB_SEED, SEND_LIBRARY_CONFIG_SEED, ENDPOINT_SEED, NONCE_SEED, ULN_SEED, SEND_CONFIG_SEED, EXECUTOR_CONFIG_SEED, PRICE_FEED_SEED, DVN_CONFIG_SEED, OFT_SEED } from "@layerzerolabs/lz-solana-sdk-v2";
-import { PublicKey, TransactionInstruction, VersionedTransaction, TransactionMessage, AddressLookupTableProgram } from "@solana/web3.js";
+import { PublicKey, TransactionInstruction, VersionedTransaction, TransactionMessage, AddressLookupTableProgram, Keypair } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
-import { DVN_PROGRAM_ID, ENDPOINT_PROGRAM_ID, EXECUTOR_PROGRAM_ID, PEER_ADDRESS, PRICE_FEED_PROGRAM_ID, SEND_LIB_PROGRAM_ID, DEV_LOOKUP_TABLE_PROGRAM_ID, MAIN_LOOKUP_TABLE_PROGRAM_ID, LOCAL_RPC, DEV_RPC, MAIN_RPC, VAULT_DEPOSIT_AUTHORITY_SEED} from "./constants";
+import {
+    createMint,
+    getOrCreateAssociatedTokenAccount,
+    getMint,
+    mintTo
+  } from "@solana/spl-token";
+import { DVN_PROGRAM_ID, ENDPOINT_PROGRAM_ID, EXECUTOR_PROGRAM_ID, PEER_ADDRESS, PRICE_FEED_PROGRAM_ID, SEND_LIB_PROGRAM_ID, DEV_LOOKUP_TABLE_ADDRESS, MAIN_LOOKUP_TABLE_ADDRESS, LOCAL_RPC, DEV_RPC, MAIN_RPC, VAULT_DEPOSIT_AUTHORITY_SEED, MOCK_USDC_PRIVATE_KEY, MOCK_USDC_ACCOUNT, DEV_USDC_ACCOUNT, MAIN_USDC_ACCOUNT} from "./constants";
 import { seed } from "@coral-xyz/anchor/dist/cjs/idl";
+import { hexToBytes } from 'ethereum-cryptography/utils';
+import { keccak256, AbiCoder, solidityPackedKeccak256, decodeBase58 } from "ethers"
+import { getKeypairFromEnvironment } from "@solana-developers/helpers";
+
+import OAppIdl from "../target/idl/solana_vault.json";
+import { SolanaVault } from "../target/types/solana_vault";
+
+
 
 export function getOAppConfigPda(OAPP_PROGRAM_ID: PublicKey): PublicKey {
     return PublicKey.findProgramAddressSync(
@@ -179,6 +193,12 @@ export function setAnchor(): [anchor.AnchorProvider, anchor.Wallet, string] {
     return [provider, wallet, rpc];
 }
 
+export function getDeployedProgram(): [PublicKey, anchor.Program] {
+    const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
+    const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
+    return [OAPP_PROGRAM_ID, OAppProgram];
+}
+
 export async function createAndSendV0Tx(txInstructions: TransactionInstruction[], provider: anchor.AnchorProvider, wallet: anchor.Wallet) {
     // Step 1 - Fetch Latest Blockhash
     let latestBlockhash = await provider.connection.getLatestBlockhash('finalized');
@@ -204,7 +224,10 @@ export async function createAndSendV0Tx(txInstructions: TransactionInstruction[]
 
 export async function createAndSendV0TxWithTable(txInstructions: TransactionInstruction[], provider: anchor.AnchorProvider, wallet: anchor.Wallet, address: PublicKey[]) {
     const lookupTableAddress = await getLookupTableAddress(provider, wallet, provider.connection.rpcEndpoint);
-    await extendLookupTable(provider, wallet, lookupTableAddress, address);
+    if (provider.connection.rpcEndpoint === LOCAL_RPC) {
+        await extendLookupTable(provider, wallet, lookupTableAddress, address);
+    }
+   
     const lookupTableAccount = await getLookupTableAccount(provider, lookupTableAddress);
     const msg = new TransactionMessage({
         payerKey: wallet.payer.publicKey,
@@ -230,16 +253,16 @@ export async function getLookupTableAddress(provider: anchor.AnchorProvider, wal
                 recentSlot:recentSlot - 200
             }
         );
-        console.log("Lookup Table Address: ", lookupTableAddress.toString());
+        console.log("📋 Create Lookup Table Address: ", lookupTableAddress.toString());
 
         await createAndSendV0Tx([ixLookupTable], provider, wallet);
         // sleep for 1 seconds to wait for the lookup table to be created
         await sleep(2);
         return lookupTableAddress;
     } else if (rpc === DEV_RPC) {
-        return DEV_LOOKUP_TABLE_PROGRAM_ID;
+        return DEV_LOOKUP_TABLE_ADDRESS;
     } else if (rpc === MAIN_RPC) {
-        return MAIN_LOOKUP_TABLE_PROGRAM_ID;
+        return MAIN_LOOKUP_TABLE_ADDRESS;
     } else {
         throw new Error("Invalid RPC");
     }
@@ -269,6 +292,15 @@ export async function getMintAccount(provider: anchor.AnchorProvider, rpc: strin
 
 }
 
+// get the usdc address, user account, and vault account
+export async function getRelatedUSDCAcount(provider: anchor.AnchorProvider, wallet: anchor.Wallet, rpc: string): Promise<PublicKey[]> {
+    const [VAULT_PROGRAM_ID, VaultProgram] =  getDeployedProgram();
+    const usdcAddress = await getUSDCAddress(provider, wallet, rpc);
+    const userUSDCAccount = await getUSDCAccount(provider, wallet, usdcAddress, wallet.publicKey);
+    const vaultUSDCAccount = await getUSDCAccount(provider, wallet, usdcAddress, VAULT_PROGRAM_ID);
+    return [usdcAddress, userUSDCAccount, vaultUSDCAccount];
+}
+
 export function getOftConfigPda(OFT_PROGRAM_ID: PublicKey, mintAccount: PublicKey) {
     return PublicKey.findProgramAddressSync(
         [Buffer.from(OFT_SEED, "utf8"), mintAccount.toBuffer()],
@@ -288,5 +320,82 @@ export function getVaultDepositAuthorityPda(VAULT_PROGRAM_ID: PublicKey, mintAcc
 async function sleep(number: number) {
     await new Promise((r) => setTimeout
     (r, number* 1000));
+}
+
+export function getBrokerHash(brokerId: string): string {
+    return solidityPackedKeccak256(['string'], [brokerId])
+}
+
+export function getTokenHash(tokenSymbol: string): string {
+    return solidityPackedKeccak256(['string'], [tokenSymbol])
+}
+     
+export function getSolAccountId(userAccount: PublicKey, brokerId: string): string{
+        // base58 => bytes
+        const decodedUserAccount = Buffer.from(userAccount.toBytes());
+        const abicoder = AbiCoder.defaultAbiCoder()
+    return keccak256(abicoder.encode(['bytes32', 'bytes32'], [decodedUserAccount, getBrokerHash(brokerId)]))
+}
+// base58 => bytes => hex => bytes32
+// const decodedUserAccount = hexToBytes((Buffer.from(userAccount.toBytes()).toString('hex')));
+
+export async function getUSDCAddress(provider: anchor.Provider, wallet: anchor.Wallet, rpc: string): Promise<PublicKey> {
+    const usdcKeyPair = Keypair.fromSecretKey(Uint8Array.from(MOCK_USDC_PRIVATE_KEY));
+    
+    if (rpc === LOCAL_RPC) {
+        try {
+            const USDC_DECIMALS = 6;
+            const mockUSDC = await createMint(
+                provider.connection,
+                wallet.payer,
+                wallet.publicKey,
+                wallet.publicKey,
+                USDC_DECIMALS,
+                usdcKeyPair
+            );
+            console.log("💶 Mock USDC Address:", mockUSDC.toBase58())
+        ;
+        } catch (err) {
+            console.error("💶 USDC already created");
+        }
+        
+    } else if (rpc === DEV_RPC) {
+        console.log("💶 Dev USDC Address:", MOCK_USDC_ACCOUNT.toBase58())
+        return MOCK_USDC_ACCOUNT;
+        // should be DEV_USDC_ACCOUNT after dev env is set up
+        // return DEV_USDC_ACCOUNT;
+    } else if (rpc === MAIN_RPC) {
+        return MAIN_USDC_ACCOUNT;
+    }
+    return usdcKeyPair.publicKey;
+}
+
+export async function getUSDCAccount(provider: anchor.Provider, wallet: anchor.Wallet, usdc: PublicKey, owner: PublicKey): Promise<PublicKey> {
+    const usdcTokenAccount = await getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        wallet.payer,
+        usdc,
+        owner,
+        true
+    );
+    console.log(`💶 USDC Account for ${owner}: ${usdcTokenAccount.address.toBase58()}`);
+    return usdcTokenAccount.address;
+}
+
+export async function mintUSDC(provider: anchor.Provider, wallet: anchor.Wallet, usdc: PublicKey, receiverATA: PublicKey, amount: number) {
+    const usdcInfo = await getMint(provider.connection, usdc);
+    const decimals = usdcInfo.decimals;
+    const amountInDecimals = amount * Math.pow(10, decimals);
+    const sigMint = await mintTo(
+        provider.connection,
+        wallet.payer,
+        usdc,
+        receiverATA,
+        wallet.publicKey,
+        amountInDecimals
+    );
+
+    
+    console.log(`💶 Minted ${amount} USDC to ${receiverATA.toBase58()}: ${sigMint}`);
 }
 
