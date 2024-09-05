@@ -61,19 +61,25 @@ async function deposit() {
     const tokenSymbol = "USDC";
     const brokerHash = getBrokerHash(brokerId);
     console.log("Broker Hash:", brokerHash);
+    const codedBrokerHash = Array.from(Buffer.from(brokerHash.slice(2), 'hex'));
     const tokenHash = getTokenHash(tokenSymbol);
     console.log("Token Hash:", tokenHash);
+    const codedTokenHash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'));
     const solAccountId = getSolAccountId(wallet.publicKey, brokerId);
     console.log("Sol Account Id:", solAccountId);
+    const codedAccountId = Array.from(Buffer.from(solAccountId.slice(2), 'hex'));
+    
+    // accountId:  Array.from(Buffer.from(solAccountId.slice(2), 'hex')),
+    //     brokerHash: Array.from(Buffer.from(brokerHash.slice(2), 'hex')),
+    //     tokenHash:  Array.from(Buffer.from(tokenHash.slice(2), 'hex')),
     
     const vaultDepositParams = {
-        accountId:  Array.from(Buffer.from(solAccountId)),
-        brokerHash: Array.from(Buffer.from(brokerHash)),
-        tokenHash:  Array.from(Buffer.from(tokenHash)),
+        accountId:  codedAccountId,
+        brokerHash: codedBrokerHash,
+        tokenHash:  codedTokenHash,
         srcChainId: new anchor.BN(902902902),
-        tokenAmount: new anchor.BN(1_0_000_000),
+        tokenAmount: new anchor.BN(123_000_000),
     };
-
 
     const sendParam = {
         dstEid: DST_EID,

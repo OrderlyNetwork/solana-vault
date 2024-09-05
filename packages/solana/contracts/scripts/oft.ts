@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { PublicKey, SystemProgram, Transaction, Keypair} from "@solana/web3.js";
+import { PublicKey, SystemProgram, Transaction, Keypair, ComputeBudgetInstruction, ComputeBudgetProgram} from "@solana/web3.js";
 import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, createInitializeMintInstruction, getMintLen, getOrCreateAssociatedTokenAccount } from '@solana/spl-token'
 import { OftTools } from "@layerzerolabs/lz-solana-sdk-v2";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
@@ -9,6 +9,7 @@ import { DST_EID, ENDPOINT_PROGRAM_ID, PEER_ADDRESS, LZ_RECEIVE_GAS, LZ_COMPOSE_
 import OftIdl from "../target/idl/oft.json";
 import { Oft } from "../target/types/oft";
 import { set } from "@coral-xyz/anchor/dist/cjs/utils/features";
+import { token } from "@coral-xyz/anchor/dist/cjs/utils";
 const OFT_PROGRAM_ID = new PublicKey(OftIdl.metadata.address);
 const OFTProgram = anchor.workspace.SolanaVault as anchor.Program<Oft>;
 
@@ -16,7 +17,7 @@ const [provider, wallet] = setAnchor();
 
 const SOLANA_OFT_TOKEN_DECIMALS = 6;
 
-const MINT_ACCOUNT_PRIVATE = new Uint8Array([143,186,44,43,192,98,175,170,83,245,56,89,133,219,80,45,4,120,193,92,20,254,207,233,179,148,119,89,117,81,159,241,165,108,104,111,70,174,149,89,7,193,221,187,49,141,49,7,86,6,132,173,173,213,222,142,149,236,186,56,197,24,207,139])
+const MINT_ACCOUNT_PRIVATE = new Uint8Array([34,81,178,29,220,118,76,1,237,155,90,252,238,163,70,18,38,70,146,193,233,167,78,118,169,92,64,91,58,208,204,7,242,171,13,70,176,229,137,37,101,183,244,226,5,145,15,33,116,222,52,118,16,31,10,140,18,194,160,103,209,121,84,59])
 const MINT_ACCOUNT = Keypair.fromSecretKey(MINT_ACCOUNT_PRIVATE)
 console.log("Mint Account:", MINT_ACCOUNT.publicKey.toBase58());
 
@@ -187,7 +188,7 @@ async function send() {
         DST_EID,
         AMOUNT,
         AMOUNT,
-        Options.newOptions().addExecutorLzReceiveOption(0,0).toBytes(),
+        Options.newOptions().addExecutorLzReceiveOption(50000,0).toBytes(),
         Array.from(PEER_ADDRESS),
         false,
         undefined,
@@ -200,6 +201,32 @@ async function send() {
         ENDPOINT_PROGRAM_ID,
     );
     console.log("Fee:", fee);
+
+    const txSend = new Transaction().add(
+        await OftTools.sendWithUln(
+            provider.connection,
+            wallet.publicKey,
+            MINT_ACCOUNT.publicKey,
+            ATA.address,
+            DST_EID,
+            AMOUNT,
+            AMOUNT,
+            Options.newOptions().addExecutorLzReceiveOption(50000,0).toBytes(),
+            Array.from(PEER_ADDRESS),
+            BigInt(100_000_000),
+            BigInt(0),
+            undefined,
+            Buffer.from(""),
+            Array.from(PEER_ADDRESS),
+            undefined,
+            TOKEN_PROGRAM_ID,
+            OFT_PROGRAM_ID,
+            ENDPOINT_PROGRAM_ID
+        )
+    ).add(ComputeBudgetProgram.setComputeUnitLimit({units: 400_000}));
+
+    const sig = await provider.sendAndConfirm(txSend, [wallet.payer]);
+    console.log("Send transaction confirmed:", sig);
 }
 
 async function main() {

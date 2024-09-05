@@ -5,6 +5,7 @@ export const SEND_LIB_PROGRAM_ID = new PublicKey("7a4WjyR8VZ7yZz5XJAKm39BUGn5iT9
 export const RECEIVE_LIB_PROGRAM_ID = SEND_LIB_PROGRAM_ID;
 export const TREASURY_PROGRAM_ID = SEND_LIB_PROGRAM_ID;
 export const EXECUTOR_PROGRAM_ID = new PublicKey("6doghB248px58JSSwG4qejQ46kFMW4AMj7vzJnWZHNZn");
+export const EXECUTOR_PDA = new PublicKey("AwrbHeCyniXaQhiJZkLhgWdUCteeWSGaSN1sTfLiY7xK");
 export const DVN_PROGRAM_ID = new PublicKey("HtEYV4xB4wvsj5fgTkcfuChYpvGYzgzwvNhgDZQNh7wW");
 export const PRICE_FEED_PROGRAM_ID = new PublicKey("8ahPGPjEbpgGaZx2NV1iG5Shj7TDwvsjkEDcGWjt94TP");
 export const DEV_LOOKUP_TABLE_ADDRESS = new PublicKey("AAudqEoxrKPYMfeYE4wAQuBNukeqxGtskQYmrNF947Z");
