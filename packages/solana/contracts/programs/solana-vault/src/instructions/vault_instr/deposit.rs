@@ -7,7 +7,7 @@ use anchor_spl::{
 use oapp::endpoint::{instructions::SendParams as EndpointSendParams, MessagingReceipt};
 
 use crate::instructions::{
-    codec_utils::to_bytes32, OAppSendParams, ENFORCED_OPTIONS_SEED, OAPP_SEED, PEER_SEED,
+    type_utils::to_bytes32, OAppSendParams, ENFORCED_OPTIONS_SEED, OAPP_SEED, PEER_SEED,
     VAULT_DEPOSIT_AUTHORITY_SEED,
 };
 

@@ -1,25 +1,15 @@
-use anchor_lang::prelude::*;
-
 mod errors;
 mod events;
 mod instructions;
 mod state;
 
-use crate::deposit::DepositParams;
+use anchor_lang::prelude::*;
 use errors::*;
 use instructions::*;
-use oapp_send::OAppSendParams;
 
-pub mod msg_codec;
-
-use events::*;
 use oapp::endpoint::{MessagingFee, MessagingReceipt};
-use state::*;
 
 declare_id!("EFLrsQmcfYTSvVrUiP4qruDhbYBtjbQNAhC6tkLJbBtQ");
-
-pub const OAPP_VERSION: u64 = 1;
-pub const OAPP_SDK_VERSION: u64 = 1;
 
 #[program]
 pub mod solana_vault {
@@ -55,14 +45,6 @@ pub mod solana_vault {
     pub fn lz_receive(mut ctx: Context<OAppLzReceive>, params: OAppLzReceiveParams) -> Result<()> {
         OAppLzReceive::apply(&mut ctx, &params)
     }
-
-    // pub fn vault_deposit(
-    //     mut ctx: Context<VaultDeposit>,
-    //     params: VaultDepositParams,
-    //     oapp_params: OAppSendParams,
-    // ) -> Result<MessagingReceipt> {
-    //     VaultDeposit::apply(&mut ctx, &params, &oapp_params)
-    // }
 
     pub fn lz_receive_types(
         ctx: Context<OAppLzReceiveTypes>,
