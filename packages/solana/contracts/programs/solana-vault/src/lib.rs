@@ -6,16 +6,14 @@ mod instructions;
 mod state;
 
 use crate::deposit::DepositParams;
-use crate::withdraw::VaultWithdrawParams;
+// use crate::withdraw::VaultWithdrawParams;
 use errors::*;
 use instructions::*;
 use oapp_send::OAppSendParams;
 
 pub mod msg_codec;
 
-use errors::*;
 use events::*;
-use instructions::*;
 use oapp::endpoint::{MessagingFee, MessagingReceipt};
 use state::*;
 
@@ -36,35 +34,12 @@ pub mod solana_vault {
         InitVault::apply(&mut ctx)
     }
 
-    pub fn deposit<'info>(
-        mut ctx: Context<'_, '_, '_, 'info, Deposit<'info>>,
-        deposit_params: DepositParams,
-    ) -> Result<()> {
-        Deposit::apply(&mut ctx, &deposit_params)
-    }
-
-    pub fn deposit_oapp<'info>(
-        mut ctx: Context<'_, '_, '_, 'info, DepositOapp<'info>>,
-        deposit_params: DepositParams,
-        oapp_params: OAppSendParams,
-    ) -> Result<()> {
-        DepositOapp::apply(&mut ctx, &deposit_params, oapp_params)
-    }
-
     pub fn deposit_entry<'info>(
         mut ctx: Context<'_, '_, '_, 'info, DepositEntry<'info>>,
         deposit_params: DepositParams,
         oapp_params: OAppSendParams,
     ) -> Result<MessagingReceipt> {
-        // msg!("DepositParams: {:?}", deposit_params);
         DepositEntry::apply(&mut ctx, deposit_params, oapp_params)
-    }
-
-    pub fn withdraw(
-        mut ctx: Context<Withdraw>,
-        withdraw_params: VaultWithdrawParams,
-    ) -> Result<()> {
-        Withdraw::apply(&mut ctx, &withdraw_params)
     }
 
     pub fn init_oapp(mut ctx: Context<InitOApp>, params: InitOAppParams) -> Result<()> {

@@ -1,8 +1,6 @@
 use crate::oapp_instr::vault_deposit::VaultDepositParams;
 use crate::*;
 
-use anchor_lang::prelude::*;
-
 // Vault event
 #[event]
 pub struct Deposited {

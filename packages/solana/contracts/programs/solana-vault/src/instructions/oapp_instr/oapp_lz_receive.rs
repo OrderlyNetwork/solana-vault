@@ -273,7 +273,7 @@ impl AccountWithdrawSol {
     }
 }
 
-impl From<AccountWithdrawSol> for vault_instr::withdraw::VaultWithdrawParams {
+impl From<AccountWithdrawSol> for VaultWithdrawParams {
     fn from(account_withdraw_sol: AccountWithdrawSol) -> VaultWithdrawParams {
         // 0xd6aca1be9729c13d677335161321649cccae6a591554772516700f986f942eaa
         // token hash from hex string
@@ -292,6 +292,19 @@ impl From<AccountWithdrawSol> for vault_instr::withdraw::VaultWithdrawParams {
             withdraw_nonce: account_withdraw_sol.withdraw_nonce,
         }
     }
+}
+
+#[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct VaultWithdrawParams {
+    pub account_id: [u8; 32],
+    pub sender: [u8; 32],
+    pub receiver: [u8; 32],
+    pub broker_hash: [u8; 32],
+    pub token_hash: [u8; 32],
+    pub token_amount: u64,
+    pub fee: u128,
+    pub chain_id: u128,
+    pub withdraw_nonce: u64,
 }
 
 // test code
