@@ -117,11 +117,6 @@ impl<'info> DepositEntry<'info> {
             ctx.accounts.user_info.user = ctx.accounts.user.key();
         }
 
-        // msg!("Deposit: amount={}", deposit_params.token_amount);
-        // msg!("Src chain id: {}", deposit_params.src_chain_id);
-
-        msg!("DepositParams: {:?}", deposit_params);
-
         transfer(
             ctx.accounts.transfer_token_ctx(),
             deposit_params.token_amount,
@@ -143,8 +138,6 @@ impl<'info> DepositEntry<'info> {
         ctx.accounts.vault_deposit_authority.nonce += 1;
 
         emit!(Into::<VaultDeposited>::into(vault_deposit_params.clone()));
-
-        msg! {"VaultDepositParams: {:?}", vault_deposit_params};
 
         let receipt = oapp::endpoint_cpi::send(
             ctx.accounts.oapp_config.endpoint_program,

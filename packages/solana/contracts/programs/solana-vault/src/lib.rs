@@ -56,7 +56,7 @@ pub mod solana_vault {
         deposit_params: DepositParams,
         oapp_params: OAppSendParams,
     ) -> Result<MessagingReceipt> {
-        msg!("DepositParams: {:?}", deposit_params);
+        // msg!("DepositParams: {:?}", deposit_params);
         DepositEntry::apply(&mut ctx, deposit_params, oapp_params)
     }
 

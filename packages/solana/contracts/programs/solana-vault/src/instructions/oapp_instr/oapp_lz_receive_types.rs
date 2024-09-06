@@ -64,6 +64,67 @@ impl OAppLzReceiveTypes<'_> {
             }, // 2
         ]);
 
+        let withdraw_params = AccountWithdrawSol::decode_packed(&params.message).unwrap();
+        let user = Pubkey::new_from_array(withdraw_params.receiver);
+
+        //
+        let (user_info, _) = Pubkey::find_program_address(&[&user.to_bytes()], ctx.program_id);
+
+        let token_mint = Pubkey::from_str("usdc4pNcoYJ2GNXcJN4iwNXfxbKXPQzqBdALdqaRyUn").unwrap();
+
+        let token_program_id =
+            Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap();
+
+        let user_deposit_wallet =
+            associated_token::get_associated_token_address(&user, &token_mint);
+
+        const VAULT_DEPOSIT_AUTHORITY_SEED: &[u8] = b"vault_deposit_authority";
+
+        let (vault_deposit_authority, _) = Pubkey::find_program_address(
+            &[VAULT_DEPOSIT_AUTHORITY_SEED, &token_mint.to_bytes()],
+            ctx.program_id,
+        );
+
+        let vault_deposit_wallet =
+            associated_token::get_associated_token_address(&vault_deposit_authority, &token_mint);
+
+        accounts.extend_from_slice(&[
+            LzAccount {
+                pubkey: user,
+                is_signer: false,
+                is_writable: false,
+            },
+            LzAccount {
+                pubkey: user_info,
+                is_signer: false,
+                is_writable: true,
+            },
+            LzAccount {
+                pubkey: user_deposit_wallet,
+                is_signer: false,
+                is_writable: true,
+            },
+            LzAccount {
+                pubkey: vault_deposit_authority,
+                is_signer: false,
+                is_writable: false,
+            },
+            LzAccount {
+                pubkey: vault_deposit_wallet,
+                is_signer: false,
+                is_writable: true,
+            },
+            LzAccount {
+                pubkey: token_mint,
+                is_signer: false,
+                is_writable: false,
+            },
+            LzAccount {
+                pubkey: token_program_id,
+                is_signer: false,
+                is_writable: false,
+            },
+        ]);
         // account 3..5
         let (event_authority_account, _) =
             Pubkey::find_program_address(&[oapp::endpoint_cpi::EVENT_SEED], &ctx.program_id);
@@ -95,12 +156,6 @@ impl OAppLzReceiveTypes<'_> {
             params.nonce,
         );
         accounts.extend(accounts_for_clear);
-
-        let withdraw_params = AccountWithdrawSol::decode_packed(&params.message).unwrap();
-
-        let user = Pubkey::new_from_array(withdraw_params.receiver);
-        // remaining accounts for send msg back
-        accounts.extend(get_accounts_for_send_oapp(user));
 
         Ok(accounts)
     }
