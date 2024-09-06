@@ -1,10 +1,9 @@
-use crate::*;
 use anchor_lang::prelude::*;
 use anchor_spl::{associated_token::AssociatedToken, token::Mint};
 
-pub const VAULT_DEPOSIT_AUTHORITY_SEED: &[u8] = b"vault_deposit_authority";
-
+use crate::instructions::VAULT_DEPOSIT_AUTHORITY_SEED;
 use crate::state::VaultDepositAuthority;
+
 #[derive(Accounts)]
 #[instruction()]
 pub struct InitVault<'info> {

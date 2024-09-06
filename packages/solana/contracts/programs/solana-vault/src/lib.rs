@@ -6,7 +6,6 @@ mod instructions;
 mod state;
 
 use crate::deposit::DepositParams;
-// use crate::withdraw::VaultWithdrawParams;
 use errors::*;
 use instructions::*;
 use oapp_send::OAppSendParams;
@@ -21,10 +20,6 @@ declare_id!("EFLrsQmcfYTSvVrUiP4qruDhbYBtjbQNAhC6tkLJbBtQ");
 
 pub const OAPP_VERSION: u64 = 1;
 pub const OAPP_SDK_VERSION: u64 = 1;
-pub const OAPP_SEED: &[u8] = b"OApp";
-pub const PEER_SEED: &[u8] = b"Peer";
-pub const ENFORCED_OPTIONS_SEED: &[u8] = b"EnforcedOptions";
-pub const LZ_RECEIVE_TYPES_SEED: &[u8] = oapp::LZ_RECEIVE_TYPES_SEED;
 
 #[program]
 pub mod solana_vault {
@@ -61,13 +56,13 @@ pub mod solana_vault {
         OAppLzReceive::apply(&mut ctx, &params)
     }
 
-    pub fn vault_deposit(
-        mut ctx: Context<VaultDeposit>,
-        params: VaultDepositParams,
-        oapp_params: OAppSendParams,
-    ) -> Result<MessagingReceipt> {
-        VaultDeposit::apply(&mut ctx, &params, &oapp_params)
-    }
+    // pub fn vault_deposit(
+    //     mut ctx: Context<VaultDeposit>,
+    //     params: VaultDepositParams,
+    //     oapp_params: OAppSendParams,
+    // ) -> Result<MessagingReceipt> {
+    //     VaultDeposit::apply(&mut ctx, &params, &oapp_params)
+    // }
 
     pub fn lz_receive_types(
         ctx: Context<OAppLzReceiveTypes>,

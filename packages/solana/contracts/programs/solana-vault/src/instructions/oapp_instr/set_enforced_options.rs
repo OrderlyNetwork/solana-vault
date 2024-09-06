@@ -1,4 +1,7 @@
-use crate::*;
+use crate::errors::OAppError;
+use crate::instructions::{ENFORCED_OPTIONS_SEED, OAPP_SEED};
+use crate::state::{EnforcedOptions, OAppConfig};
+use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 #[instruction(params: SetEnforcedOptionsParams)]

@@ -1,4 +1,7 @@
-use crate::*;
+use crate::errors::OAppError;
+use crate::instructions::{OAPP_SEED, PEER_SEED};
+use crate::state::{OAppConfig, Peer};
+use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 #[instruction(params: SetRateLimitParams)]

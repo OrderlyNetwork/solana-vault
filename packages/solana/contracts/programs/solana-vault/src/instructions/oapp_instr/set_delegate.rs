@@ -1,4 +1,7 @@
-use crate::*;
+use crate::errors::OAppError;
+use crate::instructions::OAPP_SEED;
+use crate::state::OAppConfig;
+use anchor_lang::prelude::*;
 use endpoint::instructions::SetDelegateParams as EndpointSetDelegateParams;
 use oapp::endpoint;
 
@@ -16,14 +19,15 @@ pub struct SetDelegate<'info> {
 
 impl SetDelegate<'_> {
     pub fn apply(ctx: &mut Context<SetDelegate>, params: &SetDelegateParams) -> Result<()> {
-        let seeds: &[&[u8]] =
-            &[OAPP_SEED, &[ctx.accounts.oapp_config.bump]];
+        let seeds: &[&[u8]] = &[OAPP_SEED, &[ctx.accounts.oapp_config.bump]];
         let _ = oapp::endpoint_cpi::set_delegate(
             ctx.accounts.oapp_config.endpoint_program,
             ctx.accounts.oapp_config.key(),
             &ctx.remaining_accounts,
             seeds,
-            EndpointSetDelegateParams { delegate: params.delegate },
+            EndpointSetDelegateParams {
+                delegate: params.delegate,
+            },
         )?;
         Ok(())
     }

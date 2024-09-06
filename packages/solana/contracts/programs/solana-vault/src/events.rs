@@ -1,4 +1,4 @@
-use crate::oapp_instr::vault_deposit::VaultDepositParams;
+use crate::vault_instr::deposit::VaultDepositParams;
 use crate::*;
 
 // Vault event

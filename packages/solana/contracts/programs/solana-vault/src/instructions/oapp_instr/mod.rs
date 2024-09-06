@@ -1,4 +1,3 @@
-pub mod cc_encode;
 pub mod init_oapp;
 pub mod oapp_lz_receive;
 pub mod oapp_lz_receive_types;
@@ -9,7 +8,6 @@ pub mod set_enforced_options;
 pub mod set_peer;
 pub mod set_rate_limit;
 pub mod transfer_admin;
-pub mod vault_deposit;
 
 pub use init_oapp::*;
 pub use oapp_lz_receive::*;
@@ -21,4 +19,3 @@ pub use set_enforced_options::*;
 pub use set_peer::*;
 pub use set_rate_limit::*;
 pub use transfer_admin::*;
-pub use vault_deposit::*;

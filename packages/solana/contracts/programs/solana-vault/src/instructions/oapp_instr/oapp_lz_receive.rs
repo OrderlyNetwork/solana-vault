@@ -1,7 +1,7 @@
 use crate::events::VaultWithdrawn;
+use crate::instructions::codec_utils::to_bytes32;
 use crate::*;
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
-use cc_encode::to_bytes32;
 use oapp::endpoint::{cpi::accounts::Clear, instructions::ClearParams, ConstructCPIContext};
 
 #[event_cpi]
