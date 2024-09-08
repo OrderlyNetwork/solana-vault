@@ -7,7 +7,7 @@ use anchor_spl::{
 use oapp::endpoint::{instructions::SendParams as EndpointSendParams, MessagingReceipt};
 
 use crate::instructions::{
-    type_utils::to_bytes32, OAppSendParams, ENFORCED_OPTIONS_SEED, OAPP_SEED, PEER_SEED,
+    type_utils::to_bytes32, ENFORCED_OPTIONS_SEED, OAPP_SEED, PEER_SEED,
     VAULT_DEPOSIT_AUTHORITY_SEED,
 };
 
@@ -17,7 +17,7 @@ use crate::state::{EnforcedOptions, OAppConfig, Peer, UserInfo, VaultDepositAuth
 
 #[derive(Accounts)]
 #[instruction(deposit_params: DepositParams, oapp_params: OAppSendParams)]
-pub struct DepositEntry<'info> {
+pub struct Deposit<'info> {
     #[account(
         init_if_needed,
         payer = user,
@@ -87,7 +87,7 @@ pub struct DepositEntry<'info> {
     pub system_program: Program<'info, System>,
 }
 
-impl<'info> DepositEntry<'info> {
+impl<'info> Deposit<'info> {
     pub fn transfer_token_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
         let cpi_accounts = Transfer {
             from: self.user_deposit_wallet.to_account_info(),
@@ -99,7 +99,7 @@ impl<'info> DepositEntry<'info> {
     }
 
     pub fn apply(
-        ctx: &mut Context<'_, '_, '_, 'info, DepositEntry<'info>>,
+        ctx: &mut Context<'_, '_, '_, 'info, Deposit<'info>>,
         deposit_params: DepositParams,
         oapp_params: OAppSendParams,
     ) -> Result<MessagingReceipt> {
@@ -218,4 +218,14 @@ impl VaultDepositParams {
         buf.extend_from_slice(&to_bytes32(&self.src_chain_deposit_nonce.to_be_bytes()));
         buf
     }
+}
+
+#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct OAppSendParams {
+    pub dst_eid: u32,
+    pub to: [u8; 32],
+    pub options: Vec<u8>,
+    pub message: Option<Vec<u8>>,
+    pub native_fee: u64,
+    pub lz_token_fee: u64,
 }

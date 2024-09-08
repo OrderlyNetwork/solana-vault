@@ -19,12 +19,12 @@ pub mod solana_vault {
         InitVault::apply(&mut ctx)
     }
 
-    pub fn deposit_entry<'info>(
-        mut ctx: Context<'_, '_, '_, 'info, DepositEntry<'info>>,
+    pub fn deposit<'info>(
+        mut ctx: Context<'_, '_, '_, 'info, Deposit<'info>>,
         deposit_params: DepositParams,
         oapp_params: OAppSendParams,
     ) -> Result<MessagingReceipt> {
-        DepositEntry::apply(&mut ctx, deposit_params, oapp_params)
+        Deposit::apply(&mut ctx, deposit_params, oapp_params)
     }
 
     pub fn init_oapp(mut ctx: Context<InitOApp>, params: InitOAppParams) -> Result<()> {
@@ -33,13 +33,6 @@ pub mod solana_vault {
 
     pub fn oapp_quote(ctx: Context<OAppQuote>, params: OAppQuoteParams) -> Result<MessagingFee> {
         OAppQuote::apply(&ctx, &params)
-    }
-
-    pub fn oapp_send(
-        mut ctx: Context<OAppSend>,
-        params: OAppSendParams,
-    ) -> Result<MessagingReceipt> {
-        OAppSend::apply(&mut ctx, &params)
     }
 
     pub fn lz_receive(mut ctx: Context<OAppLzReceive>, params: OAppLzReceiveParams) -> Result<()> {
