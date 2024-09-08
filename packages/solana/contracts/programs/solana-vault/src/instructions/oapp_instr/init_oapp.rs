@@ -1,4 +1,6 @@
-use crate::*;
+use crate::instructions::{LZ_RECEIVE_TYPES_SEED, OAPP_SEED};
+use crate::state::{OAppConfig, OAppLzReceiveTypesAccounts};
+use anchor_lang::prelude::*;
 
 /// This instruction should always be in the same transaction as InitializeMint.
 /// Otherwise, it is possible for your settings to be front-run by another transaction.

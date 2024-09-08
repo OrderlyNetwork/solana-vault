@@ -7,15 +7,27 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-oft = "8XzyimNDN6RrzMkMDy5cR7byfk7iV45qewUfKzTvFvgx"
+oft = "HZuGXo97nFuv6UmvcYtt7T8L8vB3KAFRZTmohTA3k63m"
 solana-vault = "5seA2qXcGyC9najiKmUVK3u2hfotXZVHtaxuxfrwBLrX"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
+
+oft = "yarn run ts-node scripts/oft.ts"
+send_oapp = "yarn run ts-node scripts/send.ts"
+
+print_pda = "yarn run ts-node scripts/00print_pda.ts"
+setup_oapp = "yarn run ts-node scripts/01setup_oapp.ts"
+setconfig_oapp = "yarn run ts-node scripts/02setconfig_oapp.ts"
+init_oapp = "yarn run ts-node scripts/03init_oapp.ts"
+mint_usdc = "yarn run ts-node scripts/04mint_usdc.ts"
+setup_vault = "yarn run ts-node scripts/05setup_vault.ts"
+deposit_vault = "yarn run ts-node scripts/06deposit_vault.ts"
+
 test = "yarn run ts-mocha -b -p ./tsconfig.json -t 1000000 tests/**/*.test.ts"

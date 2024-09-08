@@ -1,9 +1,13 @@
 use std::str::FromStr;
 
-use crate::*;
+use anchor_lang::prelude::*;
 use anchor_lang::solana_program;
 use anchor_spl::associated_token;
 use oapp::endpoint_cpi::LzAccount;
+
+use crate::instructions::AccountWithdrawSol;
+use crate::instructions::{OAPP_SEED, PEER_SEED};
+use crate::state::OAppConfig;
 
 #[derive(Accounts)]
 pub struct OAppLzReceiveTypes<'info> {
@@ -29,12 +33,12 @@ impl OAppLzReceiveTypes<'_> {
         ctx: &Context<OAppLzReceiveTypes>,
         params: &OAppLzReceiveParams,
     ) -> Result<Vec<LzAccount>> {
-        let oapp = &ctx.accounts.oapp_config;
+        let oapp_config = &ctx.accounts.oapp_config;
 
         let (peer, _) = Pubkey::find_program_address(
             &[
                 PEER_SEED,
-                &oapp.key().to_bytes(),
+                &oapp_config.key().to_bytes(),
                 &params.src_eid.to_be_bytes(),
             ],
             ctx.program_id,
@@ -55,52 +59,112 @@ impl OAppLzReceiveTypes<'_> {
         ];
 
         // account 2
-        let (oapp_config, _) = Pubkey::find_program_address(&[OAPP_SEED], ctx.program_id);
+        // let (oapp_config, _) = Pubkey::find_program_address(&[OAPP_SEED], ctx.program_id);
         accounts.extend_from_slice(&[
             LzAccount {
-                pubkey: oapp_config,
+                pubkey: oapp_config.key(),
                 is_signer: false,
                 is_writable: false,
             }, // 2
         ]);
 
-        // account 3..5
+        let withdraw_params = AccountWithdrawSol::decode_packed(&params.message).unwrap();
+        // account 3
+        let user = Pubkey::new_from_array(withdraw_params.receiver);
+        // account 4
+        let (user_info, _) = Pubkey::find_program_address(&[&user.to_bytes()], ctx.program_id);
+
+        // account 8
+        let token_mint = Pubkey::from_str("usdc4pNcoYJ2GNXcJN4iwNXfxbKXPQzqBdALdqaRyUn").unwrap();
+        // account 9
+        let token_program_id =
+            Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap();
+        // account 5
+        let user_deposit_wallet =
+            associated_token::get_associated_token_address(&user, &token_mint);
+
+        const VAULT_DEPOSIT_AUTHORITY_SEED: &[u8] = b"vault_deposit_authority";
+        // account 6
+        let (vault_deposit_authority, _) = Pubkey::find_program_address(
+            &[VAULT_DEPOSIT_AUTHORITY_SEED, &token_mint.to_bytes()],
+            ctx.program_id,
+        );
+        // account 7
+        let vault_deposit_wallet =
+            associated_token::get_associated_token_address(&vault_deposit_authority, &token_mint);
+
+        // add accounts 3..9
+        accounts.extend_from_slice(&[
+            LzAccount {
+                pubkey: user,
+                is_signer: false,
+                is_writable: false,
+            }, // 3
+            LzAccount {
+                pubkey: user_info,
+                is_signer: false,
+                is_writable: true,
+            }, // 4
+            LzAccount {
+                pubkey: user_deposit_wallet,
+                is_signer: false,
+                is_writable: true,
+            }, // 5
+            LzAccount {
+                pubkey: vault_deposit_authority,
+                is_signer: false,
+                is_writable: false,
+            }, // 6
+            LzAccount {
+                pubkey: vault_deposit_wallet,
+                is_signer: false,
+                is_writable: true,
+            }, // 7
+            LzAccount {
+                pubkey: token_mint,
+                is_signer: false,
+                is_writable: false,
+            }, // 8
+            LzAccount {
+                pubkey: token_program_id,
+                is_signer: false,
+                is_writable: false,
+            }, // 9
+        ]);
+
+        // account 11
         let (event_authority_account, _) =
             Pubkey::find_program_address(&[oapp::endpoint_cpi::EVENT_SEED], &ctx.program_id);
+
+        // add accounts 10..12
         accounts.extend_from_slice(&[
             LzAccount {
                 pubkey: solana_program::system_program::ID,
                 is_signer: false,
                 is_writable: false,
-            }, // 3
+            }, // 10
             LzAccount {
                 pubkey: event_authority_account,
                 is_signer: false,
                 is_writable: false,
-            }, // 4
+            }, // 11
             LzAccount {
                 pubkey: ctx.program_id.key(),
                 is_signer: false,
                 is_writable: false,
-            }, // 5
+            }, // 12
         ]);
 
         let endpoint_program = ctx.accounts.oapp_config.endpoint_program;
-        // remaining accounts 0..9
+        // accounts 13..20
         let accounts_for_clear = oapp::endpoint_cpi::get_accounts_for_clear(
             endpoint_program,
-            &oapp.key(),
+            &oapp_config.key(),
             params.src_eid,
             &params.sender,
             params.nonce,
         );
         accounts.extend(accounts_for_clear);
-
-        let withdraw_params = AccountWithdrawSol::decode_packed(&params.message).unwrap();
-
-        let user = Pubkey::new_from_array(withdraw_params.receiver);
-        // remaining accounts for send msg back
-        accounts.extend(get_accounts_for_send_oapp(user));
 
         Ok(accounts)
     }

@@ -1,4 +1,6 @@
-use crate::*;
+use crate::instructions::{ENFORCED_OPTIONS_SEED, OAPP_SEED, PEER_SEED};
+use crate::state::{EnforcedOptions, OAppConfig, Peer};
+use anchor_lang::prelude::*;
 use oapp::endpoint::{instructions::QuoteParams as EndpointQuoteParams, MessagingFee};
 
 #[derive(Accounts)]
@@ -31,7 +33,6 @@ pub struct OAppQuote<'info> {
 
 impl OAppQuote<'_> {
     pub fn apply(ctx: &Context<OAppQuote>, params: &OAppQuoteParams) -> Result<MessagingFee> {
-
         // calling endpoint cpi
         oapp::endpoint_cpi::quote(
             ctx.accounts.oapp_config.endpoint_program,

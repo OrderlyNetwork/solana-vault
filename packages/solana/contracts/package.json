@@ -5,7 +5,8 @@
   },
   "devDependencies": {
     "@coral-xyz/anchor": "^0.29.0",
-    "@layerzerolabs/lz-solana-sdk-v2": "^2.3.22",
+    "@layerzerolabs/lz-solana-sdk-v2": "2.3.28",
+    "@layerzerolabs/lz-v2-utilities": "2.3.28",
     "@solana/spl-token": "^0.4.6",
     "@solana/web3.js": "^1.91.8",
     "@types/bn.js": "^5.1.0",
@@ -16,6 +17,12 @@
     "prettier": "^2.6.2",
     "rpc-websockets": "=7.11.0",
     "ts-mocha": "^10.0.0",
+    "ts-node": "^10.9.2",
     "typescript": "^4.3.5"
+  },
+  "dependencies": {
+    "@solana-developers/helpers": "^2.5.2",
+    "ethereum-cryptography": "^2.2.1",
+    "ethers": "^6.13.2"
   }
 }
