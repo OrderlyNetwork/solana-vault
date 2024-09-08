@@ -1,4 +1,4 @@
-import { ENFORCED_OPTIONS_SEED, EVENT_SEED, LZ_RECEIVE_TYPES_SEED, OAPP_SEED, PEER_SEED, MESSAGE_LIB_SEED, SEND_LIBRARY_CONFIG_SEED, ENDPOINT_SEED, NONCE_SEED, ULN_SEED, SEND_CONFIG_SEED, EXECUTOR_CONFIG_SEED, PRICE_FEED_SEED, DVN_CONFIG_SEED, OFT_SEED } from "@layerzerolabs/lz-solana-sdk-v2";
+import { ENFORCED_OPTIONS_SEED, EVENT_SEED, LZ_RECEIVE_TYPES_SEED, OAPP_SEED, PEER_SEED, MESSAGE_LIB_SEED, SEND_LIBRARY_CONFIG_SEED, ENDPOINT_SEED, NONCE_SEED, ULN_SEED, SEND_CONFIG_SEED, EXECUTOR_CONFIG_SEED, PRICE_FEED_SEED, DVN_CONFIG_SEED, OFT_SEED, RECEIVE_CONFIG_SEED } from "@layerzerolabs/lz-solana-sdk-v2";
 import { PublicKey, TransactionInstruction, VersionedTransaction, TransactionMessage, AddressLookupTableProgram, Keypair } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
 import {
@@ -7,7 +7,7 @@ import {
     getMint,
     mintTo
   } from "@solana/spl-token";
-import { DVN_PROGRAM_ID, ENDPOINT_PROGRAM_ID, EXECUTOR_PROGRAM_ID, PEER_ADDRESS, PRICE_FEED_PROGRAM_ID, SEND_LIB_PROGRAM_ID, DEV_LOOKUP_TABLE_ADDRESS, MAIN_LOOKUP_TABLE_ADDRESS, LOCAL_RPC, DEV_RPC, MAIN_RPC, VAULT_DEPOSIT_AUTHORITY_SEED, MOCK_USDC_PRIVATE_KEY, MOCK_USDC_ACCOUNT, DEV_USDC_ACCOUNT, MAIN_USDC_ACCOUNT} from "./constants";
+import { DVN_PROGRAM_ID, ENDPOINT_PROGRAM_ID, EXECUTOR_PROGRAM_ID, PEER_ADDRESS, PRICE_FEED_PROGRAM_ID, SEND_LIB_PROGRAM_ID, DEV_LOOKUP_TABLE_ADDRESS, MAIN_LOOKUP_TABLE_ADDRESS, LOCAL_RPC, DEV_RPC, MAIN_RPC, VAULT_DEPOSIT_AUTHORITY_SEED, MOCK_USDC_PRIVATE_KEY, MOCK_USDC_ACCOUNT, DEV_USDC_ACCOUNT, MAIN_USDC_ACCOUNT, RECEIVE_LIB_PROGRAM_ID } from "./constants";
 import { seed } from "@coral-xyz/anchor/dist/cjs/idl";
 import { hexToBytes } from 'ethereum-cryptography/utils';
 import { keccak256, AbiCoder, solidityPackedKeccak256, decodeBase58 } from "ethers"
@@ -115,7 +115,26 @@ export function getDefaultSendConfigPda(dstEid: number): PublicKey {
     bufferDstEid.writeUInt32BE(dstEid);
     return PublicKey.findProgramAddressSync(
         [Buffer.from(SEND_CONFIG_SEED, "utf8"), bufferDstEid],
-        SEND_LIB_PROGRAM_ID
+        RECEIVE_LIB_PROGRAM_ID
+    )[0];
+}
+
+export function getReceiveConfigPda(oappConfigPda: PublicKey, dstEid: number): PublicKey {
+    const bufferSrcEid = Buffer.alloc(4);
+    bufferSrcEid.writeUInt32BE(dstEid);
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from(RECEIVE_CONFIG_SEED, "utf8"), bufferSrcEid, oappConfigPda.toBuffer()],
+        RECEIVE_LIB_PROGRAM_ID
+    )[0];
+}
+
+
+export function getDefaultReceiveConfigPda(srcEid: number): PublicKey {
+    const bufferSrcEid = Buffer.alloc(4);
+    bufferSrcEid.writeUInt32BE(srcEid);
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from(RECEIVE_CONFIG_SEED, "utf8"), bufferSrcEid],
+        RECEIVE_LIB_PROGRAM_ID
     )[0];
 }
 

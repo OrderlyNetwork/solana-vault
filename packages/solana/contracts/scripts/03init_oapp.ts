@@ -24,6 +24,24 @@ async function init() {
         ENDPOINT_PROGRAM_ID
     );
 
+    const txInitNonce = new Transaction().add(ixInitNonce);
+
+    try {
+        const sigInitNonce = await sendAndConfirmTransaction(
+            provider.connection,
+            txInitNonce,
+            [wallet.payer],
+            {
+                commitment: "confirmed",
+                preflightCommitment: "confirmed"
+            }
+        )
+    
+        console.log("Init Nonce transaction confirmed:", sigInitNonce);
+    } catch (e) {
+        console.log("Already Init Nonce");
+    }
+
     const IxInitConfig = await OftTools.createInitConfigIx(
         wallet.publicKey,
         oappConfigPda,
@@ -32,19 +50,24 @@ async function init() {
         ENDPOINT_PROGRAM_ID
     );
 
-    const txInit = new Transaction().add(ixInitNonce, IxInitConfig);
+    const txInitConfig = new Transaction().add(IxInitConfig);
 
-    const sig = await sendAndConfirmTransaction(
-        provider.connection,
-        txInit,
-        [wallet.payer],
-        {
-            commitment: "confirmed",
-            preflightCommitment: "confirmed"
-        }
-    )
+    try {
+        const sigInitConfig = await sendAndConfirmTransaction(
+            provider.connection,
+            txInitConfig,
+            [wallet.payer],
+            {
+                commitment: "confirmed",
+                preflightCommitment: "confirmed"
+            }
+        )
 
-    console.log("Init transaction confirmed:", sig);
+        console.log("Init Config transaction confirmed:", sigInitConfig);
+    } catch (e) {
+        console.log("Already Init Config");
+    }
+    
 }
 
 init();

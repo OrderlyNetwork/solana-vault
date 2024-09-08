@@ -29,6 +29,7 @@ const dvnConfigPda = getDvnConfigPda();
 async function setconfig() {
     await setSendConfig();
     await setReceiveConfig();
+    await setULN();
 }
 
 async function setSendConfig() {
@@ -66,13 +67,17 @@ async function setSendConfig() {
         ),
     );
 
-    const sigSetSendLib = await sendAndConfirmTransaction(
-        provider.connection,
-        txSetSendLib,
-        [wallet.payer],
-    );
-
-    console.log("Set Send Library transaction confirmed:", sigSetSendLib);
+    try {
+        const sigSetSendLib = await sendAndConfirmTransaction(
+            provider.connection,
+            txSetSendLib,
+            [wallet.payer],
+        );
+    
+        console.log("Set Send Library transaction confirmed:", sigSetSendLib);
+    } catch (e) {
+        console.log("Send Library already set");
+    }
 }
 
 async function setReceiveConfig() {
@@ -113,20 +118,24 @@ async function setReceiveConfig() {
         ),
     );
 
-    const sigSetReceiveLib = await sendAndConfirmTransaction(
-        provider.connection,
-        txSetReceiveLib,
-        [wallet.payer],
-        {
-            commitment: "confirmed",
-            preflightCommitment: "confirmed"
-        }
-    );
-
-    console.log("Set Receive Library transaction confirmed:", sigSetReceiveLib);
+    try {
+        const sigSetReceiveLib = await sendAndConfirmTransaction(
+            provider.connection,
+            txSetReceiveLib,
+            [wallet.payer],
+            {
+                commitment: "confirmed",
+                preflightCommitment: "confirmed"
+            }
+        );
+    
+        console.log("Set Receive Library transaction confirmed:", sigSetReceiveLib);
+    } catch (e) {
+        console.log("Receive Library already set");
+    }
 }
 
-// setconfig();
+setconfig();
 
 async function getConfig() {
     const config = await OftTools.getEndpointConfig(

@@ -78,7 +78,7 @@ async function deposit() {
         brokerHash: codedBrokerHash,
         tokenHash:  codedTokenHash,
         srcChainId: new anchor.BN(902902902),
-        tokenAmount: new anchor.BN(123_000_000),
+        tokenAmount: new anchor.BN(10_000_000),
     };
 
     const sendParam = {
@@ -90,7 +90,7 @@ async function deposit() {
         lzTokenFee: new anchor.BN(0),
     }
 
-    const ixDepositEntry = await OAppProgram.methods.depositEntry(vaultDepositParams, sendParam).accounts({
+    const ixDepositEntry = await OAppProgram.methods.deposit(vaultDepositParams, sendParam).accounts({
         userInfo: userInfoPda,
         userDepositWallet: userUSDCAccount,
         vaultDepositAuthority: vaultDepositAuthorityPda,
