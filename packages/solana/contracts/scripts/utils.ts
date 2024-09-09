@@ -7,7 +7,7 @@ import {
     getMint,
     mintTo
   } from "@solana/spl-token";
-import { DVN_PROGRAM_ID, ENDPOINT_PROGRAM_ID, EXECUTOR_PROGRAM_ID, PEER_ADDRESS, PRICE_FEED_PROGRAM_ID, SEND_LIB_PROGRAM_ID, DEV_LOOKUP_TABLE_ADDRESS, MAIN_LOOKUP_TABLE_ADDRESS, LOCAL_RPC, DEV_RPC, MAIN_RPC, VAULT_DEPOSIT_AUTHORITY_SEED, MOCK_USDC_PRIVATE_KEY, MOCK_USDC_ACCOUNT, DEV_USDC_ACCOUNT, MAIN_USDC_ACCOUNT, RECEIVE_LIB_PROGRAM_ID } from "./constants";
+import { DVN_PROGRAM_ID, ENDPOINT_PROGRAM_ID, EXECUTOR_PROGRAM_ID, PEER_ADDRESS, PRICE_FEED_PROGRAM_ID, SEND_LIB_PROGRAM_ID, DEV_LOOKUP_TABLE_ADDRESS, MAIN_LOOKUP_TABLE_ADDRESS, LOCAL_RPC, DEV_RPC, MAIN_RPC, VAULT_DEPOSIT_AUTHORITY_SEED, MOCK_USDC_PRIVATE_KEY, MOCK_USDC_ACCOUNT, DEV_USDC_ACCOUNT, MAIN_USDC_ACCOUNT, RECEIVE_LIB_PROGRAM_ID, BROKER_SEED } from "./constants";
 import { seed } from "@coral-xyz/anchor/dist/cjs/idl";
 import { hexToBytes } from 'ethereum-cryptography/utils';
 import { keccak256, AbiCoder, solidityPackedKeccak256, decodeBase58 } from "ethers"
@@ -347,6 +347,14 @@ export function getBrokerHash(brokerId: string): string {
 
 export function getTokenHash(tokenSymbol: string): string {
     return solidityPackedKeccak256(['string'], [tokenSymbol])
+}
+
+export function getBrokerPda(VAULT_PROGRAM_ID: PublicKey, brokerHash: string): PublicKey {
+    const hash = Array.from(Buffer.from(brokerHash.slice(2), 'hex'));
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from(BROKER_SEED, "utf8"), Buffer.from(hash)],
+        VAULT_PROGRAM_ID
+    )[0];
 }
      
 export function getSolAccountId(userAccount: PublicKey, brokerId: string): string{

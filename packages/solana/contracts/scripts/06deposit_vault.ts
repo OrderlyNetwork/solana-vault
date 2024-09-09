@@ -89,7 +89,7 @@ async function deposit() {
         nativeFee: new anchor.BN(1_000_000),
         lzTokenFee: new anchor.BN(0),
     }
-
+    const allowedBrokerPda = utils.getBrokerPda(OAPP_PROGRAM_ID, brokerHash);
     const ixDepositEntry = await OAppProgram.methods.deposit(vaultDepositParams, sendParam).accounts({
         userInfo: userInfoPda,
         userDepositWallet: userUSDCAccount,
@@ -100,6 +100,7 @@ async function deposit() {
         peer: lookupTableAddresses[2],
         enforcedOptions: lookupTableAddresses[5],
         oappConfig: lookupTableAddresses[0],
+        allowedBroker: allowedBrokerPda
     }).remainingAccounts([
                     // ENDPOINT solana/programs/programs/uln/src/instructions/endpoint/send.rs
                     {
@@ -311,6 +312,7 @@ function getTableAddresses() {
 
     const messageLibPda = utils.getMessageLibPda();
     console.log("🔑 Message Lib PDA: ", messageLibPda.toString());
+
 
     // const [usdcAddress, userUSDCAccount, vaultUSDCAccount] = await utils.getRelatedUSDCAcount(provider, wallet, rpc);
     // console.log("💶 USDC Address: ", usdcAddress.toString());

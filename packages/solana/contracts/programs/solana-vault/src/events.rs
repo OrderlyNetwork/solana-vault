@@ -2,6 +2,29 @@ use crate::vault_instr::deposit::VaultDepositParams;
 use crate::*;
 
 // Vault event
+
+#[event]
+pub struct SetAllowedBroker {
+    pub broker_hash: [u8; 32],
+}
+
+#[event]
+pub struct ResetAllowedBroker {
+    pub broker_hash: [u8; 32],
+}
+
+#[event]
+pub struct SetAllowedToken {
+    pub token_hash: [u8; 32],
+    pub mint_account: Pubkey,
+}
+
+#[event]
+pub struct ResetAllowedToken {
+    pub token_hash: [u8; 32],
+    pub mint_account: Pubkey,
+}
+
 #[event]
 pub struct Deposited {
     pub user: Pubkey,
