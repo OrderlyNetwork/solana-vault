@@ -7,13 +7,15 @@ use anchor_spl::{
 use oapp::endpoint::{instructions::SendParams as EndpointSendParams, MessagingReceipt};
 
 use crate::instructions::{
-    type_utils::to_bytes32, ENFORCED_OPTIONS_SEED, OAPP_SEED, PEER_SEED,
+    type_utils::to_bytes32, BROKER_SEED, ENFORCED_OPTIONS_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED,
     VAULT_DEPOSIT_AUTHORITY_SEED,
 };
 
 use crate::errors::VaultError;
 use crate::events::{OAppSent, VaultDeposited};
-use crate::state::{EnforcedOptions, OAppConfig, Peer, UserInfo, VaultDepositAuthority};
+use crate::state::{
+    AllowedBroker, AllowedToken, EnforcedOptions, OAppConfig, Peer, UserInfo, VaultDepositAuthority,
+};
 
 #[derive(Accounts)]
 #[instruction(deposit_params: DepositParams, oapp_params: OAppSendParams)]
@@ -82,6 +84,18 @@ pub struct Deposit<'info> {
     )]
     pub oapp_config: Box<Account<'info, OAppConfig>>,
 
+    #[account(
+        seeds = [BROKER_SEED, deposit_params.broker_hash.as_ref()],
+        bump = allowed_broker.bump
+    )]
+    pub allowed_broker: Box<Account<'info, AllowedBroker>>,
+
+    #[account(
+        seeds = [TOKEN_SEED, deposit_token.key().as_ref(), deposit_params.token_hash.as_ref()],
+        bump = allowed_token.bump
+    )]
+    pub allowed_token: Box<Account<'info, AllowedToken>>,
+
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
@@ -113,6 +127,16 @@ impl<'info> Deposit<'info> {
             msg!("PDA just created, setting user field");
             ctx.accounts.user_info.user = ctx.accounts.user.key();
         }
+
+        require!(
+            ctx.accounts.allowed_broker.allowed,
+            VaultError::BrokerNotAllowed
+        );
+
+        require!(
+            ctx.accounts.allowed_token.allowed,
+            VaultError::TokenNotAllowed
+        );
 
         transfer(
             ctx.accounts.transfer_token_ctx(),

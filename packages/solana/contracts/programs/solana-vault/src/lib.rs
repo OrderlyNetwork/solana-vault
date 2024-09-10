@@ -35,6 +35,10 @@ pub mod solana_vault {
         SetBroker::apply(&mut ctx, &params)
     }
 
+    pub fn set_token(mut ctx: Context<SetToken>, params: SetTokenParams) -> Result<()> {
+        SetToken::apply(&mut ctx, &params)
+    }
+
     pub fn oapp_quote(ctx: Context<OAppQuote>, params: OAppQuoteParams) -> Result<MessagingFee> {
         OAppQuote::apply(&ctx, &params)
     }
