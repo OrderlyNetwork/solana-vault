@@ -8,26 +8,25 @@ use oapp::endpoint::{instructions::SendParams as EndpointSendParams, MessagingRe
 
 use crate::instructions::{
     type_utils::to_bytes32, BROKER_SEED, ENFORCED_OPTIONS_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED,
-    VAULT_DEPOSIT_AUTHORITY_SEED,
+    VAULT_AUTHORITY_SEED,
 };
 
 use crate::errors::VaultError;
 use crate::events::{OAppSent, VaultDeposited};
 use crate::state::{
-    AllowedBroker, AllowedToken, EnforcedOptions, OAppConfig, Peer, UserInfo, VaultDepositAuthority,
+    AllowedBroker, AllowedToken, EnforcedOptions, OAppConfig, Peer, VaultAuthority,
 };
 
 #[derive(Accounts)]
 #[instruction(deposit_params: DepositParams, oapp_params: OAppSendParams)]
 pub struct Deposit<'info> {
-    #[account(
-        init_if_needed,
-        payer = user,
-        space = 8 + UserInfo::LEN,
-        seeds = [user.key().as_ref()], bump
-    )]
-    pub user_info: Box<Account<'info, UserInfo>>,
-
+    // #[account(
+    //     init_if_needed,
+    //     payer = user,
+    //     space = 8 + UserInfo::LEN,
+    //     seeds = [user.key().as_ref()], bump
+    // )]
+    // pub user_info: Box<Account<'info, UserInfo>>,
     #[account(
         mut,
         associated_token::mint = deposit_token,
@@ -37,17 +36,18 @@ pub struct Deposit<'info> {
 
     #[account(
         mut,
-        seeds = [VAULT_DEPOSIT_AUTHORITY_SEED, deposit_token.key().as_ref()],
-        bump = vault_deposit_authority.bump,
-        constraint = vault_deposit_authority.deposit_token == deposit_token.key()
+        seeds = [VAULT_AUTHORITY_SEED],
+        bump = vault_authority.bump,
+        // constraint = vault_deposit_authority.deposit_token == deposit_token.key()
+
     )]
-    pub vault_deposit_authority: Box<Account<'info, VaultDepositAuthority>>,
+    pub vault_authority: Box<Account<'info, VaultAuthority>>,
 
     #[account(
         init_if_needed,
         payer = user,
         associated_token::mint = deposit_token,
-        associated_token::authority = vault_deposit_authority
+        associated_token::authority = vault_authority
     )]
     pub vault_deposit_wallet: Box<Account<'info, TokenAccount>>,
 
@@ -117,16 +117,16 @@ impl<'info> Deposit<'info> {
         deposit_params: DepositParams,
         oapp_params: OAppSendParams,
     ) -> Result<MessagingReceipt> {
-        require!(
-            ctx.accounts.user_info.user == Pubkey::default()
-                || ctx.accounts.user_info.user == ctx.accounts.user.key(),
-            VaultError::UserInfoBelongsToAnotherUser
-        );
+        // require!(
+        //     ctx.accounts.user_info.user == Pubkey::default()
+        //         || ctx.accounts.user_info.user == ctx.accounts.user.key(),
+        //     VaultError::UserInfoBelongsToAnotherUser
+        // );
 
-        if ctx.accounts.user_info.user == Pubkey::default() {
-            msg!("PDA just created, setting user field");
-            ctx.accounts.user_info.user = ctx.accounts.user.key();
-        }
+        // if ctx.accounts.user_info.user == Pubkey::default() {
+        //     msg!("PDA just created, setting user field");
+        //     ctx.accounts.user_info.user = ctx.accounts.user.key();
+        // }
 
         require!(
             ctx.accounts.allowed_broker.allowed,
@@ -143,8 +143,8 @@ impl<'info> Deposit<'info> {
             deposit_params.token_amount,
         )?;
 
-        ctx.accounts.user_info.amount += deposit_params.token_amount;
-        msg!("User deposit balance: {}", ctx.accounts.user_info.amount);
+        // ctx.accounts.user_info.amount += deposit_params.token_amount;
+        // msg!("User deposit balance: {}", ctx.accounts.user_info.amount);
 
         let vault_deposit_params = VaultDepositParams {
             account_id: deposit_params.account_id,
@@ -153,10 +153,10 @@ impl<'info> Deposit<'info> {
             token_hash: deposit_params.token_hash,
             src_chain_id: deposit_params.src_chain_id,
             token_amount: deposit_params.token_amount as u128,
-            src_chain_deposit_nonce: ctx.accounts.vault_deposit_authority.nonce,
+            src_chain_deposit_nonce: ctx.accounts.vault_authority.nonce,
         };
 
-        ctx.accounts.vault_deposit_authority.nonce += 1;
+        ctx.accounts.vault_authority.nonce += 1;
 
         emit!(Into::<VaultDeposited>::into(vault_deposit_params.clone()));
 
