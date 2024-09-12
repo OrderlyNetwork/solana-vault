@@ -6,7 +6,7 @@ use anchor_spl::associated_token;
 use oapp::endpoint_cpi::LzAccount;
 
 use crate::instructions::AccountWithdrawSol;
-use crate::instructions::{OAPP_SEED, PEER_SEED, VAULT_AUTHORITY_SEED};
+use crate::instructions::{OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED};
 use crate::state::OAppConfig;
 
 #[derive(Accounts)]
@@ -76,6 +76,11 @@ impl OAppLzReceiveTypes<'_> {
 
         // account 8
         let token_mint = Pubkey::from_str("usdc4pNcoYJ2GNXcJN4iwNXfxbKXPQzqBdALdqaRyUn").unwrap();
+        // let (allowed_token, _) = Pubkey::find_program_address(
+        //     &[TOKEN_SEED, withdraw_params.token_hash.as_ref()],
+        //     ctx.program_id,
+        // );
+
         // account 9
         let token_program_id =
             Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap();

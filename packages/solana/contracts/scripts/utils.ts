@@ -357,10 +357,10 @@ export function getBrokerPda(VAULT_PROGRAM_ID: PublicKey, brokerHash: string): P
     )[0];
 }
 
-export function getTokenPda(VAULT_PROGRAM_ID: PublicKey, mintAccount: PublicKey, tokenHash: string): PublicKey {
+export function getTokenPda(VAULT_PROGRAM_ID: PublicKey, tokenHash: string): PublicKey {
     const hash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'));
     return PublicKey.findProgramAddressSync(
-        [Buffer.from(TOKEN_SEED, "utf8"), mintAccount.toBuffer(), Buffer.from(hash)],
+        [Buffer.from(TOKEN_SEED, "utf8"), Buffer.from(hash)],
         VAULT_PROGRAM_ID
     )[0];
 }

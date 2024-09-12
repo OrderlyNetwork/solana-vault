@@ -88,12 +88,11 @@ async function deposit() {
         lzTokenFee: new anchor.BN(0),
     }
     const allowedBrokerPda = utils.getBrokerPda(OAPP_PROGRAM_ID, brokerHash);
-    const allowedTokenPda = utils.getTokenPda(OAPP_PROGRAM_ID, usdc, tokenHash);
+    const allowedTokenPda = utils.getTokenPda(OAPP_PROGRAM_ID, tokenHash);
     const ixDepositEntry = await OAppProgram.methods.deposit(vaultDepositParams, sendParam).accounts({
-        // userInfo: userInfoPda,
-        userDepositWallet: userUSDCAccount,
+        userTokenAccount: userUSDCAccount,
         vaultAuthority: vaultAuthorityPda,
-        vaultDepositWallet: vaultUSDCAccount,
+        vaultTokenAccount: vaultUSDCAccount,
         depositToken: usdc,
         user: wallet.publicKey,
         peer: lookupTableAddresses[2],

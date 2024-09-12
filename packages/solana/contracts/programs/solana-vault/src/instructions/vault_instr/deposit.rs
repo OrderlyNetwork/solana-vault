@@ -20,26 +20,17 @@ use crate::state::{
 #[derive(Accounts)]
 #[instruction(deposit_params: DepositParams, oapp_params: OAppSendParams)]
 pub struct Deposit<'info> {
-    // #[account(
-    //     init_if_needed,
-    //     payer = user,
-    //     space = 8 + UserInfo::LEN,
-    //     seeds = [user.key().as_ref()], bump
-    // )]
-    // pub user_info: Box<Account<'info, UserInfo>>,
     #[account(
         mut,
         associated_token::mint = deposit_token,
         associated_token::authority = user
     )]
-    pub user_deposit_wallet: Box<Account<'info, TokenAccount>>,
+    pub user_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
         seeds = [VAULT_AUTHORITY_SEED],
         bump = vault_authority.bump,
-        // constraint = vault_deposit_authority.deposit_token == deposit_token.key()
-
     )]
     pub vault_authority: Box<Account<'info, VaultAuthority>>,
 
@@ -49,7 +40,7 @@ pub struct Deposit<'info> {
         associated_token::mint = deposit_token,
         associated_token::authority = vault_authority
     )]
-    pub vault_deposit_wallet: Box<Account<'info, TokenAccount>>,
+    pub vault_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account()]
     pub deposit_token: Box<Account<'info, Mint>>,
@@ -91,7 +82,7 @@ pub struct Deposit<'info> {
     pub allowed_broker: Box<Account<'info, AllowedBroker>>,
 
     #[account(
-        seeds = [TOKEN_SEED, deposit_token.key().as_ref(), deposit_params.token_hash.as_ref()],
+        seeds = [TOKEN_SEED, deposit_params.token_hash.as_ref()],
         bump = allowed_token.bump
     )]
     pub allowed_token: Box<Account<'info, AllowedToken>>,
@@ -104,8 +95,8 @@ pub struct Deposit<'info> {
 impl<'info> Deposit<'info> {
     pub fn transfer_token_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
         let cpi_accounts = Transfer {
-            from: self.user_deposit_wallet.to_account_info(),
-            to: self.vault_deposit_wallet.to_account_info(),
+            from: self.user_token_account.to_account_info(),
+            to: self.vault_token_account.to_account_info(),
             authority: self.user.to_account_info(),
         };
         let cpi_program = self.token_program.to_account_info();
@@ -117,17 +108,6 @@ impl<'info> Deposit<'info> {
         deposit_params: DepositParams,
         oapp_params: OAppSendParams,
     ) -> Result<MessagingReceipt> {
-        // require!(
-        //     ctx.accounts.user_info.user == Pubkey::default()
-        //         || ctx.accounts.user_info.user == ctx.accounts.user.key(),
-        //     VaultError::UserInfoBelongsToAnotherUser
-        // );
-
-        // if ctx.accounts.user_info.user == Pubkey::default() {
-        //     msg!("PDA just created, setting user field");
-        //     ctx.accounts.user_info.user = ctx.accounts.user.key();
-        // }
-
         require!(
             ctx.accounts.allowed_broker.allowed,
             VaultError::BrokerNotAllowed
@@ -143,8 +123,9 @@ impl<'info> Deposit<'info> {
             deposit_params.token_amount,
         )?;
 
-        // ctx.accounts.user_info.amount += deposit_params.token_amount;
-        // msg!("User deposit balance: {}", ctx.accounts.user_info.amount);
+        msg!("User deposited : {}", deposit_params.token_amount);
+
+        ctx.accounts.vault_authority.nonce += 1;
 
         let vault_deposit_params = VaultDepositParams {
             account_id: deposit_params.account_id,
@@ -155,8 +136,6 @@ impl<'info> Deposit<'info> {
             token_amount: deposit_params.token_amount as u128,
             src_chain_deposit_nonce: ctx.accounts.vault_authority.nonce,
         };
-
-        ctx.accounts.vault_authority.nonce += 1;
 
         emit!(Into::<VaultDeposited>::into(vault_deposit_params.clone()));
 
