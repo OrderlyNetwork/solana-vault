@@ -1,7 +1,9 @@
 use crate::errors::OAppError;
 use crate::events::VaultWithdrawn;
-use crate::instructions::{to_bytes32, OAppLzReceiveParams};
-use crate::instructions::{OAPP_SEED, PEER_SEED, VAULT_AUTHORITY_SEED};
+use crate::instructions::{
+    bytes32_to_hex, hex_to_vec, to_bytes32, vec_to_hex, OAppLzReceiveParams,
+};
+use crate::instructions::{MsgType, OAPP_SEED, PEER_SEED, VAULT_AUTHORITY_SEED};
 use crate::state::{OAppConfig, Peer, VaultAuthority}; // UserInfo,
 use anchor_lang::prelude::*;
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
@@ -94,24 +96,29 @@ impl<'info> OAppLzReceive<'info> {
             },
         )?;
 
-        let withdraw_params = AccountWithdrawSol::decode_packed(&params.message).unwrap();
+        let lz_message = LzMessage::decode(&params.message).unwrap();
+        msg!("msg_type: {:?}", lz_message.msg_type);
+        if lz_message.msg_type == MsgType::Withdraw as u8 {
+            let withdraw_params = AccountWithdrawSol::decode_packed(&lz_message.payload).unwrap();
 
-        let deposit_token_key = ctx.accounts.deposit_token.key();
-        let vault_authority_seeds = &[VAULT_AUTHORITY_SEED, &[ctx.accounts.vault_authority.bump]];
+            let deposit_token_key = ctx.accounts.deposit_token.key();
+            let vault_authority_seeds =
+                &[VAULT_AUTHORITY_SEED, &[ctx.accounts.vault_authority.bump]];
 
-        msg!("Withdraw amount = {}", withdraw_params.token_amount);
+            msg!("Withdraw amount = {}", withdraw_params.token_amount);
 
-        transfer(
-            ctx.accounts
-                .transfer_token_ctx()
-                .with_signer(&[&vault_authority_seeds[..]]),
-            withdraw_params.token_amount,
-        )?;
+            transfer(
+                ctx.accounts
+                    .transfer_token_ctx()
+                    .with_signer(&[&vault_authority_seeds[..]]),
+                withdraw_params.token_amount,
+            )?;
 
-        // ctx.accounts.user_info.amount -= withdraw_params.token_amount;
-        // msg!("User deposit balance: {}", ctx.accounts.user_info.amount);
-        let vault_withdraw_params: VaultWithdrawParams = withdraw_params.into();
-        emit!(Into::<VaultWithdrawn>::into(vault_withdraw_params.clone()));
+            let vault_withdraw_params: VaultWithdrawParams = withdraw_params.into();
+            emit!(Into::<VaultWithdrawn>::into(vault_withdraw_params.clone()));
+        } else {
+            msg!("Invalid message type: {:?}", lz_message.msg_type);
+        }
 
         Ok(())
     }
@@ -245,6 +252,29 @@ impl From<AccountWithdrawSol> for VaultWithdrawParams {
     }
 }
 
+#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct LzMessage {
+    pub msg_type: u8,
+    pub payload: Vec<u8>,
+}
+
+impl LzMessage {
+    pub fn encode(&self) -> Vec<u8> {
+        let mut encoded = Vec::new();
+        encoded.extend_from_slice(&self.msg_type.to_be_bytes());
+        encoded.extend_from_slice(&self.payload);
+        encoded
+    }
+
+    pub fn decode(encoded: &[u8]) -> Result<Self> {
+        let mut offset = 0;
+        let msg_type = u8::from_be_bytes(encoded[offset..offset + 1].try_into().unwrap());
+        offset += 1;
+        let payload: Vec<u8> = encoded[offset..].to_vec();
+        Ok(Self { msg_type, payload })
+    }
+}
+
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct VaultWithdrawParams {
     pub account_id: [u8; 32],
@@ -367,5 +397,66 @@ mod tests {
         // print encoded as hex string
         println!("encoded: {:?}", hex::encode(&encoded));
         let _decoded = AccountWithdrawSol::decode_packed(&encoded).unwrap();
+    }
+
+    #[test]
+    fn test_get_payload_type() {
+        let msg_type = 1;
+        let payload = vec![
+            95, 215, 28, 228, 90, 182, 204, 203, 196, 1, 13, 151, 94, 161, 171, 52, 119, 247, 223,
+            196, 26, 185, 213, 88, 178, 229, 246, 151, 74, 78, 170, 141, 8, 97, 219, 95, 4, 233,
+            188, 111, 240, 193, 75, 126, 139, 114, 198, 89, 182, 14, 74, 26, 11, 252, 48, 41, 128,
+            10, 25, 135, 66, 61, 248, 1, 8, 97, 219, 95, 4, 233, 188, 111, 240, 193, 75, 126, 139,
+            114, 198, 89, 182, 14, 74, 26, 11, 252, 48, 41, 128, 10, 25, 135, 66, 61, 248, 1, 108,
+            162, 246, 68, 239, 123, 214, 215, 89, 83, 49, 140, 127, 37, 128, 1, 73, 65, 231, 83,
+            179, 198, 213, 77, 165, 107, 59, 247, 93, 209, 77, 252, 214, 172, 161, 190, 151, 41,
+            193, 61, 103, 115, 53, 22, 19, 33, 100, 156, 204, 174, 106, 89, 21, 84, 119, 37, 22,
+            112, 15, 152, 111, 148, 46, 170, 0, 0, 0, 0, 0, 76, 75, 64, 0, 0, 0, 0, 0, 15, 66, 64,
+            0, 0, 0, 0, 53, 209, 52, 118, 0, 0, 0, 0, 0, 0, 0, 31,
+        ];
+        let message = vec![
+            1, 95, 215, 28, 228, 90, 182, 204, 203, 196, 1, 13, 151, 94, 161, 171, 52, 119, 247,
+            223, 196, 26, 185, 213, 88, 178, 229, 246, 151, 74, 78, 170, 141, 8, 97, 219, 95, 4,
+            233, 188, 111, 240, 193, 75, 126, 139, 114, 198, 89, 182, 14, 74, 26, 11, 252, 48, 41,
+            128, 10, 25, 135, 66, 61, 248, 1, 8, 97, 219, 95, 4, 233, 188, 111, 240, 193, 75, 126,
+            139, 114, 198, 89, 182, 14, 74, 26, 11, 252, 48, 41, 128, 10, 25, 135, 66, 61, 248, 1,
+            108, 162, 246, 68, 239, 123, 214, 215, 89, 83, 49, 140, 127, 37, 128, 1, 73, 65, 231,
+            83, 179, 198, 213, 77, 165, 107, 59, 247, 93, 209, 77, 252, 214, 172, 161, 190, 151,
+            41, 193, 61, 103, 115, 53, 22, 19, 33, 100, 156, 204, 174, 106, 89, 21, 84, 119, 37,
+            22, 112, 15, 152, 111, 148, 46, 170, 0, 0, 0, 0, 0, 76, 75, 64, 0, 0, 0, 0, 0, 15, 66,
+            64, 0, 0, 0, 0, 53, 209, 52, 118, 0, 0, 0, 0, 0, 0, 0, 31,
+        ];
+        let (decoded_payload, decoded_msg_type) = get_payload_type(&message);
+        assert_eq!(payload, decoded_payload);
+        assert_eq!(msg_type, decoded_msg_type);
+    }
+
+    #[test]
+    fn decode_payload() {
+        let message = vec![
+            1, 95, 215, 28, 228, 90, 182, 204, 203, 196, 1, 13, 151, 94, 161, 171, 52, 119, 247,
+            223, 196, 26, 185, 213, 88, 178, 229, 246, 151, 74, 78, 170, 141, 8, 97, 219, 95, 4,
+            233, 188, 111, 240, 193, 75, 126, 139, 114, 198, 89, 182, 14, 74, 26, 11, 252, 48, 41,
+            128, 10, 25, 135, 66, 61, 248, 1, 8, 97, 219, 95, 4, 233, 188, 111, 240, 193, 75, 126,
+            139, 114, 198, 89, 182, 14, 74, 26, 11, 252, 48, 41, 128, 10, 25, 135, 66, 61, 248, 1,
+            108, 162, 246, 68, 239, 123, 214, 215, 89, 83, 49, 140, 127, 37, 128, 1, 73, 65, 231,
+            83, 179, 198, 213, 77, 165, 107, 59, 247, 93, 209, 77, 252, 214, 172, 161, 190, 151,
+            41, 193, 61, 103, 115, 53, 22, 19, 33, 100, 156, 204, 174, 106, 89, 21, 84, 119, 37,
+            22, 112, 15, 152, 111, 148, 46, 170, 0, 0, 0, 0, 0, 76, 75, 64, 0, 0, 0, 0, 0, 15, 66,
+            64, 0, 0, 0, 0, 53, 209, 52, 118, 0, 0, 0, 0, 0, 0, 0, 31,
+        ];
+        // let (payload, msg_type) = get_payload_type(&message);
+        // let withdraw_data = AccountWithdrawSol::decode_packed(&payload).unwrap();
+
+        // let message = String::from("015fd71ce45ab6cccbc4010d975ea1ab3477f7dfc41ab9d558b2e5f6974a4eaa8d0861db5f04e9bc6ff0c14b7e8b72c659b60e4a1a0bfc3029800a1987423df8010861db5f04e9bc6ff0c14b7e8b72c659b60e4a1a0bfc3029800a1987423df8016ca2f644ef7bd6d75953318c7f2580014941e753b3c6d54da56b3bf75dd14dfcd6aca1be9729c13d677335161321649cccae6a591554772516700f986f942eaa00000000004c4b4000000000000f42400000000035d134760000000000000024");
+
+        let (payload, msg_type) = get_payload_type(&message);
+        let withdraw_data = AccountWithdrawSol::decode_packed(&payload).unwrap();
+        println!("msg_type: {:?}", msg_type);
+        println!(
+            "token_hash: {:?}",
+            bytes32_to_hex(&withdraw_data.token_hash)
+        );
+        println!("withdraw_amount: {:?}", withdraw_data.token_amount);
     }
 }

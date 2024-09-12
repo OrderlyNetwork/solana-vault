@@ -6,7 +6,7 @@ use anchor_spl::associated_token;
 use oapp::endpoint_cpi::LzAccount;
 
 use crate::instructions::AccountWithdrawSol;
-use crate::instructions::{OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED};
+use crate::instructions::{LzMessage, OAPP_SEED, PEER_SEED, VAULT_AUTHORITY_SEED};
 use crate::state::OAppConfig;
 
 #[derive(Accounts)]
@@ -67,8 +67,8 @@ impl OAppLzReceiveTypes<'_> {
                 is_writable: false,
             }, // 2
         ]);
-
-        let withdraw_params = AccountWithdrawSol::decode_packed(&params.message).unwrap();
+        let lz_message = LzMessage::decode(&params.message).unwrap();
+        let withdraw_params = AccountWithdrawSol::decode_packed(&lz_message.payload).unwrap();
         // account 3
         let user = Pubkey::new_from_array(withdraw_params.receiver);
         // account 4

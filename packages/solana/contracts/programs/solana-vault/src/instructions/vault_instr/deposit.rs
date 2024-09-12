@@ -7,8 +7,8 @@ use anchor_spl::{
 use oapp::endpoint::{instructions::SendParams as EndpointSendParams, MessagingReceipt};
 
 use crate::instructions::{
-    type_utils::to_bytes32, BROKER_SEED, ENFORCED_OPTIONS_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED,
-    VAULT_AUTHORITY_SEED,
+    to_bytes32, LzMessage, MsgType, BROKER_SEED, ENFORCED_OPTIONS_SEED, OAPP_SEED, PEER_SEED,
+    TOKEN_SEED, VAULT_AUTHORITY_SEED,
 };
 
 use crate::errors::VaultError;
@@ -20,6 +20,9 @@ use crate::state::{
 #[derive(Accounts)]
 #[instruction(deposit_params: DepositParams, oapp_params: OAppSendParams)]
 pub struct Deposit<'info> {
+    #[account(mut)]
+    pub user: Signer<'info>,
+
     #[account(
         mut,
         associated_token::mint = deposit_token,
@@ -44,9 +47,6 @@ pub struct Deposit<'info> {
 
     #[account()]
     pub deposit_token: Box<Account<'info, Mint>>,
-
-    #[account(mut)]
-    pub user: Signer<'info>,
 
     #[account(
         mut,
@@ -139,19 +139,28 @@ impl<'info> Deposit<'info> {
 
         emit!(Into::<VaultDeposited>::into(vault_deposit_params.clone()));
 
+        let seeds = &[OAPP_SEED, &[ctx.accounts.oapp_config.bump]];
+
+        let deposit_msg = VaultDepositParams::encode(&vault_deposit_params);
+        let lz_message = LzMessage::encode(&LzMessage {
+            msg_type: MsgType::Deposit as u8,
+            payload: deposit_msg,
+        });
+        let endpoint_send_params = EndpointSendParams {
+            dst_eid: oapp_params.dst_eid,
+            receiver: ctx.accounts.peer.address,
+            message: lz_message,
+            options: oapp_params.options.clone(),
+            native_fee: oapp_params.native_fee,
+            lz_token_fee: oapp_params.lz_token_fee,
+        };
+
         let receipt = oapp::endpoint_cpi::send(
             ctx.accounts.oapp_config.endpoint_program,
             ctx.accounts.oapp_config.key(),
             ctx.remaining_accounts,
-            &[OAPP_SEED, &[ctx.accounts.oapp_config.bump]],
-            EndpointSendParams {
-                dst_eid: oapp_params.dst_eid,
-                receiver: ctx.accounts.peer.address,
-                message: VaultDepositParams::encode(&vault_deposit_params),
-                options: oapp_params.options.clone(),
-                native_fee: oapp_params.native_fee,
-                lz_token_fee: oapp_params.lz_token_fee,
-            },
+            seeds,
+            endpoint_send_params,
         )?;
 
         emit!(OAppSent {

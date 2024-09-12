@@ -5,6 +5,16 @@ const SEND_TO_OFFSET: usize = 0;
 const SEND_AMOUNT_SD_OFFSET: usize = 32;
 const COMPOSE_MSG_OFFSET: usize = 40;
 
+pub enum MsgType {
+    Deposit,
+    Withdraw,
+    RebalanceBurn,
+    RebalanceMint,
+}
+
+pub const MSG_TYPE_OFFSET: usize = 0;
+pub const MSG_OFFSET: usize = 1;
+
 pub fn encode(
     send_to: [u8; 32],
     amount_sd: u64,
