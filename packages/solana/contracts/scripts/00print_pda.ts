@@ -12,6 +12,9 @@ function printPda() {
     const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
     console.log("🔑 OApp Config PDA:", oappConfigPda.toBase58());
 
+    const vaultAuthorityPda = utils.getVaultAuthorityPda(OAPP_PROGRAM_ID);
+    console.log("🔑 Vault Authority PDA:", vaultAuthorityPda.toBase58());
+    
     const lzReceiveTypesPda = utils.getLzReceiveTypesPda(OAPP_PROGRAM_ID, oappConfigPda);
     console.log("🔑 LZ Receive Types PDA:", lzReceiveTypesPda.toBase58());
 

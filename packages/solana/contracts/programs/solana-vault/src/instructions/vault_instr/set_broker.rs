@@ -1,6 +1,6 @@
 use crate::errors::OAppError;
 use crate::events::{ResetAllowedBroker, SetAllowedBroker};
-use crate::instructions::{BROKER_SEED, OAPP_SEED};
+use crate::instructions::{bytes32_to_hex, BROKER_SEED, OAPP_SEED};
 use crate::state::{AllowedBroker, OAppConfig};
 use anchor_lang::prelude::*;
 
@@ -30,13 +30,15 @@ impl SetBroker<'_> {
     pub fn apply(ctx: &mut Context<SetBroker>, params: &SetBrokerParams) -> Result<()> {
         ctx.accounts.allowed_broker.broker_hash = params.broker_hash;
         ctx.accounts.allowed_broker.allowed = params.allowed;
+
+        let broker_hash_hex: String = bytes32_to_hex(&params.broker_hash);
         if params.allowed {
-            msg!("Setting allowed broker {:?}", params.broker_hash);
+            msg!("Setting allowed broker {:?}", broker_hash_hex);
             emit!(SetAllowedBroker {
                 broker_hash: params.broker_hash,
             });
         } else {
-            msg!("Resetting allowed broker {:?}", params.broker_hash);
+            msg!("Resetting allowed broker {:?}", broker_hash_hex);
             emit!(ResetAllowedBroker {
                 broker_hash: params.broker_hash,
             });

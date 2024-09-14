@@ -13,6 +13,8 @@ pub enum VaultError {
     TokenNotAllowed,
     #[msg("AccountId is invalid")]
     InvalidAccountId,
+    #[msg("Vault owner is not the same as the payer")]
+    InvalidVaultOwner,
 }
 
 // OApp errors

@@ -1,6 +1,6 @@
 use crate::errors::OAppError;
 use crate::events::{ResetAllowedToken, SetAllowedToken};
-use crate::instructions::{OAPP_SEED, TOKEN_SEED};
+use crate::instructions::{bytes32_to_hex, OAPP_SEED, TOKEN_SEED};
 use crate::state::{AllowedToken, OAppConfig};
 use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
@@ -14,7 +14,7 @@ pub struct SetToken<'info> {
         init_if_needed,
         payer = admin,
         space = 8 + AllowedToken::INIT_SPACE,
-        seeds = [TOKEN_SEED, mint_account.key().as_ref(), params.token_hash.as_ref()],
+        seeds = [TOKEN_SEED, params.token_hash.as_ref()], // mint_account.key().as_ref(), 
         bump
     )]
     pub allowed_token: Account<'info, AllowedToken>,
@@ -35,14 +35,15 @@ impl SetToken<'_> {
         ctx.accounts.allowed_token.token_hash = params.token_hash;
         ctx.accounts.allowed_token.token_decimals = ctx.accounts.mint_account.decimals;
         ctx.accounts.allowed_token.allowed = params.allowed;
+        let token_hash_hex = bytes32_to_hex(&params.token_hash);
         if params.allowed {
-            msg!("Setting allowed token {:?}", params.token_hash);
+            msg!("Setting allowed token {:?}", token_hash_hex);
             emit!(SetAllowedToken {
                 token_hash: params.token_hash,
                 mint_account: params.mint_account,
             });
         } else {
-            msg!("Resetting allowed token {:?}", params.token_hash);
+            msg!("Resetting allowed token {:?}", token_hash_hex);
             emit!(ResetAllowedToken {
                 token_hash: params.token_hash,
                 mint_account: params.mint_account,

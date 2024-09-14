@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import { OftTools } from "@layerzerolabs/lz-solana-sdk-v2";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
-import { getLzReceiveTypesPda, getOAppConfigPda, getPeerPda, getEventAuthorityPda, getOAppRegistryPda, setAnchor } from "./utils";
+import { getLzReceiveTypesPda, getOAppConfigPda, getPeerPda, getEventAuthorityPda, getOAppRegistryPda, setAnchor, getTokenHash, getUSDCAddress, getTokenPda, getVaultOwnerPda } from "./utils";
 import { DST_EID, ENDPOINT_PROGRAM_ID, PEER_ADDRESS, LZ_RECEIVE_GAS, LZ_COMPOSE_GAS, LZ_COMPOSE_VALUE, LZ_RECEIVE_VALUE } from "./constants";
 
 import OAppIdl from "../target/idl/solana_vault.json";
@@ -27,17 +27,28 @@ console.log("Event Authority PDA:", eventAuthorityPda.toBase58());
 const oappRegistryPda = getOAppRegistryPda(oappConfigPda);
 console.log("OApp Registry PDA:", oappRegistryPda.toBase58());
 
+const vaultOwnerPda = getVaultOwnerPda(OAPP_PROGRAM_ID);
+console.log("Owner PDA:", vaultOwnerPda.toBase58());
+
+
+
 async function setup() {
     console.log("Setting up OApp...");
-
+    const tokenSymble = "USDC";
+    const tokenHash = getTokenHash(tokenSymble);
+    const codedTokenHash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'));
+    const mintAccount = await getUSDCAddress(provider, wallet, rpc);
 
     const ixInitOapp = await OAppProgram.methods.initOapp({
         admin: wallet.publicKey,
-        endpointProgram: ENDPOINT_PROGRAM_ID
+        endpointProgram: ENDPOINT_PROGRAM_ID,
+        usdcHash: codedTokenHash,
+        usdcMint: mintAccount
     }).accounts({
         payer: wallet.publicKey,
         oappConfig: oappConfigPda,
         lzReceiveTypesAccounts: lzReceiveTypesPda,
+        vaultOwner: vaultOwnerPda,
         systemProgram: SystemProgram.programId
     }).remainingAccounts(
         [
