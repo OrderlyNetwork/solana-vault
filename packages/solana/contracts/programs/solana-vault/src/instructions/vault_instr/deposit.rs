@@ -7,8 +7,8 @@ use anchor_spl::{
 use oapp::endpoint::{instructions::SendParams as EndpointSendParams, MessagingReceipt};
 
 use crate::instructions::{
-    to_bytes32, LzMessage, MsgType, BROKER_SEED, ENFORCED_OPTIONS_SEED, OAPP_SEED, PEER_SEED,
-    TOKEN_SEED, VAULT_AUTHORITY_SEED,
+    LzMessage, MsgType, VaultDepositParams, BROKER_SEED, ENFORCED_OPTIONS_SEED, OAPP_SEED,
+    PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED,
 };
 
 use crate::errors::VaultError;
@@ -77,13 +77,15 @@ pub struct Deposit<'info> {
 
     #[account(
         seeds = [BROKER_SEED, deposit_params.broker_hash.as_ref()],
-        bump = allowed_broker.bump
+        bump = allowed_broker.bump,
+        constraint = allowed_broker.allowed == true @ VaultError::BrokerNotAllowed
     )]
     pub allowed_broker: Box<Account<'info, AllowedBroker>>,
 
     #[account(
         seeds = [TOKEN_SEED, deposit_params.token_hash.as_ref()],
-        bump = allowed_token.bump
+        bump = allowed_token.bump,
+        constraint = allowed_token.allowed == true @ VaultError::TokenNotAllowed
     )]
     pub allowed_token: Box<Account<'info, AllowedToken>>,
 
@@ -108,16 +110,6 @@ impl<'info> Deposit<'info> {
         deposit_params: DepositParams,
         oapp_params: OAppSendParams,
     ) -> Result<MessagingReceipt> {
-        require!(
-            ctx.accounts.allowed_broker.allowed,
-            VaultError::BrokerNotAllowed
-        );
-
-        require!(
-            ctx.accounts.allowed_token.allowed,
-            VaultError::TokenNotAllowed
-        );
-
         transfer(
             ctx.accounts.transfer_token_ctx(),
             deposit_params.token_amount,
@@ -130,7 +122,7 @@ impl<'info> Deposit<'info> {
         let vault_deposit_params = VaultDepositParams {
             account_id: deposit_params.account_id,
             broker_hash: deposit_params.broker_hash,
-            user_address: ctx.accounts.user.key().to_bytes(),
+            user_address: deposit_params.user_address, //
             token_hash: deposit_params.token_hash,
             src_chain_id: deposit_params.src_chain_id,
             token_amount: deposit_params.token_amount as u128,
@@ -146,11 +138,14 @@ impl<'info> Deposit<'info> {
             msg_type: MsgType::Deposit as u8,
             payload: deposit_msg,
         });
+
+        let options = EnforcedOptions::get_enforced_options(&ctx.accounts.enforced_options, &None);
+
         let endpoint_send_params = EndpointSendParams {
             dst_eid: oapp_params.dst_eid,
             receiver: ctx.accounts.peer.address,
             message: lz_message,
-            options: oapp_params.options.clone(),
+            options: options,
             native_fee: oapp_params.native_fee,
             lz_token_fee: oapp_params.lz_token_fee,
         };
@@ -177,67 +172,14 @@ pub struct DepositParams {
     pub account_id: [u8; 32],
     pub broker_hash: [u8; 32],
     pub token_hash: [u8; 32],
+    pub user_address: [u8; 32],
     pub src_chain_id: u128,
     pub token_amount: u64,
-}
-
-#[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
-pub struct VaultDepositParams {
-    pub account_id: [u8; 32],
-    pub broker_hash: [u8; 32],
-    pub user_address: [u8; 32],
-    pub token_hash: [u8; 32],
-    pub src_chain_id: u128,
-    pub token_amount: u128,
-    pub src_chain_deposit_nonce: u64,
-}
-
-impl VaultDepositParams {
-    pub fn decode(input: &[u8]) -> Result<Self> {
-        let mut offset = 0;
-        let account_id = input[offset..offset + 32].try_into().unwrap();
-        offset += 32;
-        let broker_hash = input[offset..offset + 32].try_into().unwrap();
-        offset += 32;
-        let user_address = input[offset..offset + 32].try_into().unwrap();
-        offset += 32;
-        let token_hash = input[offset..offset + 32].try_into().unwrap();
-        offset += 32;
-        let src_chain_id = u128::from_be_bytes(input[offset + 16..offset + 32].try_into().unwrap());
-        let token_amount = u128::from_be_bytes(input[offset + 16..offset + 32].try_into().unwrap());
-        let src_chain_deposit_nonce =
-            u64::from_be_bytes(input[offset + 24..offset + 32].try_into().unwrap());
-
-        Ok(Self {
-            account_id,
-            broker_hash,
-            user_address,
-            token_hash,
-            src_chain_id,
-            token_amount,
-            src_chain_deposit_nonce,
-        })
-    }
-
-    pub fn encode(&self) -> Vec<u8> {
-        let mut buf = Vec::new();
-        buf.extend_from_slice(&self.account_id);
-        buf.extend_from_slice(&self.broker_hash);
-        buf.extend_from_slice(&self.user_address);
-        buf.extend_from_slice(&self.token_hash);
-        buf.extend_from_slice(&to_bytes32(&self.src_chain_id.to_be_bytes()));
-        buf.extend_from_slice(&to_bytes32(&self.token_amount.to_be_bytes()));
-        buf.extend_from_slice(&to_bytes32(&self.src_chain_deposit_nonce.to_be_bytes()));
-        buf
-    }
 }
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct OAppSendParams {
     pub dst_eid: u32,
-    pub to: [u8; 32],
-    pub options: Vec<u8>,
-    pub message: Option<Vec<u8>>,
     pub native_fee: u64,
     pub lz_token_fee: u64,
 }

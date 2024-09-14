@@ -20,8 +20,11 @@ const [provider, wallet, rpc] = setAnchor();
 async function deposit() {
     console.log("Setting up Vault...");
     const lookupTableAddresses = getTableAddresses();
+    const senderAddress = wallet.publicKey;
+    // const receiverAddress = new PublicKey("4bbnSXvV48dPEecRwbaQwWw4ajXKiMuUvN29zNY1LqY3");
+    const receiverAddress = senderAddress;
     const usdc = await utils.getUSDCAddress(provider, wallet, rpc);
-    const userUSDCAccount = await utils.getUSDCAccount(provider, wallet, usdc, wallet.publicKey);
+    const userUSDCAccount = await utils.getUSDCAccount(provider, wallet, usdc, senderAddress);
     console.log("💶 User USDCAccount", userUSDCAccount.toBase58());
 
     if (usdc === constants.MOCK_USDC_ACCOUNT && provider.connection.rpcEndpoint === constants.LOCAL_RPC) {
@@ -62,8 +65,9 @@ async function deposit() {
     const codedBrokerHash = Array.from(Buffer.from(brokerHash.slice(2), 'hex'));
     const tokenHash = getTokenHash(tokenSymbol);
     console.log("Token Hash:", tokenHash);
+
     const codedTokenHash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'));
-    const solAccountId = getSolAccountId(wallet.publicKey, brokerId);
+    const solAccountId = getSolAccountId(receiverAddress, brokerId); 
     console.log("Sol Account Id:", solAccountId);
     const codedAccountId = Array.from(Buffer.from(solAccountId.slice(2), 'hex'));
     
@@ -75,16 +79,17 @@ async function deposit() {
         accountId:  codedAccountId,
         brokerHash: codedBrokerHash,
         tokenHash:  codedTokenHash,
+        userAddress: Array.from(receiverAddress.toBuffer()),
         srcChainId: new anchor.BN(902902902),
-        tokenAmount: new anchor.BN(10_000_000),
+        tokenAmount: new anchor.BN(1_000_000_000),
     };
 
     const sendParam = {
         dstEid: DST_EID,
         to: Array.from(PEER_ADDRESS),
-        options: Buffer.from(Options.newOptions().addExecutorLzReceiveOption(LZ_RECEIVE_GAS,0).toBytes()),
+        options: Buffer.from(Options.newOptions().addExecutorLzReceiveOption(400_000,0).toBytes()),
         message: Buffer.from("Hello, World!"),
-        nativeFee: new anchor.BN(1_000_000),
+        nativeFee: new anchor.BN(1_000_000_000),
         lzTokenFee: new anchor.BN(0),
     }
     const allowedBrokerPda = utils.getBrokerPda(OAPP_PROGRAM_ID, brokerHash);

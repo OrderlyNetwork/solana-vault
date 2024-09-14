@@ -1,9 +1,6 @@
 // use crate::*;
+use crate::instructions::to_bytes32;
 use anchor_lang::prelude::*;
-
-const SEND_TO_OFFSET: usize = 0;
-const SEND_AMOUNT_SD_OFFSET: usize = 32;
-const COMPOSE_MSG_OFFSET: usize = 40;
 
 pub enum MsgType {
     Deposit,
@@ -12,46 +9,76 @@ pub enum MsgType {
     RebalanceMint,
 }
 
-pub const MSG_TYPE_OFFSET: usize = 0;
-pub const MSG_OFFSET: usize = 1;
+#[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct VaultDepositParams {
+    pub account_id: [u8; 32],
+    pub broker_hash: [u8; 32],
+    pub user_address: [u8; 32],
+    pub token_hash: [u8; 32],
+    pub src_chain_id: u128,
+    pub token_amount: u128,
+    pub src_chain_deposit_nonce: u64,
+}
 
-pub fn encode(
-    send_to: [u8; 32],
-    amount_sd: u64,
-    sender: Pubkey,
-    compose_msg: &Option<Vec<u8>>,
-) -> Vec<u8> {
-    if let Some(msg) = compose_msg {
-        let mut encoded = Vec::with_capacity(72 + msg.len()); // 32 + 8 + 32
-        encoded.extend_from_slice(&send_to);
-        encoded.extend_from_slice(&amount_sd.to_be_bytes());
-        encoded.extend_from_slice(sender.to_bytes().as_ref());
-        encoded.extend_from_slice(&msg);
-        encoded
-    } else {
-        let mut encoded = Vec::with_capacity(40); // 32 + 8
-        encoded.extend_from_slice(&send_to);
-        encoded.extend_from_slice(&amount_sd.to_be_bytes());
-        encoded
+impl VaultDepositParams {
+    pub fn decode(input: &[u8]) -> Result<Self> {
+        let mut offset = 0;
+        let account_id = input[offset..offset + 32].try_into().unwrap();
+        offset += 32;
+        let broker_hash = input[offset..offset + 32].try_into().unwrap();
+        offset += 32;
+        let user_address = input[offset..offset + 32].try_into().unwrap();
+        offset += 32;
+        let token_hash = input[offset..offset + 32].try_into().unwrap();
+        offset += 32;
+        let src_chain_id = u128::from_be_bytes(input[offset + 16..offset + 32].try_into().unwrap());
+        let token_amount = u128::from_be_bytes(input[offset + 16..offset + 32].try_into().unwrap());
+        let src_chain_deposit_nonce =
+            u64::from_be_bytes(input[offset + 24..offset + 32].try_into().unwrap());
+
+        Ok(Self {
+            account_id,
+            broker_hash,
+            user_address,
+            token_hash,
+            src_chain_id,
+            token_amount,
+            src_chain_deposit_nonce,
+        })
+    }
+
+    pub fn encode(&self) -> Vec<u8> {
+        let mut buf = Vec::new();
+        buf.extend_from_slice(&self.account_id);
+        buf.extend_from_slice(&self.broker_hash);
+        buf.extend_from_slice(&self.user_address);
+        buf.extend_from_slice(&self.token_hash);
+        buf.extend_from_slice(&to_bytes32(&self.src_chain_id.to_be_bytes()));
+        buf.extend_from_slice(&to_bytes32(&self.token_amount.to_be_bytes()));
+        buf.extend_from_slice(&to_bytes32(&self.src_chain_deposit_nonce.to_be_bytes()));
+        buf
     }
 }
 
-pub fn send_to(message: &[u8]) -> [u8; 32] {
-    let mut send_to = [0; 32];
-    send_to.copy_from_slice(&message[SEND_TO_OFFSET..SEND_AMOUNT_SD_OFFSET]);
-    send_to
+#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct LzMessage {
+    pub msg_type: u8,
+    pub payload: Vec<u8>,
 }
 
-pub fn amount_sd(message: &[u8]) -> u64 {
-    let mut amount_sd_bytes = [0; 8];
-    amount_sd_bytes.copy_from_slice(&message[SEND_AMOUNT_SD_OFFSET..COMPOSE_MSG_OFFSET]);
-    u64::from_be_bytes(amount_sd_bytes)
-}
+impl LzMessage {
+    pub fn encode(&self) -> Vec<u8> {
+        let mut encoded = Vec::new();
+        encoded.extend_from_slice(&self.msg_type.to_be_bytes());
+        encoded.extend_from_slice(&self.payload);
+        encoded
+    }
 
-pub fn compose_msg(message: &[u8]) -> Option<Vec<u8>> {
-    if message.len() > COMPOSE_MSG_OFFSET {
-        Some(message[COMPOSE_MSG_OFFSET..].to_vec())
-    } else {
-        None
+    pub fn decode(encoded: &[u8]) -> Result<Self> {
+        let mut offset = 0;
+        let msg_type = u8::from_be_bytes(encoded[offset..offset + 1].try_into().unwrap());
+        offset += 1;
+        let payload: Vec<u8> = encoded[offset..].to_vec();
+        Ok(Self { msg_type, payload })
     }
 }
