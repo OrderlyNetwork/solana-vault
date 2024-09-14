@@ -3,11 +3,12 @@ use std::str::FromStr;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program;
 use anchor_spl::associated_token;
+use anchor_spl::token_2022::spl_token_2022::solana_zk_token_sdk::instruction::withdraw;
 use oapp::endpoint_cpi::LzAccount;
 
 use crate::instructions::AccountWithdrawSol;
-use crate::instructions::{OAPP_SEED, PEER_SEED};
-use crate::state::OAppConfig;
+use crate::instructions::{LzMessage, BROKER_SEED, OAPP_SEED, PEER_SEED, VAULT_AUTHORITY_SEED};
+use crate::state::{AllowedBroker, OAppConfig};
 
 #[derive(Accounts)]
 pub struct OAppLzReceiveTypes<'info> {
@@ -16,6 +17,11 @@ pub struct OAppLzReceiveTypes<'info> {
         bump = oapp_config.bump
     )]
     pub oapp_config: Account<'info, OAppConfig>,
+    // #[account(
+    //     seeds = [BROKER_SEED],
+    //     bump = allowed_broker.bump
+    // )]
+    // pub allowed_broker: Account<'info, AllowedBroker>,
 }
 
 // account structure
@@ -67,15 +73,20 @@ impl OAppLzReceiveTypes<'_> {
                 is_writable: false,
             }, // 2
         ]);
-
-        let withdraw_params = AccountWithdrawSol::decode_packed(&params.message).unwrap();
+        let lz_message = LzMessage::decode(&params.message).unwrap();
+        let withdraw_params = AccountWithdrawSol::decode_packed(&lz_message.payload).unwrap();
         // account 3
         let user = Pubkey::new_from_array(withdraw_params.receiver);
-        // account 4
-        let (user_info, _) = Pubkey::find_program_address(&[&user.to_bytes()], ctx.program_id);
 
         // account 8
-        let token_mint = Pubkey::from_str("usdc4pNcoYJ2GNXcJN4iwNXfxbKXPQzqBdALdqaRyUn").unwrap();
+        // let token_mint = Pubkey::from_str("usdc4pNcoYJ2GNXcJN4iwNXfxbKXPQzqBdALdqaRyUn").unwrap();
+        let token_mint: Pubkey;
+
+        if oapp_config.usdc_hash == withdraw_params.token_hash {
+            token_mint = oapp_config.usdc_mint;
+        } else {
+            token_mint = Pubkey::from_str("0x0000").unwrap();
+        }
         // account 9
         let token_program_id =
             Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap();
@@ -83,15 +94,13 @@ impl OAppLzReceiveTypes<'_> {
         let user_deposit_wallet =
             associated_token::get_associated_token_address(&user, &token_mint);
 
-        const VAULT_DEPOSIT_AUTHORITY_SEED: &[u8] = b"vault_deposit_authority";
+        // const VAULT_AUTHORITY_SEED: &[u8] = b"VaultAuthority";
         // account 6
-        let (vault_deposit_authority, _) = Pubkey::find_program_address(
-            &[VAULT_DEPOSIT_AUTHORITY_SEED, &token_mint.to_bytes()],
-            ctx.program_id,
-        );
+        let (vault_authority, _) =
+            Pubkey::find_program_address(&[VAULT_AUTHORITY_SEED], ctx.program_id);
         // account 7
         let vault_deposit_wallet =
-            associated_token::get_associated_token_address(&vault_deposit_authority, &token_mint);
+            associated_token::get_associated_token_address(&vault_authority, &token_mint);
 
         // add accounts 3..9
         accounts.extend_from_slice(&[
@@ -101,17 +110,12 @@ impl OAppLzReceiveTypes<'_> {
                 is_writable: false,
             }, // 3
             LzAccount {
-                pubkey: user_info,
-                is_signer: false,
-                is_writable: true,
-            }, // 4
-            LzAccount {
                 pubkey: user_deposit_wallet,
                 is_signer: false,
                 is_writable: true,
             }, // 5
             LzAccount {
-                pubkey: vault_deposit_authority,
+                pubkey: vault_authority,
                 is_signer: false,
                 is_writable: false,
             }, // 6
@@ -181,10 +185,8 @@ fn get_accounts_for_send_oapp(user: Pubkey) -> Vec<LzAccount> {
     let (user_info, _) = Pubkey::find_program_address(&[&user.to_bytes()], &vault_program_id);
     let user_token_account = associated_token::get_associated_token_address(&user, &token_mint);
 
-    const VAULT_DEPOSIT_AUTHORITY_SEED: &[u8] = b"vault_deposit_authority";
-
     let (vault_deposit_auth, _) = Pubkey::find_program_address(
-        &[VAULT_DEPOSIT_AUTHORITY_SEED, &token_mint.to_bytes()],
+        &[VAULT_AUTHORITY_SEED, &token_mint.to_bytes()],
         &vault_program_id,
     );
 

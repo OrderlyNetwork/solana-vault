@@ -8,6 +8,8 @@ pub struct OAppConfig {
     pub bump: u8,
     // mutable
     pub admin: Pubkey,
+    pub usdc_hash: [u8; 32],
+    pub usdc_mint: Pubkey,
 }
 
 impl OAppConfig {

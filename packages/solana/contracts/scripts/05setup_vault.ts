@@ -9,7 +9,7 @@ import {
   } from "@solana/spl-token";
 import { OftTools } from "@layerzerolabs/lz-solana-sdk-v2";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
-import { getLzReceiveTypesPda, getOAppConfigPda, getPeerPda, getEventAuthorityPda, getOAppRegistryPda, setAnchor, getVaultDepositAuthorityPda, createAndSendV0Tx, createAndSendV0TxWithTable, getBrokerHash, getTokenHash, getSolAccountId, getUSDCAccount, mintUSDC } from "./utils";
+import { getLzReceiveTypesPda, getOAppConfigPda, getPeerPda, getEventAuthorityPda, getOAppRegistryPda, setAnchor, getVaultAuthorityPda, createAndSendV0Tx, createAndSendV0TxWithTable, getBrokerHash, getTokenHash, getSolAccountId, getUSDCAccount, mintUSDC } from "./utils";
 import { DST_EID, ENDPOINT_PROGRAM_ID, PEER_ADDRESS, LZ_RECEIVE_GAS, LZ_COMPOSE_GAS, LZ_COMPOSE_VALUE, LZ_RECEIVE_VALUE, SEND_LIB_PROGRAM_ID, TREASURY_PROGRAM_ID,EXECUTOR_PROGRAM_ID, DVN_PROGRAM_ID, PRICE_FEED_PROGRAM_ID } from "./constants";
 import * as utils from "./utils";
 
@@ -31,10 +31,10 @@ async function setup() {
     const amountToMint = 5000;
     await utils.mintUSDC(provider, wallet, usdc, userUSDCAccount, amountToMint);
 
-    const vaultDepositAuthorityPda = getVaultDepositAuthorityPda(OAPP_PROGRAM_ID, usdc);
-    console.log("Vault Deposit Authority PDA:", vaultDepositAuthorityPda.toBase58());
+    const vaultAuthorityPda = getVaultAuthorityPda(OAPP_PROGRAM_ID);
+    console.log("Vault Deposit Authority PDA:", vaultAuthorityPda.toBase58());
 
-    const vaultUSDCAccount = await utils.getUSDCAccount(provider, wallet, usdc, vaultDepositAuthorityPda);
+    const vaultUSDCAccount = await utils.getUSDCAccount(provider, wallet, usdc, vaultAuthorityPda);
     console.log("Vault USDCAccount", vaultUSDCAccount.toBase58());
 
     const userInfoPda = PublicKey.findProgramAddressSync(
@@ -42,12 +42,11 @@ async function setup() {
         OAPP_PROGRAM_ID
     )[0];
 
-    const tableAddress = [usdc, vaultDepositAuthorityPda, vaultUSDCAccount, userInfoPda]
+    const tableAddress = [usdc, vaultAuthorityPda, vaultUSDCAccount, userInfoPda]
 
     const ixInitVault = await OAppProgram.methods.initVault().accounts({
-        depositToken: usdc,
-        vaultDepositAuthority: vaultDepositAuthorityPda,
-        user: wallet.publicKey,
+        signer: wallet.publicKey,
+        vaultAuthority: vaultAuthorityPda,
 
     }).instruction();
 

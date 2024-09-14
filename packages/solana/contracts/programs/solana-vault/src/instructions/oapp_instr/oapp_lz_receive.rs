@@ -1,8 +1,8 @@
 use crate::errors::OAppError;
 use crate::events::VaultWithdrawn;
 use crate::instructions::{to_bytes32, OAppLzReceiveParams};
-use crate::instructions::{OAPP_SEED, PEER_SEED, VAULT_DEPOSIT_AUTHORITY_SEED};
-use crate::state::{OAppConfig, Peer, UserInfo, VaultDepositAuthority};
+use crate::instructions::{LzMessage, MsgType, OAPP_SEED, PEER_SEED, VAULT_AUTHORITY_SEED};
+use crate::state::{OAppConfig, Peer, VaultAuthority};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 use oapp::endpoint::{cpi::accounts::Clear, instructions::ClearParams, ConstructCPIContext};
@@ -33,9 +33,6 @@ pub struct OAppLzReceive<'info> {
     #[account()]
     pub user: AccountInfo<'info>,
 
-    #[account(mut, has_one = user)]
-    pub user_info: Account<'info, UserInfo>,
-
     #[account(
         mut,
         associated_token::mint = deposit_token,
@@ -44,16 +41,15 @@ pub struct OAppLzReceive<'info> {
     pub user_deposit_wallet: Account<'info, TokenAccount>,
 
     #[account(
-        seeds = [VAULT_DEPOSIT_AUTHORITY_SEED, deposit_token.key().as_ref()],
-        bump = vault_deposit_authority.bump,
-        constraint = vault_deposit_authority.deposit_token == deposit_token.key()
+        seeds = [VAULT_AUTHORITY_SEED],
+        bump = vault_authority.bump,
     )]
-    pub vault_deposit_authority: Account<'info, VaultDepositAuthority>,
+    pub vault_authority: Account<'info, VaultAuthority>,
 
     #[account(
         mut,
         associated_token::mint = deposit_token,
-        associated_token::authority = vault_deposit_authority
+        associated_token::authority = vault_authority
     )]
     pub vault_deposit_wallet: Account<'info, TokenAccount>,
 
@@ -70,7 +66,7 @@ impl<'info> OAppLzReceive<'info> {
         let cpi_accounts = Transfer {
             from: self.vault_deposit_wallet.to_account_info(),
             to: self.user_deposit_wallet.to_account_info(),
-            authority: self.vault_deposit_authority.to_account_info(),
+            authority: self.vault_authority.to_account_info(),
         };
         let cpi_program = self.token_program.to_account_info();
         CpiContext::new(cpi_program, cpi_accounts)
@@ -95,28 +91,28 @@ impl<'info> OAppLzReceive<'info> {
             },
         )?;
 
-        let withdraw_params = AccountWithdrawSol::decode_packed(&params.message).unwrap();
+        let lz_message = LzMessage::decode(&params.message).unwrap();
+        msg!("msg_type: {:?}", lz_message.msg_type);
+        if lz_message.msg_type == MsgType::Withdraw as u8 {
+            let withdraw_params = AccountWithdrawSol::decode_packed(&lz_message.payload).unwrap();
 
-        let deposit_token_key = ctx.accounts.deposit_token.key();
-        let vault_deposit_authority_seeds = &[
-            VAULT_DEPOSIT_AUTHORITY_SEED,
-            deposit_token_key.as_ref(),
-            &[ctx.accounts.vault_deposit_authority.bump],
-        ];
+            let vault_authority_seeds =
+                &[VAULT_AUTHORITY_SEED, &[ctx.accounts.vault_authority.bump]];
 
-        msg!("Withdraw amount = {}", withdraw_params.token_amount);
+            msg!("Withdraw amount = {}", withdraw_params.token_amount);
 
-        transfer(
-            ctx.accounts
-                .transfer_token_ctx()
-                .with_signer(&[&vault_deposit_authority_seeds[..]]),
-            withdraw_params.token_amount,
-        )?;
+            transfer(
+                ctx.accounts
+                    .transfer_token_ctx()
+                    .with_signer(&[&vault_authority_seeds[..]]),
+                withdraw_params.token_amount,
+            )?;
 
-        ctx.accounts.user_info.amount -= withdraw_params.token_amount;
-        msg!("User deposit balance: {}", ctx.accounts.user_info.amount);
-        let vault_withdraw_params: VaultWithdrawParams = withdraw_params.into();
-        emit!(Into::<VaultWithdrawn>::into(vault_withdraw_params.clone()));
+            let vault_withdraw_params: VaultWithdrawParams = withdraw_params.into();
+            emit!(Into::<VaultWithdrawn>::into(vault_withdraw_params.clone()));
+        } else {
+            msg!("Invalid message type: {:?}", lz_message.msg_type);
+        }
 
         Ok(())
     }
@@ -236,11 +232,6 @@ impl AccountWithdrawSol {
 
 impl From<AccountWithdrawSol> for VaultWithdrawParams {
     fn from(account_withdraw_sol: AccountWithdrawSol) -> VaultWithdrawParams {
-        // 0xd6aca1be9729c13d677335161321649cccae6a591554772516700f986f942eaa
-        // token hash from hex string
-        // let hex_string = "d6aca1be9729c13d677335161321649cccae6a591554772516700f986f942eaa";
-        // let token_hash: [u8; 32] = hex::decode(&hex_string).unwrap().try_into().unwrap();
-
         VaultWithdrawParams {
             account_id: account_withdraw_sol.account_id,
             sender: account_withdraw_sol.sender,

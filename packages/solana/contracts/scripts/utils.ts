@@ -7,7 +7,7 @@ import {
     getMint,
     mintTo
   } from "@solana/spl-token";
-import { DVN_PROGRAM_ID, ENDPOINT_PROGRAM_ID, EXECUTOR_PROGRAM_ID, PEER_ADDRESS, PRICE_FEED_PROGRAM_ID, SEND_LIB_PROGRAM_ID, DEV_LOOKUP_TABLE_ADDRESS, MAIN_LOOKUP_TABLE_ADDRESS, LOCAL_RPC, DEV_RPC, MAIN_RPC, VAULT_DEPOSIT_AUTHORITY_SEED, MOCK_USDC_PRIVATE_KEY, MOCK_USDC_ACCOUNT, DEV_USDC_ACCOUNT, MAIN_USDC_ACCOUNT, RECEIVE_LIB_PROGRAM_ID, BROKER_SEED } from "./constants";
+import { DVN_PROGRAM_ID, ENDPOINT_PROGRAM_ID, EXECUTOR_PROGRAM_ID, PEER_ADDRESS, PRICE_FEED_PROGRAM_ID, SEND_LIB_PROGRAM_ID, DEV_LOOKUP_TABLE_ADDRESS, MAIN_LOOKUP_TABLE_ADDRESS, LOCAL_RPC, DEV_RPC, MAIN_RPC, VAULT_AUTHORITY_SEED, MOCK_USDC_PRIVATE_KEY, MOCK_USDC_ACCOUNT, DEV_USDC_ACCOUNT, MAIN_USDC_ACCOUNT, RECEIVE_LIB_PROGRAM_ID, BROKER_SEED, TOKEN_SEED, OWNER_SEED } from "./constants";
 import { seed } from "@coral-xyz/anchor/dist/cjs/idl";
 import { hexToBytes } from 'ethereum-cryptography/utils';
 import { keccak256, AbiCoder, solidityPackedKeccak256, decodeBase58 } from "ethers"
@@ -21,6 +21,13 @@ import { SolanaVault } from "../target/types/solana_vault";
 export function getOAppConfigPda(OAPP_PROGRAM_ID: PublicKey): PublicKey {
     return PublicKey.findProgramAddressSync(
         [Buffer.from(OAPP_SEED, "utf8")],
+        OAPP_PROGRAM_ID
+    )[0];
+}
+
+export function getVaultOwnerPda(OAPP_PROGRAM_ID: PublicKey): PublicKey {
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from(OWNER_SEED, "utf8")],
         OAPP_PROGRAM_ID
     )[0];
 }
@@ -328,9 +335,9 @@ export function getOftConfigPda(OFT_PROGRAM_ID: PublicKey, mintAccount: PublicKe
 }
 
 
-export function getVaultDepositAuthorityPda(VAULT_PROGRAM_ID: PublicKey, mintAccount: PublicKey): PublicKey {
+export function getVaultAuthorityPda(VAULT_PROGRAM_ID: PublicKey): PublicKey {
     return PublicKey.findProgramAddressSync(
-        [Buffer.from(VAULT_DEPOSIT_AUTHORITY_SEED, "utf8"), mintAccount.toBuffer()],
+        [Buffer.from(VAULT_AUTHORITY_SEED, "utf8")],
         VAULT_PROGRAM_ID
     )[0];
 }
@@ -353,6 +360,14 @@ export function getBrokerPda(VAULT_PROGRAM_ID: PublicKey, brokerHash: string): P
     const hash = Array.from(Buffer.from(brokerHash.slice(2), 'hex'));
     return PublicKey.findProgramAddressSync(
         [Buffer.from(BROKER_SEED, "utf8"), Buffer.from(hash)],
+        VAULT_PROGRAM_ID
+    )[0];
+}
+
+export function getTokenPda(VAULT_PROGRAM_ID: PublicKey, tokenHash: string): PublicKey {
+    const hash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'));
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from(TOKEN_SEED, "utf8"), Buffer.from(hash)],
         VAULT_PROGRAM_ID
     )[0];
 }

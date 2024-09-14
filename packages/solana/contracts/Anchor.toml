@@ -30,4 +30,7 @@ mint_usdc = "yarn run ts-node scripts/04mint_usdc.ts"
 setup_vault = "yarn run ts-node scripts/05setup_vault.ts"
 deposit_vault = "yarn run ts-node scripts/06deposit_vault.ts"
 
+set_broker = "yarn run ts-node scripts/set_broker.ts"
+set_token = "yarn run ts-node scripts/set_token.ts"
+
 test = "yarn run ts-mocha -b -p ./tsconfig.json -t 1000000 tests/**/*.test.ts"
