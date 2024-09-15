@@ -86,9 +86,6 @@ async function deposit() {
 
     const sendParam = {
         dstEid: DST_EID,
-        to: Array.from(PEER_ADDRESS),
-        options: Buffer.from(Options.newOptions().addExecutorLzReceiveOption(400_000,0).toBytes()),
-        message: Buffer.from("Hello, World!"),
         nativeFee: new anchor.BN(1_000_000_000),
         lzTokenFee: new anchor.BN(0),
     }
