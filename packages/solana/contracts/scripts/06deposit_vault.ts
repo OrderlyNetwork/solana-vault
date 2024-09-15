@@ -3,7 +3,7 @@ import { Keypair, PublicKey, SystemProgram, Transaction, ComputeBudgetProgram } 
 
 import { OftTools } from "@layerzerolabs/lz-solana-sdk-v2";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
-import { getLzReceiveTypesPda, getOAppConfigPda, getPeerPda, getEventAuthorityPda, getOAppRegistryPda, setAnchor, getVaultDepositAuthorityPda, createAndSendV0Tx, createAndSendV0TxWithTable, getBrokerHash, getTokenHash, getSolAccountId, getUSDCAccount, mintUSDC } from "./utils";
+import { getLzReceiveTypesPda, getOAppConfigPda, getPeerPda, getEventAuthorityPda, getOAppRegistryPda, setAnchor, getVaultAuthorityPda, createAndSendV0Tx, createAndSendV0TxWithTable, getBrokerHash, getTokenHash, getSolAccountId, getUSDCAccount, mintUSDC } from "./utils";
 import { DST_EID, ENDPOINT_PROGRAM_ID, PEER_ADDRESS, LZ_RECEIVE_GAS, LZ_COMPOSE_GAS, LZ_COMPOSE_VALUE, LZ_RECEIVE_VALUE, SEND_LIB_PROGRAM_ID, TREASURY_PROGRAM_ID,EXECUTOR_PROGRAM_ID, DVN_PROGRAM_ID, PRICE_FEED_PROGRAM_ID } from "./constants";
 import * as constants from "./constants";
 import * as utils from "./utils";
@@ -20,8 +20,11 @@ const [provider, wallet, rpc] = setAnchor();
 async function deposit() {
     console.log("Setting up Vault...");
     const lookupTableAddresses = getTableAddresses();
+    const senderAddress = wallet.publicKey;
+    // const receiverAddress = new PublicKey("4bbnSXvV48dPEecRwbaQwWw4ajXKiMuUvN29zNY1LqY3");
+    const receiverAddress = senderAddress;
     const usdc = await utils.getUSDCAddress(provider, wallet, rpc);
-    const userUSDCAccount = await utils.getUSDCAccount(provider, wallet, usdc, wallet.publicKey);
+    const userUSDCAccount = await utils.getUSDCAccount(provider, wallet, usdc, senderAddress);
     console.log("💶 User USDCAccount", userUSDCAccount.toBase58());
 
     if (usdc === constants.MOCK_USDC_ACCOUNT && provider.connection.rpcEndpoint === constants.LOCAL_RPC) {
@@ -29,10 +32,10 @@ async function deposit() {
         await utils.mintUSDC(provider, wallet, usdc, userUSDCAccount, amountToMint);
     }
 
-    const vaultDepositAuthorityPda = getVaultDepositAuthorityPda(OAPP_PROGRAM_ID, usdc);
-    console.log("🔑 Vault Deposit Authority PDA:", vaultDepositAuthorityPda.toBase58());
+    const vaultAuthorityPda = getVaultAuthorityPda(OAPP_PROGRAM_ID);
+    console.log("🔑 Vault Deposit Authority PDA:", vaultAuthorityPda.toBase58());
 
-    const vaultUSDCAccount = await utils.getUSDCAccount(provider, wallet, usdc, vaultDepositAuthorityPda);
+    const vaultUSDCAccount = await utils.getUSDCAccount(provider, wallet, usdc, vaultAuthorityPda);
     console.log("💶 Vault USDCAccount", vaultUSDCAccount.toBase58());
 
     const userInfoPda = PublicKey.findProgramAddressSync(
@@ -44,13 +47,11 @@ async function deposit() {
 
     console.log("Init Vault:");
     try {
-        const tableAddress = [usdc, vaultDepositAuthorityPda, vaultUSDCAccount, userInfoPda]
+        const tableAddress = [usdc, vaultAuthorityPda, vaultUSDCAccount, userInfoPda]
 
         const ixInitVault = await OAppProgram.methods.initVault().accounts({
-            depositToken: usdc,
-            vaultDepositAuthority: vaultDepositAuthorityPda,
-            user: wallet.publicKey,
-
+            vaultAuthority: vaultAuthorityPda,
+            signer: wallet.publicKey,
         }).instruction();
         await createAndSendV0TxWithTable([ixInitVault], provider, wallet, tableAddress);
     } catch (e) {
@@ -64,8 +65,9 @@ async function deposit() {
     const codedBrokerHash = Array.from(Buffer.from(brokerHash.slice(2), 'hex'));
     const tokenHash = getTokenHash(tokenSymbol);
     console.log("Token Hash:", tokenHash);
+
     const codedTokenHash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'));
-    const solAccountId = getSolAccountId(wallet.publicKey, brokerId);
+    const solAccountId = getSolAccountId(receiverAddress, brokerId); 
     console.log("Sol Account Id:", solAccountId);
     const codedAccountId = Array.from(Buffer.from(solAccountId.slice(2), 'hex'));
     
@@ -77,29 +79,32 @@ async function deposit() {
         accountId:  codedAccountId,
         brokerHash: codedBrokerHash,
         tokenHash:  codedTokenHash,
+        userAddress: Array.from(receiverAddress.toBuffer()),
         srcChainId: new anchor.BN(902902902),
-        tokenAmount: new anchor.BN(10_000_000),
+        tokenAmount: new anchor.BN(1_000_000_000),
     };
 
     const sendParam = {
         dstEid: DST_EID,
         to: Array.from(PEER_ADDRESS),
-        options: Buffer.from(Options.newOptions().addExecutorLzReceiveOption(LZ_RECEIVE_GAS,0).toBytes()),
+        options: Buffer.from(Options.newOptions().addExecutorLzReceiveOption(400_000,0).toBytes()),
         message: Buffer.from("Hello, World!"),
-        nativeFee: new anchor.BN(1_000_000),
+        nativeFee: new anchor.BN(1_000_000_000),
         lzTokenFee: new anchor.BN(0),
     }
-
+    const allowedBrokerPda = utils.getBrokerPda(OAPP_PROGRAM_ID, brokerHash);
+    const allowedTokenPda = utils.getTokenPda(OAPP_PROGRAM_ID, tokenHash);
     const ixDepositEntry = await OAppProgram.methods.deposit(vaultDepositParams, sendParam).accounts({
-        userInfo: userInfoPda,
-        userDepositWallet: userUSDCAccount,
-        vaultDepositAuthority: vaultDepositAuthorityPda,
-        vaultDepositWallet: vaultUSDCAccount,
+        userTokenAccount: userUSDCAccount,
+        vaultAuthority: vaultAuthorityPda,
+        vaultTokenAccount: vaultUSDCAccount,
         depositToken: usdc,
         user: wallet.publicKey,
         peer: lookupTableAddresses[2],
         enforcedOptions: lookupTableAddresses[5],
         oappConfig: lookupTableAddresses[0],
+        allowedBroker: allowedBrokerPda,
+        allowedToken: allowedTokenPda
     }).remainingAccounts([
                     // ENDPOINT solana/programs/programs/uln/src/instructions/endpoint/send.rs
                     {
@@ -311,6 +316,7 @@ function getTableAddresses() {
 
     const messageLibPda = utils.getMessageLibPda();
     console.log("🔑 Message Lib PDA: ", messageLibPda.toString());
+
 
     // const [usdcAddress, userUSDCAccount, vaultUSDCAccount] = await utils.getRelatedUSDCAcount(provider, wallet, rpc);
     // console.log("💶 USDC Address: ", usdcAddress.toString());

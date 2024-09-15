@@ -7,6 +7,14 @@ pub enum VaultError {
     InsufficientFunds,
     #[msg("User info pda belongs to another user")]
     UserInfoBelongsToAnotherUser,
+    #[msg("Broker is not allowed")]
+    BrokerNotAllowed,
+    #[msg("Token is not allowed")]
+    TokenNotAllowed,
+    #[msg("AccountId is invalid")]
+    InvalidAccountId,
+    #[msg("Vault owner is not the same as the payer")]
+    InvalidVaultOwner,
 }
 
 // OApp errors
