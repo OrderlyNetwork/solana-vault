@@ -8,6 +8,8 @@ pub struct OAppConfig {
     pub bump: u8,
     // mutable
     pub admin: Pubkey,
+    pub usdc_hash: [u8; 32],
+    pub usdc_mint: Pubkey,
 }
 
 impl OAppConfig {
@@ -37,12 +39,4 @@ impl OAppConfig {
             },
         )
     }
-}
-
-/// LzReceiveTypesAccounts includes accounts that are used in the LzReceiveTypes
-/// instruction.
-#[account]
-#[derive(InitSpace)]
-pub struct OAppLzReceiveTypesAccounts {
-    pub oapp_config: Pubkey,
 }

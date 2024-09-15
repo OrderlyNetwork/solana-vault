@@ -31,6 +31,29 @@ pub mod solana_vault {
         InitOApp::apply(&mut ctx, &params)
     }
 
+    // pub fn reinit_oapp(mut ctx: Context<ReinitOApp>, params: ReinitOAppParams) -> Result<()> {
+    //     ReinitOApp::apply(&mut ctx, &params)
+    // }
+
+    pub fn reset_oapp_config(mut ctx: Context<ResetOApp>) -> Result<()> {
+        ResetOApp::apply(&mut ctx)
+    }
+
+    pub fn reinit_oapp_config(
+        mut ctx: Context<ReinitOApp>,
+        params: ReinitOAppParams,
+    ) -> Result<()> {
+        ReinitOApp::apply(&mut ctx, &params)
+    }
+
+    pub fn set_broker(mut ctx: Context<SetBroker>, params: SetBrokerParams) -> Result<()> {
+        SetBroker::apply(&mut ctx, &params)
+    }
+
+    pub fn set_token(mut ctx: Context<SetToken>, params: SetTokenParams) -> Result<()> {
+        SetToken::apply(&mut ctx, &params)
+    }
+
     pub fn oapp_quote(ctx: Context<OAppQuote>, params: OAppQuoteParams) -> Result<MessagingFee> {
         OAppQuote::apply(&ctx, &params)
     }

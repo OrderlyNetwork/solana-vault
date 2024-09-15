@@ -18,6 +18,7 @@ pub struct TransferAdmin<'info> {
 impl TransferAdmin<'_> {
     pub fn apply(ctx: &mut Context<TransferAdmin>, params: &TransferAdminParams) -> Result<()> {
         ctx.accounts.oapp_config.admin = params.admin;
+        // TODO:call endpoint to update delegate
         Ok(())
     }
 }
