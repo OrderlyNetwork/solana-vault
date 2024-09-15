@@ -40,11 +40,3 @@ impl OAppConfig {
         )
     }
 }
-
-/// LzReceiveTypesAccounts includes accounts that are used in the LzReceiveTypes
-/// instruction.
-#[account]
-#[derive(InitSpace)]
-pub struct OAppLzReceiveTypesAccounts {
-    pub oapp_config: Pubkey,
-}

@@ -3,12 +3,11 @@ use std::str::FromStr;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program;
 use anchor_spl::associated_token;
-use anchor_spl::token_2022::spl_token_2022::solana_zk_token_sdk::instruction::withdraw;
 use oapp::endpoint_cpi::LzAccount;
 
 use crate::instructions::AccountWithdrawSol;
-use crate::instructions::{LzMessage, BROKER_SEED, OAPP_SEED, PEER_SEED, VAULT_AUTHORITY_SEED};
-use crate::state::{AllowedBroker, OAppConfig};
+use crate::instructions::{LzMessage, OAPP_SEED, PEER_SEED, VAULT_AUTHORITY_SEED};
+use crate::state::OAppConfig;
 
 #[derive(Accounts)]
 pub struct OAppLzReceiveTypes<'info> {
@@ -17,11 +16,6 @@ pub struct OAppLzReceiveTypes<'info> {
         bump = oapp_config.bump
     )]
     pub oapp_config: Account<'info, OAppConfig>,
-    // #[account(
-    //     seeds = [BROKER_SEED],
-    //     bump = allowed_broker.bump
-    // )]
-    // pub allowed_broker: Account<'info, AllowedBroker>,
 }
 
 // account structure
@@ -65,7 +59,6 @@ impl OAppLzReceiveTypes<'_> {
         ];
 
         // account 2
-        // let (oapp_config, _) = Pubkey::find_program_address(&[OAPP_SEED], ctx.program_id);
         accounts.extend_from_slice(&[
             LzAccount {
                 pubkey: oapp_config.key(),
@@ -79,14 +72,13 @@ impl OAppLzReceiveTypes<'_> {
         let user = Pubkey::new_from_array(withdraw_params.receiver);
 
         // account 8
-        // let token_mint = Pubkey::from_str("usdc4pNcoYJ2GNXcJN4iwNXfxbKXPQzqBdALdqaRyUn").unwrap();
         let token_mint: Pubkey;
-
         if oapp_config.usdc_hash == withdraw_params.token_hash {
             token_mint = oapp_config.usdc_mint;
         } else {
             token_mint = Pubkey::from_str("0x0000").unwrap();
         }
+
         // account 9
         let token_program_id =
             Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap();
@@ -94,7 +86,6 @@ impl OAppLzReceiveTypes<'_> {
         let user_deposit_wallet =
             associated_token::get_associated_token_address(&user, &token_mint);
 
-        // const VAULT_AUTHORITY_SEED: &[u8] = b"VaultAuthority";
         // account 6
         let (vault_authority, _) =
             Pubkey::find_program_address(&[VAULT_AUTHORITY_SEED], ctx.program_id);

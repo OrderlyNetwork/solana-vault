@@ -3,9 +3,7 @@ use crate::instructions::{OAPP_SEED, OWNER_SEED};
 use crate::state::{OAppConfig, VaultOwner};
 use anchor_lang::prelude::*;
 use oapp::endpoint::ID as ENDPOINT_ID;
-/// This instruction should always be in the same transaction as InitializeMint.
-/// Otherwise, it is possible for your settings to be front-run by another transaction.
-/// If such a case did happen, you should initialize another mint for this oapp.
+
 #[derive(Accounts)]
 pub struct ReinitOApp<'info> {
     #[account(mut)]
