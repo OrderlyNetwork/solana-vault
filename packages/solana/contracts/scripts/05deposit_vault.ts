@@ -4,10 +4,8 @@ import { hexlify } from '@ethersproject/bytes'
 
 import { OftTools } from "@layerzerolabs/lz-solana-sdk-v2";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
-import { getLzReceiveTypesPda, getOAppConfigPda, getPeerPda, getEventAuthorityPda, getOAppRegistryPda, setAnchor, getVaultAuthorityPda, createAndSendV0Tx, createAndSendV0TxWithTable, getBrokerHash, getTokenHash, getSolAccountId, getUSDCAccount, mintUSDC } from "./utils";
-import { DST_EID, ENDPOINT_PROGRAM_ID, PEER_ADDRESS, LZ_RECEIVE_GAS, LZ_COMPOSE_GAS, LZ_COMPOSE_VALUE, LZ_RECEIVE_VALUE, SEND_LIB_PROGRAM_ID, TREASURY_PROGRAM_ID,EXECUTOR_PROGRAM_ID, DVN_PROGRAM_ID, PRICE_FEED_PROGRAM_ID } from "./constants";
-import * as constants from "./constants";
 import * as utils from "./utils";
+import * as constants from "./constants";
 import { PacketPath } from '@layerzerolabs/lz-v2-utilities'
 import { EndpointProgram, EventPDADeriver, SimpleMessageLibProgram, UlnProgram } from '@layerzerolabs/lz-solana-sdk-v2'
 
@@ -20,7 +18,7 @@ import { utf8 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
 const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
 const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
 
-const [provider, wallet, rpc] = setAnchor();
+const [provider, wallet, rpc] = utils.setAnchor();
 
 
 
@@ -39,7 +37,7 @@ async function deposit() {
         await utils.mintUSDC(provider, wallet, usdc, userUSDCAccount, amountToMint);
     }
 
-    const vaultAuthorityPda = getVaultAuthorityPda(OAPP_PROGRAM_ID);
+    const vaultAuthorityPda = utils.getVaultAuthorityPda(OAPP_PROGRAM_ID);
     console.log("🔑 Vault Deposit Authority PDA:", vaultAuthorityPda.toBase58());
 
     const vaultUSDCAccount = await utils.getUSDCAccount(provider, wallet, usdc, vaultAuthorityPda);
@@ -60,21 +58,21 @@ async function deposit() {
             vaultAuthority: vaultAuthorityPda,
             signer: wallet.publicKey,
         }).instruction();
-        await createAndSendV0TxWithTable([ixInitVault], provider, wallet, tableAddress);
+        await utils.createAndSendV0TxWithTable([ixInitVault], provider, wallet, tableAddress);
     } catch (e) {
         console.log("Vault already initialized");
     }
 
     const brokerId = "woofi_pro";
     const tokenSymbol = "USDC";
-    const brokerHash = getBrokerHash(brokerId);
+    const brokerHash = utils.getBrokerHash(brokerId);
     console.log("Broker Hash:", brokerHash);
     const codedBrokerHash = Array.from(Buffer.from(brokerHash.slice(2), 'hex'));
-    const tokenHash = getTokenHash(tokenSymbol);
+    const tokenHash = utils.getTokenHash(tokenSymbol);
     console.log("Token Hash:", tokenHash);
 
     const codedTokenHash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'));
-    const solAccountId = getSolAccountId(receiverAddress, brokerId); 
+    const solAccountId = utils.getSolAccountId(receiverAddress, brokerId); 
     console.log("Sol Account Id:", solAccountId);
     const codedAccountId = Array.from(Buffer.from(solAccountId.slice(2), 'hex'));
     
@@ -137,7 +135,7 @@ async function deposit() {
     // console.log("Quote transaction confirmed:", res);
 
     const sendParam = {
-        dstEid: DST_EID,
+        dstEid: constants.DST_EID,
         nativeFee: new anchor.BN(1_000_000_000),
         lzTokenFee: new anchor.BN(0),
     }
@@ -159,7 +157,7 @@ async function deposit() {
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: ENDPOINT_PROGRAM_ID,
+                        pubkey: constants.ENDPOINT_PROGRAM_ID,
                     },
                     {
                         isSigner: false,
@@ -169,7 +167,7 @@ async function deposit() {
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: SEND_LIB_PROGRAM_ID
+                        pubkey: constants.SEND_LIB_PROGRAM_ID
                     },
                     {
                         isSigner: false,
@@ -205,7 +203,7 @@ async function deposit() {
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: ENDPOINT_PROGRAM_ID,
+                        pubkey: constants.ENDPOINT_PROGRAM_ID,
                     },
                     {
                         isSigner: false,
@@ -230,7 +228,7 @@ async function deposit() {
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: TREASURY_PROGRAM_ID,
+                        pubkey: constants.TREASURY_PROGRAM_ID,
                     },
                     {
                         isSigner: false,
@@ -245,12 +243,12 @@ async function deposit() {
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: SEND_LIB_PROGRAM_ID
+                        pubkey: constants.SEND_LIB_PROGRAM_ID
                     },
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: EXECUTOR_PROGRAM_ID
+                        pubkey: constants.EXECUTOR_PROGRAM_ID
                     },
                     {
                         isSigner: false,
@@ -260,7 +258,7 @@ async function deposit() {
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: PRICE_FEED_PROGRAM_ID
+                        pubkey: constants.PRICE_FEED_PROGRAM_ID
                     },
                     {
                         isSigner: false,
@@ -270,7 +268,7 @@ async function deposit() {
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: DVN_PROGRAM_ID
+                        pubkey: constants.DVN_PROGRAM_ID
                     },
                     {
                         isSigner: false,
@@ -280,7 +278,7 @@ async function deposit() {
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: PRICE_FEED_PROGRAM_ID 
+                        pubkey: constants.PRICE_FEED_PROGRAM_ID 
                     },
                     {
                         isSigner: false,

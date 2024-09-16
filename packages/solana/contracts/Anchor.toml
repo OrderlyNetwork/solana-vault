@@ -14,7 +14,7 @@ solana-vault = "5seA2qXcGyC9najiKmUVK3u2hfotXZVHtaxuxfrwBLrX"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
@@ -26,13 +26,14 @@ print_pda = "yarn run ts-node scripts/00print_pda.ts"
 setup_oapp = "yarn run ts-node scripts/01setup_oapp.ts"
 setconfig_oapp = "yarn run ts-node scripts/02setconfig_oapp.ts"
 init_oapp = "yarn run ts-node scripts/03init_oapp.ts"
-mint_usdc = "yarn run ts-node scripts/04mint_usdc.ts"
-setup_vault = "yarn run ts-node scripts/05setup_vault.ts"
-deposit_vault = "yarn run ts-node scripts/06deposit_vault.ts"
+setup_vault = "yarn run ts-node scripts/04setup_vault.ts"
+deposit_vault = "yarn run ts-node scripts/05deposit_vault.ts"
 
 set_broker = "yarn run ts-node scripts/set_broker.ts"
 set_token = "yarn run ts-node scripts/set_token.ts"
 reset_oapp = "yarn run ts-node scripts/reset_oapp_config.ts"
 reinit_oapp = "yarn run ts-node scripts/reinit_oapp_config.ts"
+quote_deposit = "yarn run ts-node scripts/quote_oapp.ts"
+order_delivery = "yarn run ts-node scripts/set_order_delivery.ts"
 
 test = "yarn run ts-mocha -b -p ./tsconfig.json -t 1000000 tests/**/*.test.ts"
