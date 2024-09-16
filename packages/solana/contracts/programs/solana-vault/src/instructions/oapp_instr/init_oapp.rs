@@ -35,6 +35,8 @@ impl InitOApp<'_> {
         ctx.accounts.oapp_config.bump = ctx.bumps.oapp_config;
         ctx.accounts.oapp_config.usdc_hash = params.usdc_hash;
         ctx.accounts.oapp_config.usdc_mint = params.usdc_mint;
+        ctx.accounts.oapp_config.order_delivery = params.order_delivery;
+        ctx.accounts.oapp_config.inbound_nonce = params.inbound_nonce;
 
         let oapp_signer = ctx.accounts.oapp_config.key();
         ctx.accounts.oapp_config.init(
@@ -52,4 +54,6 @@ pub struct InitOAppParams {
     pub endpoint_program: Option<Pubkey>,
     pub usdc_hash: [u8; 32],
     pub usdc_mint: Pubkey,
+    pub order_delivery: bool,
+    pub inbound_nonce: u64,
 }

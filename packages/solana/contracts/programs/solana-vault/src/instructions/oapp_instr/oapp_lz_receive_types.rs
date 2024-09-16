@@ -54,7 +54,7 @@ impl OAppLzReceiveTypes<'_> {
             LzAccount {
                 pubkey: peer,
                 is_signer: false,
-                is_writable: true,
+                is_writable: false,
             }, // 1
         ];
 
@@ -63,7 +63,7 @@ impl OAppLzReceiveTypes<'_> {
             LzAccount {
                 pubkey: oapp_config.key(),
                 is_signer: false,
-                is_writable: false,
+                is_writable: true,
             }, // 2
         ]);
         let lz_message = LzMessage::decode(&params.message).unwrap();

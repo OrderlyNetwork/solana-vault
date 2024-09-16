@@ -2,15 +2,19 @@ import * as utils from "./utils";
 import * as constants from "./constants";
 import * as anchor from "@coral-xyz/anchor";
 import { PublicKey} from "@solana/web3.js";
+import * as borsh from 'borsh';
 
 const [provider, wallet, rpc] = utils.setAnchor();
 const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram();  
 
 printPda();
 
-function printPda() {
+async function printPda() {
     const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
     console.log("🔑 OApp Config PDA:", oappConfigPda.toBase58());
+
+    const vaultOwnerPda = utils.getVaultOwnerPda(OAPP_PROGRAM_ID);
+    console.log("🔑 Vault Owner PDA:", vaultOwnerPda.toBase58());
 
     const vaultAuthorityPda = utils.getVaultAuthorityPda(OAPP_PROGRAM_ID);
     console.log("🔑 Vault Authority PDA:", vaultAuthorityPda.toBase58());
@@ -63,8 +67,11 @@ function printPda() {
     const endpointSettingPda = utils.getEndpointSettingPda();
     console.log("🔑 Endpoint Setting PDA: ", endpointSettingPda.toString());
 
-    const outboundNoncePda = utils.getOutboundNoncePda(oappConfigPda, constants.DST_EID, constants.PEER_ADDRESS);
-    console.log("🔑 Outbound Nonce PDA: ", outboundNoncePda.toString());
+    const noncePda = utils.getNoncePda(oappConfigPda, constants.DST_EID, constants.PEER_ADDRESS);
+    console.log("🔑 Nonce PDA: ", noncePda.toString());
+   
+    const pendingInboundNoncePda = utils.getPendingInboundNoncePda(oappConfigPda, constants.DST_EID, constants.PEER_ADDRESS);
+    console.log("🔑 Pending Inbound Nonce PDA: ", pendingInboundNoncePda.toString());
 
     const executorConfigPda = utils.getExecutorConfigPda();
     console.log("🔑 Executor Config PDA: ", executorConfigPda.toString());
@@ -81,12 +88,7 @@ function printPda() {
     console.log("Execute the following command to set up local solana node:");
     console.log(`solana-test-validator --clone-upgradeable-program ${constants.ENDPOINT_PROGRAM_ID} --clone-upgradeable-program ${constants.SEND_LIB_PROGRAM_ID} --clone-upgradeable-program ${constants.DVN_PROGRAM_ID} --clone-upgradeable-program ${constants.EXECUTOR_PROGRAM_ID} --clone-upgradeable-program ${constants.PRICE_FEED_PROGRAM_ID} -c ${sendLibPda} -c ${sendLibInfoPda} -c ${defaultSendConfigPda} -c ${defaultSendLibConfigPda} -c ${endpointSettingPda} -c ${dvnConfigPda} -c ${pricefeedConfigPda} -c ${executorConfigPda} -c ${sendConfigPda} -c ${defaultSendConfigPda} -c ${receiveConfigPda} -c ${defaultReceiveConfigPda} --url devnet --reset`)
 
-    // const [usdcAddress, userUSDCAccount, vaultUSDCAccount] = await utils.getRelatedUSDCAcount(provider, wallet, rpc);
-    // console.log("💶 USDC Address: ", usdcAddress.toString());
-    // console.log("💶 User USDC Account: ", userUSDCAccount.toString());
-    // console.log("💶 Vault USDC Account: ", vaultUSDCAccount.toString());
-
-    const lookupTableAddress = [oappConfigPda, lzReceiveTypesPda, peerPda, eventAuthorityPda, oappRegistryPda, enforceOptioinsPda, sendLibPda, sendLibConfigPda, sendLibInfoPda, defaultSendLibConfigPda, sendConfigPda, defaultSendConfigPda, ulnEventAuthorityPda, ulnSettingPda, endpointSettingPda, outboundNoncePda, executorConfigPda, pricefeedConfigPda, dvnConfigPda, messageLibPda];
+    const lookupTableAddress = [oappConfigPda, lzReceiveTypesPda, peerPda, eventAuthorityPda, oappRegistryPda, enforceOptioinsPda, sendLibPda, sendLibConfigPda, sendLibInfoPda, defaultSendLibConfigPda, sendConfigPda, defaultSendConfigPda, ulnEventAuthorityPda, ulnSettingPda, endpointSettingPda, noncePda, pendingInboundNoncePda, executorConfigPda, pricefeedConfigPda, dvnConfigPda, messageLibPda];
     return lookupTableAddress;
 }
 

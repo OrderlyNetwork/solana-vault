@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import { OftTools } from "@layerzerolabs/lz-solana-sdk-v2";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
-import { getLzReceiveTypesPda, getOAppConfigPda, getPeerPda, getEventAuthorityPda, getOAppRegistryPda, setAnchor, getTokenHash, getUSDCAddress, getTokenPda, getVaultOwnerPda } from "./utils";
+import { getLzReceiveTypesPda, getOAppConfigPda, getPeerPda, getEventAuthorityPda, getOAppRegistryPda, setAnchor, getTokenHash, getUSDCAddress, getVaultOwnerPda } from "./utils";
 import { DST_EID, ENDPOINT_PROGRAM_ID, PEER_ADDRESS, LZ_RECEIVE_GAS, LZ_COMPOSE_GAS, LZ_COMPOSE_VALUE, LZ_RECEIVE_VALUE } from "./constants";
 
 import OAppIdl from "../target/idl/solana_vault.json";
@@ -43,7 +43,9 @@ async function setup() {
         admin: wallet.publicKey,
         endpointProgram: ENDPOINT_PROGRAM_ID,
         usdcHash: codedTokenHash,
-        usdcMint: mintAccount
+        usdcMint: mintAccount,
+        orderDelivery: true,
+        inboundNonce: new anchor.BN(0)
     }).accounts({
         payer: wallet.publicKey,
         oappConfig: oappConfigPda,

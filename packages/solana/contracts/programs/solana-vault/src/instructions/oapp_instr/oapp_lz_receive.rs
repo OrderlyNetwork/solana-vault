@@ -14,7 +14,6 @@ pub struct OAppLzReceive<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
     #[account(
-        mut,
         seeds = [
             PEER_SEED,
             &oapp_config.key().to_bytes(),
@@ -25,6 +24,7 @@ pub struct OAppLzReceive<'info> {
     )]
     pub peer: Account<'info, Peer>,
     #[account(
+        mut,
         seeds = [OAPP_SEED],
         bump = oapp_config.bump
     )]
@@ -90,6 +90,20 @@ impl<'info> OAppLzReceive<'info> {
                 message: params.message.clone(),
             },
         )?;
+
+        if ctx.accounts.oapp_config.order_delivery {
+            require!(
+                params.nonce == ctx.accounts.oapp_config.inbound_nonce + 1,
+                OAppError::InvalidInboundNonce
+            );
+        }
+
+        ctx.accounts.oapp_config.inbound_nonce = params.nonce;
+
+        msg!(
+            "nonce received: {:?}",
+            ctx.accounts.oapp_config.inbound_nonce
+        );
 
         let lz_message = LzMessage::decode(&params.message).unwrap();
         msg!("msg_type: {:?}", lz_message.msg_type);

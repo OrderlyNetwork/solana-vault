@@ -1,4 +1,4 @@
-import { ENFORCED_OPTIONS_SEED, EVENT_SEED, LZ_RECEIVE_TYPES_SEED, OAPP_SEED, PEER_SEED, MESSAGE_LIB_SEED, SEND_LIBRARY_CONFIG_SEED, ENDPOINT_SEED, NONCE_SEED, ULN_SEED, SEND_CONFIG_SEED, EXECUTOR_CONFIG_SEED, PRICE_FEED_SEED, DVN_CONFIG_SEED, OFT_SEED, RECEIVE_CONFIG_SEED } from "@layerzerolabs/lz-solana-sdk-v2";
+import { ENFORCED_OPTIONS_SEED, EVENT_SEED, LZ_RECEIVE_TYPES_SEED, OAPP_SEED, PEER_SEED, MESSAGE_LIB_SEED, SEND_LIBRARY_CONFIG_SEED, ENDPOINT_SEED, NONCE_SEED, ULN_SEED, SEND_CONFIG_SEED, EXECUTOR_CONFIG_SEED, PRICE_FEED_SEED, DVN_CONFIG_SEED, OFT_SEED, RECEIVE_CONFIG_SEED, PENDING_NONCE_SEED } from "@layerzerolabs/lz-solana-sdk-v2";
 import { PublicKey, TransactionInstruction, VersionedTransaction, TransactionMessage, AddressLookupTableProgram, Keypair } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
 import {
@@ -169,7 +169,7 @@ export function getEndpointSettingPda(): PublicKey {
     )[0];
 }
 
-export function getOutboundNoncePda(oappConfigPda: PublicKey, dstEid: number, peer_address: Uint8Array): PublicKey {
+export function getNoncePda(oappConfigPda: PublicKey, dstEid: number, peer_address: Uint8Array): PublicKey {
     const bufferDstEid = Buffer.alloc(4);
     bufferDstEid.writeUInt32BE(dstEid);
     return PublicKey.findProgramAddressSync(
@@ -177,6 +177,17 @@ export function getOutboundNoncePda(oappConfigPda: PublicKey, dstEid: number, pe
         ENDPOINT_PROGRAM_ID
     )[0];
 }
+
+
+export function getPendingInboundNoncePda(oappConfigPda: PublicKey, dstEid: number, peer_address: Uint8Array): PublicKey {
+    const bufferDstEid = Buffer.alloc(4);
+    bufferDstEid.writeUInt32BE(dstEid);
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from(PENDING_NONCE_SEED, "utf8"), oappConfigPda.toBuffer(), bufferDstEid, peer_address],
+        ENDPOINT_PROGRAM_ID
+    )[0];
+}
+
 
 // pda: AwrbHeCyniXaQhiJZkLhgWdUCteeWSGaSN1sTfLiY7xK
 export function getExecutorConfigPda(): PublicKey {
@@ -386,26 +397,27 @@ export async function getUSDCAddress(provider: anchor.Provider, wallet: anchor.W
     
     if (rpc === LOCAL_RPC) {
         try {
-            const USDC_DECIMALS = 6;
-            const mockUSDC = await createMint(
-                provider.connection,
-                wallet.payer,
-                wallet.publicKey,
-                wallet.publicKey,
-                USDC_DECIMALS,
-                usdcKeyPair
-            );
-            console.log("💶 Mock USDC Address:", mockUSDC.toBase58())
+            // const USDC_DECIMALS = 6;
+            // const mockUSDC = await createMint(
+            //     provider.connection,
+            //     wallet.payer,
+            //     wallet.publicKey,
+            //     wallet.publicKey,
+            //     USDC_DECIMALS,
+            //     usdcKeyPair
+            // );
+            // console.log("💶 Mock USDC Address:", mockUSDC.toBase58())
+            return DEV_USDC_ACCOUNT;
         ;
         } catch (err) {
             console.error("💶 USDC already created");
         }
         
     } else if (rpc === DEV_RPC) {
-        console.log("💶 Dev USDC Address:", MOCK_USDC_ACCOUNT.toBase58())
-        return MOCK_USDC_ACCOUNT;
+        // console.log("💶 Dev USDC Address:", MOCK_USDC_ACCOUNT.toBase58())
+        // return MOCK_USDC_ACCOUNT;
         // should be DEV_USDC_ACCOUNT after dev env is set up
-        // return DEV_USDC_ACCOUNT;
+        return DEV_USDC_ACCOUNT;
     } else if (rpc === MAIN_RPC) {
         return MAIN_USDC_ACCOUNT;
     }

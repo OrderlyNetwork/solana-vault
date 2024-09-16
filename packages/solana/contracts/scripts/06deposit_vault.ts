@@ -1,5 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Keypair, PublicKey, SystemProgram, Transaction, ComputeBudgetProgram } from "@solana/web3.js";
+import { Keypair, PublicKey, SystemProgram, Transaction, ComputeBudgetProgram, sendAndConfirmTransaction } from "@solana/web3.js";
+import { hexlify } from '@ethersproject/bytes'
 
 import { OftTools } from "@layerzerolabs/lz-solana-sdk-v2";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
@@ -7,6 +8,11 @@ import { getLzReceiveTypesPda, getOAppConfigPda, getPeerPda, getEventAuthorityPd
 import { DST_EID, ENDPOINT_PROGRAM_ID, PEER_ADDRESS, LZ_RECEIVE_GAS, LZ_COMPOSE_GAS, LZ_COMPOSE_VALUE, LZ_RECEIVE_VALUE, SEND_LIB_PROGRAM_ID, TREASURY_PROGRAM_ID,EXECUTOR_PROGRAM_ID, DVN_PROGRAM_ID, PRICE_FEED_PROGRAM_ID } from "./constants";
 import * as constants from "./constants";
 import * as utils from "./utils";
+import { PacketPath } from '@layerzerolabs/lz-v2-utilities'
+import { EndpointProgram, EventPDADeriver, SimpleMessageLibProgram, UlnProgram } from '@layerzerolabs/lz-solana-sdk-v2'
+
+
+
 
 import OAppIdl from "../target/idl/solana_vault.json";
 import { SolanaVault } from "../target/types/solana_vault";
@@ -15,6 +21,7 @@ const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
 const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
 
 const [provider, wallet, rpc] = setAnchor();
+
 
 
 async function deposit() {
@@ -71,9 +78,7 @@ async function deposit() {
     console.log("Sol Account Id:", solAccountId);
     const codedAccountId = Array.from(Buffer.from(solAccountId.slice(2), 'hex'));
     
-    // accountId:  Array.from(Buffer.from(solAccountId.slice(2), 'hex')),
-    //     brokerHash: Array.from(Buffer.from(brokerHash.slice(2), 'hex')),
-    //     tokenHash:  Array.from(Buffer.from(tokenHash.slice(2), 'hex')),
+
     
     const vaultDepositParams = {
         accountId:  codedAccountId,
@@ -81,8 +86,55 @@ async function deposit() {
         tokenHash:  codedTokenHash,
         userAddress: Array.from(receiverAddress.toBuffer()),
         srcChainId: new anchor.BN(902902902),
-        tokenAmount: new anchor.BN(1_000_000_000),
+        tokenAmount: new anchor.BN(1_000_000),
     };
+
+    // const endpoint = new EndpointProgram.Endpoint(ENDPOINT_PROGRAM_ID);
+    // const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
+    // const packetPath: PacketPath = {
+    //     srcEid: 0,
+    //     dstEid: DST_EID,
+    //     sender: hexlify(oappConfigPda.toBytes()),
+    //     receiver: hexlify(PEER_ADDRESS)
+    // }
+
+    // const sendLibProgramId = constants.SEND_LIB_PROGRAM_ID;
+    // const sendLibProgram = new SimpleMessageLibProgram.SimpleMessageLib(sendLibProgramId)
+    // const remainingAccounts = await endpoint.getQuoteIXAccountMetaForCPI(
+    //     provider.connection,
+    //     wallet.publicKey,
+    //     packetPath,
+    //     sendLibProgram
+    // )
+
+    // console.log("Remaining Accounts:", remainingAccounts);
+    // const peerPda = utils.getPeerPda(OAPP_PROGRAM_ID, oappConfigPda, constants.DST_EID);
+    // const enforcedOptionsPda = utils.getEndorcedOptionsPda(OAPP_PROGRAM_ID, oappConfigPda, constants.DST_EID);
+    // const quoteParams = {
+    //     dstEid: constants.DST_EID,
+    //     to: Array.from(PEER_ADDRESS),
+    //     options: Buffer.from(Options.newOptions().addExecutorLzReceiveOption(500000, 0).toBytes()),
+    //     message: Buffer.from("hello world"),
+    //     payInLzToken: false,
+    // }
+    // const ixQuote = await OAppProgram.methods.oappQuote(quoteParams).accounts({
+    //     oappConfig: oappConfigPda,
+    //     peer: peerPda,
+    //     enforcedOptions: enforcedOptionsPda,
+    // }).remainingAccounts(remainingAccounts).instruction();
+
+    // const txQuote = new Transaction().add(ixQuote);
+    // const res = await sendAndConfirmTransaction(
+    //     provider.connection,
+    //     txQuote,
+    //     [wallet.payer],
+    //     {
+    //         commitment: "confirmed",
+    //         preflightCommitment: "confirmed"
+    //     }
+    // )
+
+    // console.log("Quote transaction confirmed:", res);
 
     const sendParam = {
         dstEid: DST_EID,
@@ -299,8 +351,8 @@ function getTableAddresses() {
     const endpointSettingPda = utils.getEndpointSettingPda();
     console.log("🔑 Endpoint Setting PDA: ", endpointSettingPda.toString());
 
-    const outboundNoncePda = utils.getOutboundNoncePda(oappConfigPda, constants.DST_EID, constants.PEER_ADDRESS);
-    console.log("🔑 Outbound Nonce PDA: ", outboundNoncePda.toString());
+    const noncePda = utils.getNoncePda(oappConfigPda, constants.DST_EID, constants.PEER_ADDRESS);
+    console.log("🔑 Nonce PDA: ", noncePda.toString());
 
     const executorConfigPda = utils.getExecutorConfigPda();
     console.log("🔑 Executor Config PDA: ", executorConfigPda.toString());
@@ -319,7 +371,7 @@ function getTableAddresses() {
     // console.log("💶 USDC Address: ", usdcAddress.toString());
     // console.log("💶 User USDC Account: ", userUSDCAccount.toString());
     // console.log("💶 Vault USDC Account: ", vaultUSDCAccount.toString());
-    //                              0                   1            2             3                  4                 5               6             7                 8                    9                  10                 11                   12                 13              14                   15              16                 17                18             19           
-    const lookupTableAddress = [oappConfigPda, lzReceiveTypesPda, peerPda, eventAuthorityPda, oappRegistryPda, enforceOptioinsPda, sendLibPda, sendLibConfigPda, sendLibInfoPda, defaultSendLibConfigPda, sendConfigPda, defaultSendConfigPda, ulnEventAuthorityPda, ulnSettingPda, endpointSettingPda, outboundNoncePda, executorConfigPda, pricefeedConfigPda, dvnConfigPda, messageLibPda];
+    //                              0                   1            2             3                  4                 5               6             7                 8                    9                  10                 11                   12                 13              14              15              16                 17                18             19           
+    const lookupTableAddress = [oappConfigPda, lzReceiveTypesPda, peerPda, eventAuthorityPda, oappRegistryPda, enforceOptioinsPda, sendLibPda, sendLibConfigPda, sendLibInfoPda, defaultSendLibConfigPda, sendConfigPda, defaultSendConfigPda, ulnEventAuthorityPda, ulnSettingPda, endpointSettingPda, noncePda, executorConfigPda, pricefeedConfigPda, dvnConfigPda, messageLibPda];
     return lookupTableAddress;
 }

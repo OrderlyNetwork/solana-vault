@@ -26,4 +26,5 @@ pub enum OAppError {
     InvalidEndpointProgram,
     RateLimitExceeded,
     WithdrawFailed,
+    InvalidInboundNonce,
 }

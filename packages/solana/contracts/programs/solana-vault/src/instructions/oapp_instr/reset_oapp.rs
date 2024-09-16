@@ -14,9 +14,7 @@ pub struct ResetOApp<'info> {
         bump
     )]
     pub oapp_config: Account<'info, OAppConfig>,
-
     #[account(
-        mut,
         seeds = [OWNER_SEED],
         bump,
         constraint = vault_owner.owner == payer.key() @ VaultError::InvalidVaultOwner

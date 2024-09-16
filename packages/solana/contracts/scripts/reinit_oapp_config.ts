@@ -27,12 +27,11 @@ async function reinit() {
     const vaultOwnerPda = getVaultOwnerPda(OAPP_PROGRAM_ID);
 
 
-
-
-
     const reinitOAppParams = {
         admin: wallet.publicKey,
         endpointProgram: ENDPOINT_PROGRAM_ID,
+        orderDelivery: true,
+        inboundNonce: new anchor.BN(71),   // to check the latest nonce, need to check on lzscan
         usdcHash: codedTokenHash,
         usdcMint: mintAccount,
     };

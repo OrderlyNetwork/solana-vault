@@ -17,7 +17,6 @@ pub struct ReinitOApp<'info> {
     )]
     pub oapp_config: Account<'info, OAppConfig>,
     #[account(
-        mut,
         seeds = [OWNER_SEED],
         bump,
         constraint = vault_owner.owner == payer.key() @ VaultError::InvalidVaultOwner
@@ -39,6 +38,8 @@ impl ReinitOApp<'_> {
             } else {
                 ENDPOINT_ID
             };
+        oapp_config.inbound_nonce = reset_oapp_params.inbound_nonce;
+        oapp_config.order_delivery = reset_oapp_params.order_delivery;
         oapp_config.usdc_hash = reset_oapp_params.usdc_hash;
         oapp_config.usdc_mint = reset_oapp_params.usdc_mint;
         oapp_config.bump = ctx.bumps.oapp_config;
@@ -50,6 +51,8 @@ impl ReinitOApp<'_> {
 pub struct ReinitOAppParams {
     pub admin: Pubkey,
     pub endpoint_program: Option<Pubkey>,
+    pub order_delivery: bool,
+    pub inbound_nonce: u64,
     pub usdc_hash: [u8; 32],
     pub usdc_mint: Pubkey,
 }
