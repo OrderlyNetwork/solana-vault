@@ -87,7 +87,6 @@ async function deposit() {
         brokerHash: codedBrokerHash,
         tokenHash:  codedTokenHash,
         userAddress: Array.from(receiverAddress.toBuffer()),
-        srcChainId: new anchor.BN(902902902),
         tokenAmount: new anchor.BN(1_000_000),
     };
 
@@ -139,7 +138,6 @@ async function deposit() {
     // console.log("Quote transaction confirmed:", res);
 
     const sendParam = {
-        dstEid: constants.DST_EID,
         nativeFee: new anchor.BN(1_000_000_000),
         lzTokenFee: new anchor.BN(0),
     }

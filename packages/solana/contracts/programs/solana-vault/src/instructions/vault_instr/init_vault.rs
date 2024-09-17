@@ -29,6 +29,7 @@ impl InitVault<'_> {
         ctx.accounts.vault_authority.order_delivery = params.order_delivery;
         ctx.accounts.vault_authority.inbound_nonce = 0;
         ctx.accounts.vault_authority.dst_eid = params.dst_eid;
+        ctx.accounts.vault_authority.sol_chain_id = params.sol_chain_id;
         msg!("Vault authority initialized");
         Ok(())
     }
@@ -39,4 +40,5 @@ pub struct InitVaultParams {
     pub owner: Pubkey,
     pub order_delivery: bool,
     pub dst_eid: u32,
+    pub sol_chain_id: u128,
 }

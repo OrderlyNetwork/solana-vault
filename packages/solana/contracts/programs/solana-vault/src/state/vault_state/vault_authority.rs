@@ -11,4 +11,5 @@ pub struct VaultAuthority {
     pub order_delivery: bool,
     pub inbound_nonce: u64,
     pub dst_eid: u32,
+    pub sol_chain_id: u128,
 }

@@ -32,7 +32,8 @@ async function setup() {
     const initVaultParams = {
         owner: wallet.publicKey,
         orderDelivery: true,
-        dstEid: constants.DST_EID
+        dstEid: constants.DST_EID,
+        solChainId: new anchor.BN(constants.SOL_CHAIN_ID)
     }
 
     const ixInitVault = await OAppProgram.methods.initVault(initVaultParams).accounts({

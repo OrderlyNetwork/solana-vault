@@ -14,21 +14,23 @@ const [provider, wallet, rpc] = utils.setAnchor();
 
 async function reinit() {
 
-    const vaultOwnerPda = utils.getVaultOwnerPda(OAPP_PROGRAM_ID);
+    const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
     const vaultAuthorityPda = utils.getVaultAuthorityPda(OAPP_PROGRAM_ID);
 
     const reinitVaultParams = {
         owner: wallet.publicKey,
         dstEid: constants.DST_EID,
+        solChainId: new anchor.BN(constants.SOL_CHAIN_ID),
         orderDelivery: true,
-        inboundNonce: new anchor.BN(72),   // to check the latest nonce, need to check on lzscan
-        depositNonce: new anchor.BN(73),
+        inboundNonce: new anchor.BN(74),   // to check the latest nonce, need to check on lzscan
+        depositNonce: new anchor.BN(78),   //
         
     };
 
     const ixReinitVault = await OAppProgram.methods.reinitVault(reinitVaultParams).accounts({
         payer: wallet.publicKey,
         vaultAuthority: vaultAuthorityPda,
+        oappConfig: oappConfigPda
     }).instruction();
 
     const txReinitVault = new Transaction().add(ixReinitVault);

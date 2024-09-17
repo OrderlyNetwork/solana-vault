@@ -16,6 +16,7 @@ export const MAIN_USDC_ACCOUNT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4w
 
 export const PEER_ADDRESS = addressToBytes32('0x42532863dcC16164B515C10eb2e46a3630A47762');
 export const DST_EID = 40200;
+export const SOL_CHAIN_ID = 902902902;
 export const LZ_RECEIVE_GAS = 500000;
 export const LZ_RECEIVE_VALUE = 0;
 export const LZ_COMPOSE_GAS = 10;

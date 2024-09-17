@@ -35,6 +35,7 @@ impl ReinitVault<'_> {
         vault_authority.deposit_nonce = reset_oapp_params.deposit_nonce;
         vault_authority.order_delivery = reset_oapp_params.order_delivery;
         vault_authority.inbound_nonce = reset_oapp_params.inbound_nonce;
+        vault_authority.sol_chain_id = reset_oapp_params.sol_chain_id;
         vault_authority.bump = ctx.bumps.vault_authority;
         Ok(())
     }
@@ -47,4 +48,5 @@ pub struct ReinitVaultParams {
     pub deposit_nonce: u64,
     pub order_delivery: bool,
     pub inbound_nonce: u64,
+    pub sol_chain_id: u128,
 }

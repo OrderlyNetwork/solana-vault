@@ -52,7 +52,7 @@ pub struct Deposit<'info> {
         seeds = [
             PEER_SEED,
             &oapp_config.key().to_bytes(),
-            &oapp_params.dst_eid.to_be_bytes()
+            &vault_authority.dst_eid.to_be_bytes()
         ],
         bump = peer.bump
     )]
@@ -62,7 +62,7 @@ pub struct Deposit<'info> {
         seeds = [
             ENFORCED_OPTIONS_SEED,
             &oapp_config.key().to_bytes(),
-            &oapp_params.dst_eid.to_be_bytes()
+            &vault_authority.dst_eid.to_be_bytes()
         ],
         bump = enforced_options.bump
     )]
@@ -123,7 +123,7 @@ impl<'info> Deposit<'info> {
             broker_hash: deposit_params.broker_hash,
             user_address: deposit_params.user_address, //
             token_hash: deposit_params.token_hash,
-            src_chain_id: deposit_params.src_chain_id,
+            src_chain_id: ctx.accounts.vault_authority.sol_chain_id as u128,
             token_amount: deposit_params.token_amount as u128,
             src_chain_deposit_nonce: ctx.accounts.vault_authority.deposit_nonce,
         };
@@ -141,7 +141,7 @@ impl<'info> Deposit<'info> {
         let options = EnforcedOptions::get_enforced_options(&ctx.accounts.enforced_options, &None);
 
         let endpoint_send_params = EndpointSendParams {
-            dst_eid: oapp_params.dst_eid,
+            dst_eid: ctx.accounts.vault_authority.dst_eid,
             receiver: ctx.accounts.peer.address,
             message: lz_message,
             options: options,
@@ -159,7 +159,7 @@ impl<'info> Deposit<'info> {
 
         emit!(OAppSent {
             guid: receipt.guid,
-            dst_eid: oapp_params.dst_eid,
+            dst_eid: ctx.accounts.vault_authority.dst_eid,
         });
 
         Ok(receipt)
@@ -172,13 +172,11 @@ pub struct DepositParams {
     pub broker_hash: [u8; 32],
     pub token_hash: [u8; 32],
     pub user_address: [u8; 32],
-    pub src_chain_id: u128,
     pub token_amount: u64,
 }
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct OAppSendParams {
-    pub dst_eid: u32,
     pub native_fee: u64,
     pub lz_token_fee: u64,
 }
