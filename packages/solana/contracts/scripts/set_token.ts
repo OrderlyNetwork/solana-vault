@@ -15,7 +15,7 @@ async function setBroker() {
     const tokenSymble = "USDC";
     const tokenHash = utils.getTokenHash(tokenSymble);
     const codedTokenHash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'));
-    const mintAccount = await utils.getUSDCAddress(provider, wallet, rpc);
+    const mintAccount = utils.getUSDCAddress(rpc);
     console.log("USDC mintAccount", mintAccount.toBase58());
     const tokenPda = utils.getTokenPda(OAPP_PROGRAM_ID, tokenHash);
     console.log("tokenPda", tokenPda.toBase58());

@@ -8,8 +8,7 @@ export const EXECUTOR_PROGRAM_ID = new PublicKey("6doghB248px58JSSwG4qejQ46kFMW4
 export const EXECUTOR_PDA = new PublicKey("AwrbHeCyniXaQhiJZkLhgWdUCteeWSGaSN1sTfLiY7xK");
 export const DVN_PROGRAM_ID = new PublicKey("HtEYV4xB4wvsj5fgTkcfuChYpvGYzgzwvNhgDZQNh7wW");
 export const PRICE_FEED_PROGRAM_ID = new PublicKey("8ahPGPjEbpgGaZx2NV1iG5Shj7TDwvsjkEDcGWjt94TP");
-export const DEV_LOOKUP_TABLE_ADDRESS = new PublicKey("AAudqEoxrKPYMfeYE4wAQuBNukeqxGtskQYmrNF947Z");
-export const MAIN_LOOKUP_TABLE_ADDRESS = DEV_LOOKUP_TABLE_ADDRESS;
+
 export const MOCK_USDC_ACCOUNT = new PublicKey("usdc4pNcoYJ2GNXcJN4iwNXfxbKXPQzqBdALdqaRyUn");
 export const DEV_USDC_ACCOUNT = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
 export const MAIN_USDC_ACCOUNT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
@@ -31,7 +30,17 @@ export const BROKER_SEED = "Broker";
 export const TOKEN_SEED = "Token";
 export const OWNER_SEED = "Owner";
 
-export const MOCK_USDC_PRIVATE_KEY = [225,216,136,177,14,114,134,37,6,11,223,44,152,142,184,158,139,30,47,126,122,71,205,171,3,242,4,98,142,13,246,170,13,139,115,107,50,109,97,239,233,48,175,33,60,17,30,115,75,120,53,150,157,243,187,249,130,59,76,84,26,123,232,123];
-export const DEV_LOOKUP_TABLE_PRIVATE_KEY = [34,81,178,29,220,118,76,1,237,155,90,252,238,163,70,18,38,70,146,193,233,167,78,118,169,92,64,91,58,208,204,7,242,171,13,70,176,229,137,37,101,183,244,226,5,145,15,33,116,222,52,118,16,31,10,140,18,194,160,103,209,121,84,59]
+export const ENV = "dev";
+export const MOCK_OAPP_PROGRAM_ID = new PublicKey("EFLrsQmcfYTSvVrUiP4qruDhbYBtjbQNAhC6tkLJbBtQ");
+export const DEV_OAPP_PROGRAM_ID = new PublicKey("EYJq9eU4GMRUriUJBgGoZ8YLQBXcWaciXuSsEXE7ieQS");
+export const QA_OAPP_PROGRAM_ID = new PublicKey("5zBjLor7vEraAt4zp2H82sy9MSqFoDnNa1Lx6EYKTYRZ");
+export const STAGING_OAPP_PROGRAM_ID = new PublicKey("9shwxWDUNhtwkHocsUAmrNAQfBH2DHh4njdAEdHZZkF2");
+
+export const DEV_LOOKUP_TABLE_ADDRESS = new PublicKey("BWp8HaYYhiNHekt3zgQhqoCrRftneGxxfgKmCZ6svHN");
+export const QA_LOOKUP_TABLE_ADDRESS = new PublicKey("BswrQQoPKAFojTuJutZcBMtigAgTghEH4M8ofn3EG2X2");
+export const STAGING_LOOKUP_TABLE_ADDRESS = new PublicKey("BbGKfxuPwDmu58BjPpd7PMG69TqnZjSpKaLDMgf9E9Dr");
+export const MAIN_LOOKUP_TABLE_ADDRESS = DEV_LOOKUP_TABLE_ADDRESS;
+
+export const MOCK_LOOKUP_TABLE_ADDRESS = new PublicKey("6hx7mCC94wxC8QYDZ9dGeURibHXRbsxLPaUYYip6tWM6");
 
 

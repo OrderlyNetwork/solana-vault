@@ -20,7 +20,7 @@ async function setOrderDelivery() {
         nonce: new anchor.BN(72), // need to fetch from lz-endpoint
     }
     const ixSetOrderDelivery = await OAppProgram.methods.setOrderDelivery(setOrderDeliveryParams).accounts({
-        payer: wallet.publicKey,
+        owner: wallet.publicKey,
         vaultAuthority: vaultAuthorityPda,
     }).instruction();
 

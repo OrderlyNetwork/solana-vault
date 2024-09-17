@@ -13,8 +13,8 @@ const [provider, wallet, rpc] = utils.setAnchor();
 
 async function setup() {
     console.log("Setting up Vault...");
-    const usdc = await utils.getUSDCAddress(provider, wallet, rpc);
-    const userUSDCAccount = await utils.getUSDCAccount(provider, wallet, usdc, wallet.publicKey);
+    const usdc = await utils.getUSDCAddress(rpc);
+    const userUSDCAccount = await utils.getUSDCAccount(usdc, wallet.publicKey);
     console.log("User USDCAccount", userUSDCAccount.toBase58());
 
     
@@ -24,7 +24,7 @@ async function setup() {
     const vaultAuthorityPda = utils.getVaultAuthorityPda(OAPP_PROGRAM_ID);
     console.log("Vault Deposit Authority PDA:", vaultAuthorityPda.toBase58());
 
-    const vaultUSDCAccount = await utils.getUSDCAccount(provider, wallet, usdc, vaultAuthorityPda);
+    const vaultUSDCAccount = await utils.getUSDCAccount(usdc, vaultAuthorityPda);
     console.log("Vault USDCAccount", vaultUSDCAccount.toBase58());
 
     const tableAddress = [usdc, vaultAuthorityPda, vaultUSDCAccount]
@@ -44,7 +44,7 @@ async function setup() {
 
     console.log("Init Vault:");
     try {
-        await utils.createAndSendV0TxWithTable([ixInitVault], provider, wallet, tableAddress);
+        await utils.createAndSendV0TxWithTable([ixInitVault], provider, wallet, tableAddress, OAPP_PROGRAM_ID);
     } catch (e) {
         console.log("Vault already initialized");
     }

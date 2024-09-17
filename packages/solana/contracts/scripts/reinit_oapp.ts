@@ -19,7 +19,7 @@ async function reinit() {
     const tokenSymble = "USDC";
     const tokenHash = utils.getTokenHash(tokenSymble);
     const codedTokenHash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'));
-    const mintAccount = await utils.getUSDCAddress(provider, wallet, rpc);
+    const mintAccount = await utils.getUSDCAddress(rpc);
     console.log("USDC mintAccount", mintAccount.toBase58());
     const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
 

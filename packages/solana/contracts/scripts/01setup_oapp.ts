@@ -37,7 +37,7 @@ async function setup() {
     const tokenSymble = "USDC";
     const tokenHash = utils.getTokenHash(tokenSymble);
     const codedTokenHash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'));
-    const mintAccount = await utils.getUSDCAddress(provider, wallet, rpc);
+    const mintAccount = await utils.getUSDCAddress(rpc);
 
     const ixInitOapp = await OAppProgram.methods.initOapp({
         admin: wallet.publicKey,
