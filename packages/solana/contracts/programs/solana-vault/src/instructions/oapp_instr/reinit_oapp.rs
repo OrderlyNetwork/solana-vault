@@ -1,6 +1,6 @@
 use crate::errors::VaultError;
-use crate::instructions::{OAPP_SEED, OWNER_SEED};
-use crate::state::{OAppConfig, VaultOwner};
+use crate::instructions::{OAPP_SEED, VAULT_AUTHORITY_SEED};
+use crate::state::{OAppConfig, VaultAuthority};
 use anchor_lang::prelude::*;
 use oapp::endpoint::ID as ENDPOINT_ID;
 
@@ -16,12 +16,18 @@ pub struct ReinitOApp<'info> {
         bump
     )]
     pub oapp_config: Account<'info, OAppConfig>,
+    // #[account(
+    //     seeds = [OWNER_SEED],
+    //     bump,
+    //     constraint = vault_owner.owner == payer.key() @ VaultError::InvalidVaultOwner
+    // )]
+    // pub vault_owner: Account<'info, VaultOwner>,
     #[account(
-        seeds = [OWNER_SEED],
+        seeds = [VAULT_AUTHORITY_SEED],
         bump,
-        constraint = vault_owner.owner == payer.key() @ VaultError::InvalidVaultOwner
+        constraint = vault_authority.owner == payer.key() @ VaultError::InvalidVaultOwner
     )]
-    pub vault_owner: Account<'info, VaultOwner>,
+    pub vault_authority: Account<'info, VaultAuthority>,
     pub system_program: Program<'info, System>,
 }
 
@@ -38,8 +44,6 @@ impl ReinitOApp<'_> {
             } else {
                 ENDPOINT_ID
             };
-        oapp_config.inbound_nonce = reset_oapp_params.inbound_nonce;
-        oapp_config.order_delivery = reset_oapp_params.order_delivery;
         oapp_config.usdc_hash = reset_oapp_params.usdc_hash;
         oapp_config.usdc_mint = reset_oapp_params.usdc_mint;
         oapp_config.bump = ctx.bumps.oapp_config;
@@ -51,8 +55,6 @@ impl ReinitOApp<'_> {
 pub struct ReinitOAppParams {
     pub admin: Pubkey,
     pub endpoint_program: Option<Pubkey>,
-    pub order_delivery: bool,
-    pub inbound_nonce: u64,
     pub usdc_hash: [u8; 32],
     pub usdc_mint: Pubkey,
 }

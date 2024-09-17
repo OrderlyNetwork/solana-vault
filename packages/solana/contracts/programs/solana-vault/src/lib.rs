@@ -15,8 +15,8 @@ declare_id!("EFLrsQmcfYTSvVrUiP4qruDhbYBtjbQNAhC6tkLJbBtQ");
 pub mod solana_vault {
     use super::*;
 
-    pub fn init_vault(mut ctx: Context<InitVault>) -> Result<()> {
-        InitVault::apply(&mut ctx)
+    pub fn init_vault(mut ctx: Context<InitVault>, params: InitVaultParams) -> Result<()> {
+        InitVault::apply(&mut ctx, &params)
     }
 
     pub fn deposit<'info>(
@@ -24,26 +24,27 @@ pub mod solana_vault {
         deposit_params: DepositParams,
         oapp_params: OAppSendParams,
     ) -> Result<MessagingReceipt> {
-        Deposit::apply(&mut ctx, deposit_params, oapp_params)
+        Deposit::apply(&mut ctx, &deposit_params, &oapp_params)
     }
 
     pub fn init_oapp(mut ctx: Context<InitOApp>, params: InitOAppParams) -> Result<()> {
         InitOApp::apply(&mut ctx, &params)
     }
 
-    // pub fn reinit_oapp(mut ctx: Context<ReinitOApp>, params: ReinitOAppParams) -> Result<()> {
-    //     ReinitOApp::apply(&mut ctx, &params)
-    // }
-
-    pub fn reset_oapp_config(mut ctx: Context<ResetOApp>) -> Result<()> {
+    pub fn reset_oapp(mut ctx: Context<ResetOApp>) -> Result<()> {
         ResetOApp::apply(&mut ctx)
     }
 
-    pub fn reinit_oapp_config(
-        mut ctx: Context<ReinitOApp>,
-        params: ReinitOAppParams,
-    ) -> Result<()> {
+    pub fn reinit_oapp(mut ctx: Context<ReinitOApp>, params: ReinitOAppParams) -> Result<()> {
         ReinitOApp::apply(&mut ctx, &params)
+    }
+
+    pub fn reset_vault(mut ctx: Context<ResetVault>) -> Result<()> {
+        ResetVault::apply(&mut ctx)
+    }
+
+    pub fn reinit_vault(mut ctx: Context<ReinitVault>, params: ReinitVaultParams) -> Result<()> {
+        ReinitVault::apply(&mut ctx, &params)
     }
 
     pub fn set_broker(mut ctx: Context<SetBroker>, params: SetBrokerParams) -> Result<()> {

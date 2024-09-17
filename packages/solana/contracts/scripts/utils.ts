@@ -414,10 +414,10 @@ export async function getUSDCAddress(provider: anchor.Provider, wallet: anchor.W
         }
         
     } else if (rpc === DEV_RPC) {
-        // console.log("💶 Dev USDC Address:", MOCK_USDC_ACCOUNT.toBase58())
-        // return MOCK_USDC_ACCOUNT;
+        console.log("💶 Dev USDC Address:", MOCK_USDC_ACCOUNT.toBase58())
+        return MOCK_USDC_ACCOUNT;
         // should be DEV_USDC_ACCOUNT after dev env is set up
-        return DEV_USDC_ACCOUNT;
+        // return DEV_USDC_ACCOUNT;
     } else if (rpc === MAIN_RPC) {
         return MAIN_USDC_ACCOUNT;
     }

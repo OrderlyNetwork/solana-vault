@@ -53,10 +53,14 @@ async function deposit() {
     console.log("Init Vault:");
     try {
         const tableAddress = [usdc, vaultAuthorityPda, vaultUSDCAccount, userInfoPda]
-
-        const ixInitVault = await OAppProgram.methods.initVault().accounts({
-            vaultAuthority: vaultAuthorityPda,
+        const initVaultParams = {
+            owner: wallet.publicKey,
+            orderDelivery: true,
+            dstEid: constants.DST_EID
+        }
+        const ixInitVault = await OAppProgram.methods.initVault(initVaultParams).accounts({
             signer: wallet.publicKey,
+            vaultAuthority: vaultAuthorityPda,
         }).instruction();
         await utils.createAndSendV0TxWithTable([ixInitVault], provider, wallet, tableAddress);
     } catch (e) {

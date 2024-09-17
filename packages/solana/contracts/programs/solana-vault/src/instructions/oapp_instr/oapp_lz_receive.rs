@@ -24,7 +24,6 @@ pub struct OAppLzReceive<'info> {
     )]
     pub peer: Account<'info, Peer>,
     #[account(
-        mut,
         seeds = [OAPP_SEED],
         bump = oapp_config.bump
     )]
@@ -41,6 +40,7 @@ pub struct OAppLzReceive<'info> {
     pub user_deposit_wallet: Account<'info, TokenAccount>,
 
     #[account(
+        mut,
         seeds = [VAULT_AUTHORITY_SEED],
         bump = vault_authority.bump,
     )]
@@ -91,18 +91,18 @@ impl<'info> OAppLzReceive<'info> {
             },
         )?;
 
-        if ctx.accounts.oapp_config.order_delivery {
+        if ctx.accounts.vault_authority.order_delivery {
             require!(
-                params.nonce == ctx.accounts.oapp_config.inbound_nonce + 1,
+                params.nonce == ctx.accounts.vault_authority.inbound_nonce + 1,
                 OAppError::InvalidInboundNonce
             );
         }
 
-        ctx.accounts.oapp_config.inbound_nonce = params.nonce;
+        ctx.accounts.vault_authority.inbound_nonce = params.nonce;
 
         msg!(
             "nonce received: {:?}",
-            ctx.accounts.oapp_config.inbound_nonce
+            ctx.accounts.vault_authority.inbound_nonce
         );
 
         let lz_message = LzMessage::decode(&params.message).unwrap();

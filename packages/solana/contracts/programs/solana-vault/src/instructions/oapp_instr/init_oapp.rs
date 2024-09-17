@@ -1,5 +1,5 @@
-use crate::instructions::{OAPP_SEED, OWNER_SEED};
-use crate::state::{OAppConfig, VaultOwner};
+use crate::instructions::OAPP_SEED;
+use crate::state::OAppConfig;
 use anchor_lang::prelude::*;
 
 // Initialize the oapp_config and vault_owner pda
@@ -16,27 +16,25 @@ pub struct InitOApp<'info> {
         bump
     )]
     pub oapp_config: Account<'info, OAppConfig>,
-    #[account(
-        init,
-        payer = payer,
-        space = 8 + VaultOwner::INIT_SPACE,
-        seeds = [OWNER_SEED],
-        bump
-    )]
-    pub vault_owner: Account<'info, VaultOwner>,
+    // #[account(
+    //     init,
+    //     payer = payer,
+    //     space = 8 + VaultOwner::INIT_SPACE,
+    //     seeds = [OWNER_SEED],
+    //     bump
+    // )]
+    // pub vault_owner: Account<'info, VaultOwner>,
     pub system_program: Program<'info, System>,
 }
 
 impl InitOApp<'_> {
     pub fn apply(ctx: &mut Context<InitOApp>, params: &InitOAppParams) -> Result<()> {
-        ctx.accounts.vault_owner.owner = params.admin;
-        ctx.accounts.vault_owner.bump = ctx.bumps.vault_owner;
+        // ctx.accounts.vault_owner.owner = params.admin;
+        // ctx.accounts.vault_owner.bump = ctx.bumps.vault_owner;
 
         ctx.accounts.oapp_config.bump = ctx.bumps.oapp_config;
         ctx.accounts.oapp_config.usdc_hash = params.usdc_hash;
         ctx.accounts.oapp_config.usdc_mint = params.usdc_mint;
-        ctx.accounts.oapp_config.order_delivery = params.order_delivery;
-        ctx.accounts.oapp_config.inbound_nonce = params.inbound_nonce;
 
         let oapp_signer = ctx.accounts.oapp_config.key();
         ctx.accounts.oapp_config.init(
@@ -54,6 +52,4 @@ pub struct InitOAppParams {
     pub endpoint_program: Option<Pubkey>,
     pub usdc_hash: [u8; 32],
     pub usdc_mint: Pubkey,
-    pub order_delivery: bool,
-    pub inbound_nonce: u64,
 }

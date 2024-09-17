@@ -1,6 +1,6 @@
-use crate::errors::{OAppError, VaultError};
-use crate::instructions::{OAPP_SEED, OWNER_SEED};
-use crate::state::{OAppConfig, VaultOwner};
+use crate::errors::VaultError;
+use crate::instructions::VAULT_AUTHORITY_SEED;
+use crate::state::VaultAuthority;
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -9,17 +9,11 @@ pub struct SetOrderDelivery<'info> {
     pub payer: Signer<'info>,
     #[account(
         mut,
-        seeds = [OAPP_SEED],
-        bump,
-        constraint = oapp_config.admin == payer.key() @ OAppError::Unauthorized
+        seeds = [VAULT_AUTHORITY_SEED],
+        bump = vault_authority.bump,
+        constraint = vault_authority.owner == payer.key() @ VaultError::InvalidVaultOwner
     )]
-    pub oapp_config: Account<'info, OAppConfig>,
-    #[account(
-        seeds = [OWNER_SEED],
-        bump,
-        constraint = vault_owner.owner == payer.key() @ VaultError::InvalidVaultOwner
-    )]
-    pub vault_owner: Account<'info, VaultOwner>,
+    pub vault_authority: Account<'info, VaultAuthority>,
 }
 
 impl SetOrderDelivery<'_> {
@@ -27,8 +21,8 @@ impl SetOrderDelivery<'_> {
         ctx: &mut Context<SetOrderDelivery>,
         params: &SetOrderDeliveryParams,
     ) -> Result<()> {
-        ctx.accounts.oapp_config.order_delivery = params.order_delivery;
-        ctx.accounts.oapp_config.inbound_nonce = params.nonce;
+        ctx.accounts.vault_authority.order_delivery = params.order_delivery;
+        ctx.accounts.vault_authority.inbound_nonce = params.nonce;
         Ok(())
     }
 }

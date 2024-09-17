@@ -21,8 +21,6 @@ async function reinit() {
     const codedTokenHash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'));
     const mintAccount = await utils.getUSDCAddress(provider, wallet, rpc);
     console.log("USDC mintAccount", mintAccount.toBase58());
-    const tokenPda = utils.getTokenPda(OAPP_PROGRAM_ID, tokenHash);
-    console.log("tokenPda", tokenPda.toBase58());
     const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
     const vaultOwnerPda = utils.getVaultOwnerPda(OAPP_PROGRAM_ID);
 
@@ -30,21 +28,18 @@ async function reinit() {
     const reinitOAppParams = {
         admin: wallet.publicKey,
         endpointProgram: constants.ENDPOINT_PROGRAM_ID,
-        orderDelivery: true,
-        inboundNonce: new anchor.BN(71),   // to check the latest nonce, need to check on lzscan
         usdcHash: codedTokenHash,
         usdcMint: mintAccount,
     };
 
-    const ixReinitOAppConfig = await OAppProgram.methods.reinitOappConfig(reinitOAppParams).accounts({
+    const ixreinitOapp = await OAppProgram.methods.reinitOapp(reinitOAppParams).accounts({
         payer: wallet.publicKey,
         oappConfig: oappConfigPda,
-        vaultOwner: vaultOwnerPda
     }).instruction();
 
-    const txReinitOAppConfig = new Transaction().add(ixReinitOAppConfig);
-    const sigReinitOAppConfig = await sendAndConfirmTransaction(provider.connection, txReinitOAppConfig, [wallet.payer]);
-    console.log("sigReinitOAppConfig", sigReinitOAppConfig);
+    const txreinitOapp = new Transaction().add(ixreinitOapp);
+    const sigreinitOapp = await sendAndConfirmTransaction(provider.connection, txreinitOapp, [wallet.payer]);
+    console.log("sigreinitOapp", sigreinitOapp);
 
 
 }

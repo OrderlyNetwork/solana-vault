@@ -85,6 +85,11 @@ async function printPda() {
     const messageLibPda = utils.getMessageLibPda();
     console.log("🔑 Message Lib PDA: ", messageLibPda.toString());
 
+    const [usdcAddress, userUSDCAccount, vaultUSDCAccount] =  await utils.getRelatedUSDCAcount(provider, wallet, rpc);
+    console.log("🔑 USDC Address: ", usdcAddress.toString());
+    console.log("🔑 User USDC Account: ", userUSDCAccount.toString());
+    console.log("🔑 Vault USDC Account: ", vaultUSDCAccount.toString());
+
     console.log("Execute the following command to set up local solana node:");
     console.log(`solana-test-validator --clone-upgradeable-program ${constants.ENDPOINT_PROGRAM_ID} --clone-upgradeable-program ${constants.SEND_LIB_PROGRAM_ID} --clone-upgradeable-program ${constants.DVN_PROGRAM_ID} --clone-upgradeable-program ${constants.EXECUTOR_PROGRAM_ID} --clone-upgradeable-program ${constants.PRICE_FEED_PROGRAM_ID} -c ${sendLibPda} -c ${sendLibInfoPda} -c ${defaultSendConfigPda} -c ${defaultSendLibConfigPda} -c ${endpointSettingPda} -c ${dvnConfigPda} -c ${pricefeedConfigPda} -c ${executorConfigPda} -c ${sendConfigPda} -c ${defaultSendConfigPda} -c ${receiveConfigPda} -c ${defaultReceiveConfigPda} --url devnet --reset`)
 

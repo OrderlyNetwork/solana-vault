@@ -44,12 +44,9 @@ async function setup() {
         endpointProgram: constants.ENDPOINT_PROGRAM_ID,
         usdcHash: codedTokenHash,
         usdcMint: mintAccount,
-        orderDelivery: true,
-        inboundNonce: new anchor.BN(0)
     }).accounts({
         payer: wallet.publicKey,
         oappConfig: oappConfigPda,
-        vaultOwner: vaultOwnerPda,
         systemProgram: SystemProgram.programId
     }).remainingAccounts(
         [

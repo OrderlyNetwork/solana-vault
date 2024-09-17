@@ -22,9 +22,21 @@ pub struct InitVault<'info> {
 }
 
 impl InitVault<'_> {
-    pub fn apply(ctx: &mut Context<InitVault>) -> Result<()> {
+    pub fn apply(ctx: &mut Context<InitVault>, params: &InitVaultParams) -> Result<()> {
         ctx.accounts.vault_authority.bump = ctx.bumps.vault_authority;
-        ctx.accounts.vault_authority.nonce = 0;
+        ctx.accounts.vault_authority.owner = params.owner;
+        ctx.accounts.vault_authority.deposit_nonce = 0;
+        ctx.accounts.vault_authority.order_delivery = params.order_delivery;
+        ctx.accounts.vault_authority.inbound_nonce = 0;
+        ctx.accounts.vault_authority.dst_eid = params.dst_eid;
+        msg!("Vault authority initialized");
         Ok(())
     }
+}
+
+#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct InitVaultParams {
+    pub owner: Pubkey,
+    pub order_delivery: bool,
+    pub dst_eid: u32,
 }

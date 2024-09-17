@@ -6,3 +6,4 @@ pub const VAULT_AUTHORITY_SEED: &[u8] = b"VaultAuthority";
 pub const BROKER_SEED: &[u8] = b"Broker";
 pub const TOKEN_SEED: &[u8] = b"Token";
 pub const OWNER_SEED: &[u8] = b"Owner";
+pub const VAULT_CONFIG_SEED: &[u8] = b"VaultConfig";

@@ -29,7 +29,13 @@ async function setup() {
 
     const tableAddress = [usdc, vaultAuthorityPda, vaultUSDCAccount]
 
-    const ixInitVault = await OAppProgram.methods.initVault().accounts({
+    const initVaultParams = {
+        owner: wallet.publicKey,
+        orderDelivery: true,
+        dstEid: constants.DST_EID
+    }
+
+    const ixInitVault = await OAppProgram.methods.initVault(initVaultParams).accounts({
         signer: wallet.publicKey,
         vaultAuthority: vaultAuthorityPda,
 

@@ -63,7 +63,7 @@ impl OAppLzReceiveTypes<'_> {
             LzAccount {
                 pubkey: oapp_config.key(),
                 is_signer: false,
-                is_writable: true,
+                is_writable: false,
             }, // 2
         ]);
         let lz_message = LzMessage::decode(&params.message).unwrap();
@@ -108,7 +108,7 @@ impl OAppLzReceiveTypes<'_> {
             LzAccount {
                 pubkey: vault_authority,
                 is_signer: false,
-                is_writable: false,
+                is_writable: true,
             }, // 6
             LzAccount {
                 pubkey: vault_deposit_wallet,

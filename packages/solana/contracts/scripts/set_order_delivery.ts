@@ -14,14 +14,14 @@ const [provider, wallet, rpc] = utils.setAnchor();
 async function setOrderDelivery() {
     const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
     const vaultOwnerPda = utils.getVaultOwnerPda(OAPP_PROGRAM_ID);
+    const vaultAuthorityPda = utils.getVaultAuthorityPda(OAPP_PROGRAM_ID);
     const setOrderDeliveryParams = {
         orderDelivery: true,
-        nonce: new anchor.BN(0), // need to fetch from lz-endpoint
+        nonce: new anchor.BN(72), // need to fetch from lz-endpoint
     }
     const ixSetOrderDelivery = await OAppProgram.methods.setOrderDelivery(setOrderDeliveryParams).accounts({
         payer: wallet.publicKey,
-        oappConfig: oappConfigPda,
-        vaultOwner: vaultOwnerPda,
+        vaultAuthority: vaultAuthorityPda,
     }).instruction();
 
     const txSetOrderDelivery = new Transaction().add(ixSetOrderDelivery);

@@ -49,7 +49,6 @@ pub struct Deposit<'info> {
     pub deposit_token: Box<Account<'info, Mint>>,
 
     #[account(
-        mut,
         seeds = [
             PEER_SEED,
             &oapp_config.key().to_bytes(),
@@ -107,8 +106,8 @@ impl<'info> Deposit<'info> {
 
     pub fn apply(
         ctx: &mut Context<'_, '_, '_, 'info, Deposit<'info>>,
-        deposit_params: DepositParams,
-        oapp_params: OAppSendParams,
+        deposit_params: &DepositParams,
+        oapp_params: &OAppSendParams,
     ) -> Result<MessagingReceipt> {
         transfer(
             ctx.accounts.transfer_token_ctx(),
@@ -117,7 +116,7 @@ impl<'info> Deposit<'info> {
 
         msg!("User deposited : {}", deposit_params.token_amount);
 
-        ctx.accounts.vault_authority.nonce += 1;
+        ctx.accounts.vault_authority.deposit_nonce += 1;
 
         let vault_deposit_params = VaultDepositParams {
             account_id: deposit_params.account_id,
@@ -126,7 +125,7 @@ impl<'info> Deposit<'info> {
             token_hash: deposit_params.token_hash,
             src_chain_id: deposit_params.src_chain_id,
             token_amount: deposit_params.token_amount as u128,
-            src_chain_deposit_nonce: ctx.accounts.vault_authority.nonce,
+            src_chain_deposit_nonce: ctx.accounts.vault_authority.deposit_nonce,
         };
 
         emit!(Into::<VaultDeposited>::into(vault_deposit_params.clone()));

@@ -16,23 +16,17 @@ const [provider, wallet, rpc] = utils.setAnchor();
 
 async function reset() {
 
-    const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
-
-
-    const vaultOwnerPda = utils.getVaultOwnerPda(OAPP_PROGRAM_ID);
+    const vaultAuthorityPda = utils.getVaultAuthorityPda(OAPP_PROGRAM_ID);
    
-    const ixResetOApp = await OAppProgram.methods.resetOappConfig().accounts({
-        payer: wallet.publicKey,
-        oappConfig: oappConfigPda,
-        vaultOwner: vaultOwnerPda
+    const ixresetVault = await OAppProgram.methods.resetVault().accounts({
+        owner: wallet.publicKey,
+        vaultAuthority: vaultAuthorityPda,
     }).instruction();
 
-    const txResetOApp = new Transaction().add(ixResetOApp);
+    const txresetVault = new Transaction().add(ixresetVault);
 
-    const sigResetOApp = await sendAndConfirmTransaction(provider.connection, txResetOApp, [wallet.payer]);
-    console.log("sigResetOApp", sigResetOApp);
-
-
+    const sigresetVault = await sendAndConfirmTransaction(provider.connection, txresetVault, [wallet.payer]);
+    console.log("sigresetVault", sigresetVault);
 
 }
 

@@ -1,6 +1,6 @@
-use crate::errors::VaultError;
-use crate::instructions::{OAPP_SEED, OWNER_SEED};
-use crate::state::{OAppConfig, VaultOwner};
+use crate::errors::OAppError;
+use crate::instructions::OAPP_SEED;
+use crate::state::OAppConfig;
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
@@ -11,15 +11,16 @@ pub struct ResetOApp<'info> {
     #[account(
         mut,
         seeds = [OAPP_SEED],
-        bump
+        bump,
+        constraint = oapp_config.admin == payer.key() @ OAppError::Unauthorized
     )]
     pub oapp_config: Account<'info, OAppConfig>,
-    #[account(
-        seeds = [OWNER_SEED],
-        bump,
-        constraint = vault_owner.owner == payer.key() @ VaultError::InvalidVaultOwner
-    )]
-    pub vault_owner: Account<'info, VaultOwner>,
+    // #[account(
+    //     seeds = [OWNER_SEED],
+    //     bump,
+    //     constraint = vault_owner.owner == payer.key() @ VaultError::InvalidVaultOwner
+    // )]
+    // pub vault_owner: Account<'info, VaultOwner>,
 }
 
 impl ResetOApp<'_> {
