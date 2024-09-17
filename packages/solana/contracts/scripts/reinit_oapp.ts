@@ -22,7 +22,6 @@ async function reinit() {
     const mintAccount = await utils.getUSDCAddress(provider, wallet, rpc);
     console.log("USDC mintAccount", mintAccount.toBase58());
     const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
-    const vaultOwnerPda = utils.getVaultOwnerPda(OAPP_PROGRAM_ID);
 
 
     const reinitOAppParams = {
@@ -32,14 +31,14 @@ async function reinit() {
         usdcMint: mintAccount,
     };
 
-    const ixreinitOapp = await OAppProgram.methods.reinitOapp(reinitOAppParams).accounts({
-        payer: wallet.publicKey,
+    const ixReinitOapp = await OAppProgram.methods.reinitOapp(reinitOAppParams).accounts({
+        owner: wallet.publicKey,
         oappConfig: oappConfigPda,
     }).instruction();
 
-    const txreinitOapp = new Transaction().add(ixreinitOapp);
-    const sigreinitOapp = await sendAndConfirmTransaction(provider.connection, txreinitOapp, [wallet.payer]);
-    console.log("sigreinitOapp", sigreinitOapp);
+    const txReinitOapp = new Transaction().add(ixReinitOapp);
+    const sigReinitOapp = await sendAndConfirmTransaction(provider.connection, txReinitOapp, [wallet.payer]);
+    console.log("sigreinitOapp", sigReinitOapp);
 
 
 }

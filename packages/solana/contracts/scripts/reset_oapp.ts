@@ -20,7 +20,7 @@ async function reset() {
 
    
     const ixResetOApp = await OAppProgram.methods.resetOapp().accounts({
-        payer: wallet.publicKey,
+        admin: wallet.publicKey,
         oappConfig: oappConfigPda,
     }).instruction();
 

@@ -7,20 +7,14 @@ use anchor_lang::system_program;
 #[derive(Accounts)]
 pub struct ResetOApp<'info> {
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub admin: Signer<'info>,
     #[account(
         mut,
         seeds = [OAPP_SEED],
-        bump,
-        constraint = oapp_config.admin == payer.key() @ OAppError::Unauthorized
+        bump = oapp_config.bump,
+        has_one = admin @ OAppError::Unauthorized
     )]
     pub oapp_config: Account<'info, OAppConfig>,
-    // #[account(
-    //     seeds = [OWNER_SEED],
-    //     bump,
-    //     constraint = vault_owner.owner == payer.key() @ VaultError::InvalidVaultOwner
-    // )]
-    // pub vault_owner: Account<'info, VaultOwner>,
 }
 
 impl ResetOApp<'_> {

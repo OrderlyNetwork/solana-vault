@@ -28,7 +28,7 @@ async function reinit() {
     };
 
     const ixReinitVault = await OAppProgram.methods.reinitVault(reinitVaultParams).accounts({
-        payer: wallet.publicKey,
+        admin: wallet.publicKey,
         vaultAuthority: vaultAuthorityPda,
         oappConfig: oappConfigPda
     }).instruction();

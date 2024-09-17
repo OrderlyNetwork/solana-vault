@@ -5,7 +5,6 @@ use anchor_lang::prelude::*;
 pub struct VaultAuthority {
     /// Bump seed for the vault authority PDA
     pub bump: u8,
-    // pub nonce: u64,
     pub owner: Pubkey,
     pub deposit_nonce: u64,
     pub order_delivery: bool,

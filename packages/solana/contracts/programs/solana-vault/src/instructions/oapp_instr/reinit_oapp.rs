@@ -7,25 +7,19 @@ use oapp::endpoint::ID as ENDPOINT_ID;
 #[derive(Accounts)]
 pub struct ReinitOApp<'info> {
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub owner: Signer<'info>,
     #[account(
         init,
-        payer = payer,
+        payer = owner,
         space = 8 + OAppConfig::INIT_SPACE,
         seeds = [OAPP_SEED],
         bump
     )]
     pub oapp_config: Account<'info, OAppConfig>,
-    // #[account(
-    //     seeds = [OWNER_SEED],
-    //     bump,
-    //     constraint = vault_owner.owner == payer.key() @ VaultError::InvalidVaultOwner
-    // )]
-    // pub vault_owner: Account<'info, VaultOwner>,
     #[account(
         seeds = [VAULT_AUTHORITY_SEED],
         bump,
-        constraint = vault_authority.owner == payer.key() @ VaultError::InvalidVaultOwner
+        has_one = owner @ VaultError::InvalidVaultOwner
     )]
     pub vault_authority: Account<'info, VaultAuthority>,
     pub system_program: Program<'info, System>,

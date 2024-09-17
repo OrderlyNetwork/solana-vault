@@ -6,10 +6,10 @@ use anchor_lang::prelude::*;
 #[derive(Accounts)]
 pub struct ReinitVault<'info> {
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub admin: Signer<'info>,
     #[account(
         init,
-        payer = payer,
+        payer = admin,
         space = 8 + VaultAuthority::INIT_SPACE,
         seeds = [VAULT_AUTHORITY_SEED],
         bump
@@ -17,8 +17,8 @@ pub struct ReinitVault<'info> {
     pub vault_authority: Account<'info, VaultAuthority>,
     #[account(
         seeds = [OAPP_SEED],
-        bump,
-        constraint = oapp_config.admin == payer.key() @ OAppError::Unauthorized
+        bump = oapp_config.bump,
+        has_one = admin @ OAppError::Unauthorized
     )]
     pub oapp_config: Account<'info, OAppConfig>,
     pub system_program: Program<'info, System>,

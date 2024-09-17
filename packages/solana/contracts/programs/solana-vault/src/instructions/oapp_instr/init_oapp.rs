@@ -16,22 +16,11 @@ pub struct InitOApp<'info> {
         bump
     )]
     pub oapp_config: Account<'info, OAppConfig>,
-    // #[account(
-    //     init,
-    //     payer = payer,
-    //     space = 8 + VaultOwner::INIT_SPACE,
-    //     seeds = [OWNER_SEED],
-    //     bump
-    // )]
-    // pub vault_owner: Account<'info, VaultOwner>,
     pub system_program: Program<'info, System>,
 }
 
 impl InitOApp<'_> {
     pub fn apply(ctx: &mut Context<InitOApp>, params: &InitOAppParams) -> Result<()> {
-        // ctx.accounts.vault_owner.owner = params.admin;
-        // ctx.accounts.vault_owner.bump = ctx.bumps.vault_owner;
-
         ctx.accounts.oapp_config.bump = ctx.bumps.oapp_config;
         ctx.accounts.oapp_config.usdc_hash = params.usdc_hash;
         ctx.accounts.oapp_config.usdc_mint = params.usdc_mint;

@@ -6,12 +6,12 @@ use anchor_lang::prelude::*;
 #[derive(Accounts)]
 pub struct SetOrderDelivery<'info> {
     #[account(mut)]
-    pub payer: Signer<'info>,
+    pub owner: Signer<'info>,
     #[account(
         mut,
         seeds = [VAULT_AUTHORITY_SEED],
         bump = vault_authority.bump,
-        constraint = vault_authority.owner == payer.key() @ VaultError::InvalidVaultOwner
+        has_one = owner @ VaultError::InvalidVaultOwner
     )]
     pub vault_authority: Account<'info, VaultAuthority>,
 }

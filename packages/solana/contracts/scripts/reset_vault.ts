@@ -18,15 +18,15 @@ async function reset() {
 
     const vaultAuthorityPda = utils.getVaultAuthorityPda(OAPP_PROGRAM_ID);
    
-    const ixresetVault = await OAppProgram.methods.resetVault().accounts({
+    const ixResetVault = await OAppProgram.methods.resetVault().accounts({
         owner: wallet.publicKey,
         vaultAuthority: vaultAuthorityPda,
     }).instruction();
 
-    const txresetVault = new Transaction().add(ixresetVault);
+    const txResetVault = new Transaction().add(ixResetVault);
 
-    const sigresetVault = await sendAndConfirmTransaction(provider.connection, txresetVault, [wallet.payer]);
-    console.log("sigresetVault", sigresetVault);
+    const sigResetVault = await sendAndConfirmTransaction(provider.connection, txResetVault, [wallet.payer]);
+    console.log("sigresetVault", sigResetVault);
 
 }
 
