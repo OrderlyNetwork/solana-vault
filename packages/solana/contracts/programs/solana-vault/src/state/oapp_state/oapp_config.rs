@@ -41,3 +41,9 @@ impl OAppConfig {
         )
     }
 }
+
+#[account]
+#[derive(InitSpace)]
+pub struct OAppLzReceiveTypesAccounts {
+    pub oapp_config: Pubkey,
+}
