@@ -63,7 +63,7 @@ async function deposit() {
         brokerHash: codedBrokerHash,
         tokenHash:  codedTokenHash,
         userAddress: Array.from(receiverAddress.toBuffer()),
-        tokenAmount: new anchor.BN(1_000_000),
+        tokenAmount: new anchor.BN(10_000_000),
     };
 
 

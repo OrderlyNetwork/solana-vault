@@ -13,9 +13,9 @@ export const MOCK_USDC_ACCOUNT = new PublicKey("usdc4pNcoYJ2GNXcJN4iwNXfxbKXPQzq
 export const DEV_USDC_ACCOUNT = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
 export const MAIN_USDC_ACCOUNT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 
-export const PEER_ADDRESS = addressToBytes32('0x42532863dcC16164B515C10eb2e46a3630A47762');
+export const PEER_ADDRESS = addressToBytes32('0x9Dc724b24146BeDD2dA28b8C4B74126169B8f312');
 export const DST_EID = 40200;
-export const SOL_CHAIN_ID = 902902902;
+export const SOL_CHAIN_ID = 901901901;
 export const LZ_RECEIVE_GAS = 500000;
 export const LZ_RECEIVE_VALUE = 0;
 export const LZ_COMPOSE_GAS = 10;

@@ -44,7 +44,7 @@ async function setup() {
 
     console.log("Init Vault:");
     try {
-        await utils.createAndSendV0TxWithTable([ixInitVault], provider, wallet, tableAddress, OAPP_PROGRAM_ID);
+        await utils.createAndSendV0Tx([ixInitVault], provider, wallet);
     } catch (e) {
         console.log("Vault already initialized");
     }

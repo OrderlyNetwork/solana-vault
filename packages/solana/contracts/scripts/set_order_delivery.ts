@@ -16,8 +16,8 @@ async function setOrderDelivery() {
     const vaultOwnerPda = utils.getVaultOwnerPda(OAPP_PROGRAM_ID);
     const vaultAuthorityPda = utils.getVaultAuthorityPda(OAPP_PROGRAM_ID);
     const setOrderDeliveryParams = {
-        orderDelivery: true,
-        nonce: new anchor.BN(72), // need to fetch from lz-endpoint
+        orderDelivery: false,
+        nonce: new anchor.BN(0), // need to fetch from lz-endpoint
     }
     const ixSetOrderDelivery = await OAppProgram.methods.setOrderDelivery(setOrderDeliveryParams).accounts({
         owner: wallet.publicKey,
