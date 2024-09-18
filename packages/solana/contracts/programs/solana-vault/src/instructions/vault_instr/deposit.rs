@@ -123,7 +123,7 @@ impl<'info> Deposit<'info> {
             broker_hash: deposit_params.broker_hash,
             user_address: deposit_params.user_address, //
             token_hash: deposit_params.token_hash,
-            src_chain_id: ctx.accounts.vault_authority.sol_chain_id as u128,
+            src_chain_id: ctx.accounts.vault_authority.sol_chain_id,
             token_amount: deposit_params.token_amount as u128,
             src_chain_deposit_nonce: ctx.accounts.vault_authority.deposit_nonce,
         };

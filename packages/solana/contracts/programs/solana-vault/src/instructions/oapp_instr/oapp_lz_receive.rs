@@ -100,10 +100,10 @@ impl<'info> OAppLzReceive<'info> {
 
         ctx.accounts.vault_authority.inbound_nonce = params.nonce;
 
-        msg!(
-            "nonce received: {:?}",
-            ctx.accounts.vault_authority.inbound_nonce
-        );
+        // msg!(
+        //     "nonce received: {:?}",
+        //     ctx.accounts.vault_authority.inbound_nonce
+        // );
 
         let lz_message = LzMessage::decode(&params.message).unwrap();
         msg!("msg_type: {:?}", lz_message.msg_type);
@@ -113,13 +113,13 @@ impl<'info> OAppLzReceive<'info> {
             let vault_authority_seeds =
                 &[VAULT_AUTHORITY_SEED, &[ctx.accounts.vault_authority.bump]];
 
-            msg!("Withdraw amount = {}", withdraw_params.token_amount);
-
+            // msg!("Withdraw amount = {}", withdraw_params.token_amount);
+            let amount_to_transfer = withdraw_params.token_amount - withdraw_params.fee;
             transfer(
                 ctx.accounts
                     .transfer_token_ctx()
                     .with_signer(&[&vault_authority_seeds[..]]),
-                withdraw_params.token_amount,
+                amount_to_transfer,
             )?;
 
             let vault_withdraw_params: VaultWithdrawParams = withdraw_params.into();
