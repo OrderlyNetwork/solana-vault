@@ -47,6 +47,7 @@ async function setup() {
     }).accounts({
         payer: wallet.publicKey,
         oappConfig: oappConfigPda,
+        lzReceiveTypes: lzReceiveTypesPda,
         systemProgram: SystemProgram.programId
     }).remainingAccounts(
         [
