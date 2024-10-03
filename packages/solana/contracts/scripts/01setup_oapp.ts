@@ -7,7 +7,9 @@ import * as constants from "./constants";
 
 import OAppIdl from "../target/idl/solana_vault.json";
 import { SolanaVault } from "../target/types/solana_vault";
+import { assert } from "chai";
 const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
+console.log("OAPP_PROGRAM_ID", OAPP_PROGRAM_ID.toBase58());
 const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
 
 const [provider, wallet, rpc] = utils.setAnchor();
@@ -30,9 +32,10 @@ console.log("OApp Registry PDA:", oappRegistryPda.toBase58());
 const vaultOwnerPda = utils.getVaultOwnerPda(OAPP_PROGRAM_ID);
 console.log("Owner PDA:", vaultOwnerPda.toBase58());
 
+const vaultAuthorityPda = utils.getVaultAuthorityPda(OAPP_PROGRAM_ID);
+console.log("vault authority pda", vaultAuthorityPda.toBase58());
 
-
-async function setup() {
+export async function setup() {
     console.log("Setting up OApp...");
     const tokenSymble = "USDC";
     const tokenHash = utils.getTokenHash(tokenSymble);
@@ -119,8 +122,30 @@ async function setup() {
 
     const txSetOption = await provider.sendAndConfirm(new anchor.web3.Transaction().add(ixSetOption), [wallet.payer]);
     console.log("Transaction to set options:", txSetOption);
-}
 
+    // Get the vault authority account
+    const vaultAuthorityAccount = await OAppProgram.account.vaultAuthority.fetch(vaultAuthorityPda);
+
+    // Log and check the values
+    console.log("Vault Authority values:");
+    console.log("Bump:", vaultAuthorityAccount.bump);
+    console.log("Owner:", vaultAuthorityAccount.owner.toBase58());
+    console.log("Deposit Nonce:", vaultAuthorityAccount.depositNonce.toString());
+    console.log("Order Delivery:", vaultAuthorityAccount.orderDelivery);
+    console.log("Inbound Nonce:", vaultAuthorityAccount.inboundNonce.toString());
+    console.log("Dst EID:", vaultAuthorityAccount.dstEid);
+    console.log("Sol Chain ID:", vaultAuthorityAccount.solChainId.toString());
+
+    // Add assertions to check the correctness of the values
+    assert(vaultAuthorityAccount.owner.equals(wallet.publicKey), "Owner should be the wallet public key");
+    assert(vaultAuthorityAccount.depositNonce.eq(new anchor.BN(0)), "Initial deposit nonce should be 0");
+    assert(vaultAuthorityAccount.orderDelivery === true, "Order delivery should be true");
+    assert(vaultAuthorityAccount.inboundNonce.eq(new anchor.BN(0)), "Initial inbound nonce should be 0");
+    assert(vaultAuthorityAccount.dstEid === constants.DST_EID, "Dst EID should match the constant");
+    assert(vaultAuthorityAccount.solChainId.eq(new anchor.BN(constants.SOL_CHAIN_ID)), "Sol Chain ID should match the constant");
+
+    console.log("All vault authority values are correct!");
+}
 
 setup();
 
