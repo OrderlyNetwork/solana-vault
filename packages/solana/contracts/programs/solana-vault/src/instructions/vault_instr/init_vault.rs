@@ -22,7 +22,7 @@ pub struct InitVault<'info> {
 }
 
 impl InitVault<'_> {
-    pub fn apply(ctx: &mut Context<InitVault>, params: &InitVaultParams) -> Result<()> {
+    pub fn apply(ctx: Context<InitVault>, params: &InitVaultParams) -> Result<()> {
         ctx.accounts.vault_authority.bump = ctx.bumps.vault_authority;
         ctx.accounts.vault_authority.owner = params.owner;
         ctx.accounts.vault_authority.deposit_nonce = 0;
