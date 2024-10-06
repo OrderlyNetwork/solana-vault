@@ -7,8 +7,8 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-oft = "HZuGXo97nFuv6UmvcYtt7T8L8vB3KAFRZTmohTA3k63m"
-solana-vault = "5seA2qXcGyC9najiKmUVK3u2hfotXZVHtaxuxfrwBLrX"
+# oft = "HZuGXo97nFuv6UmvcYtt7T8L8vB3KAFRZTmohTA3k63m"
+solana-vault = "AdA9VFXwkKPj51SZxSQwJ4bqPJiAJqidCwPhb8zSJndx"
 
 [registry]
 url = "https://api.apr.dev"
