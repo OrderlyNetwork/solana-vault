@@ -503,11 +503,11 @@ describe('solana-vault', () => {
     it('sets admin', async () => {
         await initializeVault()
         const {oappPda} = await initializeOapp()
-        const newAdmin = Keypair.generate().publicKey
+        const newAdmin = Keypair.generate()
         
         await program.methods
             .transferAdmin({
-                admin: newAdmin
+                admin: newAdmin.publicKey
             })
             .accounts({
                 admin: wallet.publicKey,
@@ -516,6 +516,49 @@ describe('solana-vault', () => {
             .rpc()
         
         const oappConfig = await program.account.oAppConfig.fetch(oappPda)
-        assert.equal(oappConfig.admin.toString(), newAdmin.toString())
+        assert.equal(oappConfig.admin.toString(), newAdmin.publicKey.toString())
+
+        await program.methods
+            .transferAdmin({
+                admin: wallet.publicKey
+            })
+            .accounts({
+                admin: newAdmin.publicKey,
+                oappConfig: oappPda
+            })
+            .signers([newAdmin])
+            .rpc()
+    })
+
+    it('sets enforced options', async () => {
+        await initializeVault()
+        const dstEid = 12
+        const buf = Buffer.alloc(4)
+        buf.writeUInt32BE(dstEid)
+        const {oappPda} = await initializeOapp()
+        const [efOptionsPda, efOptionsBump] = PublicKey.findProgramAddressSync(
+            [Buffer.from("EnforcedOptions"), oappPda.toBuffer(), buf],
+            program.programId
+        )
+
+        await program.methods
+            .setEnforcedOptions({
+                dstEid: dstEid,
+                send: Buffer.from([0, 3, 3]),
+                sendAndCall: Buffer.from([0, 3, 3])
+            })
+            .accounts({
+                admin: wallet.publicKey,
+                oappConfig: oappPda,
+                enforcedOptions: efOptionsPda,
+                systemProgram: SystemProgram.programId
+            })
+            .signers([wallet.payer])
+            .rpc()
+
+        const enforcedOptions = await program.account.enforcedOptions.fetch(efOptionsPda)
+        assert.isTrue(enforcedOptions.send.equals(Buffer.from([0, 3, 3])))
+        assert.isTrue(enforcedOptions.sendAndCall.equals(Buffer.from([0, 3, 3])))
+        assert.equal(enforcedOptions.bump, efOptionsBump)
     })
 })
