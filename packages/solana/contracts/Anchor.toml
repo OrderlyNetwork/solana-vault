@@ -7,7 +7,6 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-# oft = "HZuGXo97nFuv6UmvcYtt7T8L8vB3KAFRZTmohTA3k63m"
 solana-vault = "AdA9VFXwkKPj51SZxSQwJ4bqPJiAJqidCwPhb8zSJndx"
 
 [registry]
@@ -37,3 +36,12 @@ quote_deposit = "yarn run ts-node scripts/quote_oapp.ts"
 order_delivery = "yarn run ts-node scripts/set_order_delivery.ts"
 
 test = "yarn run ts-mocha -b -p ./tsconfig.json -t 1000000 tests/**/*.test.ts"
+
+[test.validator]
+url = "https://api.mainnet-beta.solana.com"
+
+# [[test.validator.clone]]
+# address = "76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6"
+
+[[test.validator.clone]]
+address = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
