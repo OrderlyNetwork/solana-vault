@@ -12,6 +12,7 @@ import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
 const confirmOptions: ConfirmOptions = { maxRetries: 3, commitment: "confirmed" }
 
 const LAYERZERO_ENDPOINT_PROGRAM_ID = new PublicKey('76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6')
+const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
 
 describe('solana-vault', () => {
     // Configure the client to use the local cluster.
@@ -61,7 +62,6 @@ describe('solana-vault', () => {
         try {
             oapp = await program.account.oAppConfig.fetch(oappPda)
         } catch(e) {
-            const usdcMint = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
             const usdcHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
             await program.methods
@@ -69,7 +69,7 @@ describe('solana-vault', () => {
                     admin: wallet.publicKey,
                     endpointProgram: LAYERZERO_ENDPOINT_PROGRAM_ID,
                     usdcHash: usdcHash,
-                    usdcMint: usdcMint
+                    usdcMint: USDC_MINT
                 })
                 .accounts({
                     owner: wallet.publicKey,
@@ -158,7 +158,6 @@ describe('solana-vault', () => {
             [Buffer.from("LzReceiveTypes"), oappPda.toBuffer()],
             program.programId
         )
-        const usdcMint = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
 
         const [oappRegistryPda] = PublicKey.findProgramAddressSync(
             [Buffer.from("OApp"), oappPda.toBuffer()],
@@ -183,7 +182,7 @@ describe('solana-vault', () => {
                     admin: wallet.publicKey,
                     endpointProgram: null,
                     usdcHash: [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-                    usdcMint: usdcMint
+                    usdcMint: USDC_MINT
                 })
                 .accounts({
                     payer: wallet.publicKey,
@@ -245,7 +244,7 @@ describe('solana-vault', () => {
             [Buffer.from("VaultAuthority")],
             program.programId
         )
-        await initializeVault(vaultAuthorityPda)
+        await initializeVault()
 
         const [oappPda] = PublicKey.findProgramAddressSync(
             [Buffer.from("OApp")],
@@ -362,5 +361,35 @@ describe('solana-vault', () => {
         assert.equal(allowedBroker.allowed, true)
         assert.deepEqual(allowedBroker.brokerHash, brokerHash)
         assert.equal(allowedBroker.bump, bump)
+    })
+
+    it('sets token', async () => {
+        const tokenHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        const [allowedTokenPda, bump] = PublicKey.findProgramAddressSync(
+            [Buffer.from("Token"), Buffer.from(tokenHash)],
+            program.programId
+        )
+        await initializeVault()
+        const {oappPda} = await initializeOapp()
+
+        await program.methods
+            .setToken({
+                mintAccount: USDC_MINT,
+                tokenHash: tokenHash,
+                allowed: true
+            })
+            .accounts({
+                admin: wallet.publicKey,
+                allowedToken: allowedTokenPda,
+                mintAccount: USDC_MINT,
+                oappConfig: oappPda
+            })
+            .rpc()
+        const allowedToken = await program.account.allowedToken.fetch(allowedTokenPda)
+        assert.equal(allowedToken.mintAccount, USDC_MINT)
+        assert.deepEqual(allowedToken.tokenHash, tokenHash)
+        assert.equal(allowedToken.tokenDecimals, 6)
+        assert.equal(allowedToken.allowed, true)
+        assert.equal(allowedToken.bump, bump)
     })
 })
