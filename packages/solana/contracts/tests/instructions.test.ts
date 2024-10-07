@@ -57,7 +57,7 @@ describe('solana-vault', () => {
         const [oappPda] = PublicKey.findProgramAddressSync(
             [Buffer.from("OApp")],
             program.programId
-        )        
+        )
         let oapp
         try {
             oapp = await program.account.oAppConfig.fetch(oappPda)
@@ -82,6 +82,40 @@ describe('solana-vault', () => {
             oapp = await program.account.oAppConfig.fetch(oappPda)
         }
         return {oappPda, oapp}
+    }
+
+    const initializePeer = async () => {
+        const [oappPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("OApp")],
+            program.programId
+        )
+        const buf = Buffer.alloc(4)
+        buf.writeUInt32BE(12)
+        const [peerPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("Peer"), oappPda.toBuffer(), buf],
+            program.programId
+        )
+        const peerHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
+        let peer
+        try {
+            peer = await program.account.peer.fetch(peerPda)
+        } catch(e) {
+            await program.methods
+            .setPeer({
+                dstEid: 12,
+                peer: peerHash
+            })
+            .accounts({
+                admin: wallet.publicKey,
+                peer: peerPda,
+                oappConfig: oappPda,
+                systemProgram: SystemProgram.programId
+            })
+            .rpc()
+            peer = await program.account.peer.fetch(peerPda)
+        }
+        return {peer, peerPda}
     }
 
     it('initializes vault', async () => {
@@ -411,5 +445,77 @@ describe('solana-vault', () => {
         vaultAuthority = await program.account.vaultAuthority.fetch(vaultAuthorityPda)
         assert.isFalse(vaultAuthority.orderDelivery)
         assert.isTrue(vaultAuthority.inboundNonce.eq(new BN('23')))
+    })
+
+    it('sets peer', async () => {
+        await initializeVault()
+        const {oappPda} = await initializeOapp()
+        const buf = Buffer.alloc(4)
+        buf.writeUInt32BE(12)
+        const [peerPda, peerBump] = PublicKey.findProgramAddressSync(
+            [Buffer.from("Peer"), oappPda.toBuffer(), buf],
+            program.programId
+        )
+        const peerHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
+        await program.methods
+            .setPeer({
+                dstEid: 12,
+                peer: peerHash
+            })
+            .accounts({
+                admin: wallet.publicKey,
+                peer: peerPda,
+                oappConfig: oappPda,
+                systemProgram: SystemProgram.programId
+            })
+            .rpc()
+        
+        const peer = await program.account.peer.fetch(peerPda)
+        assert.deepEqual(peer.address, peerHash)
+        assert.equal(peer.bump, peerBump)
+    })
+
+    it('sets rate limit', async () => {
+        await initializeVault()
+        const {oappPda} = await initializeOapp()
+        const {peerPda} = await initializePeer()
+
+        await program.methods
+            .setRateLimit({
+                dstEid: 12,
+                refillPerSecond: new BN('13'),
+                capacity: new BN('1000'),
+                enabled: true
+            })
+            .accounts({
+                admin: wallet.publicKey,
+                oappConfig: oappPda,
+                peer: peerPda
+            })
+            .rpc()
+        
+        const peer = await program.account.peer.fetch(peerPda)
+        assert.isTrue(peer.rateLimiter.capacity.eq(new BN('1000')))
+        assert.isTrue(peer.rateLimiter.refillPerSecond.eq(new BN('13')))
+    })
+
+    it('sets admin', async () => {
+        await initializeVault()
+        const {oappPda} = await initializeOapp()
+        const newAdmin = Keypair.generate().publicKey
+        
+        await program.methods
+            .transferAdmin({
+                admin: newAdmin
+            })
+            .accounts({
+                admin: wallet.publicKey,
+                oappConfig: oappPda
+            })
+            .rpc()
+        
+        const oappConfig = await program.account.oAppConfig.fetch(oappPda)
+        assert.equal(oappConfig.admin.toString(), newAdmin.toString())
     })
 })
