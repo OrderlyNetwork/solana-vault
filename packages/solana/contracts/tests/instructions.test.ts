@@ -386,10 +386,30 @@ describe('solana-vault', () => {
             })
             .rpc()
         const allowedToken = await program.account.allowedToken.fetch(allowedTokenPda)
-        assert.equal(allowedToken.mintAccount, USDC_MINT)
+        assert.equal(allowedToken.mintAccount.toString(), USDC_MINT.toString())
         assert.deepEqual(allowedToken.tokenHash, tokenHash)
         assert.equal(allowedToken.tokenDecimals, 6)
         assert.equal(allowedToken.allowed, true)
         assert.equal(allowedToken.bump, bump)
+    })
+
+    it('sets order delivery', async () => {
+        let {vaultAuthorityPda, vaultAuthority} = await initializeVault()
+        assert.isTrue(vaultAuthority.orderDelivery)
+
+        await program.methods
+            .setOrderDelivery({
+                orderDelivery: false,
+                nonce: new BN('23')
+            })
+            .accounts({
+                owner: wallet.publicKey,
+                vaultAuthority: vaultAuthorityPda
+            })
+            .rpc()
+
+        vaultAuthority = await program.account.vaultAuthority.fetch(vaultAuthorityPda)
+        assert.isFalse(vaultAuthority.orderDelivery)
+        assert.isTrue(vaultAuthority.inboundNonce.eq(new BN('23')))
     })
 })
