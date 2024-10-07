@@ -42,6 +42,9 @@ export async function setup() {
     const codedTokenHash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'));
     const mintAccount = await utils.getUSDCAddress(rpc);
 
+    // print endpoint program id
+    console.log("Endpoint Program ID:", constants.ENDPOINT_PROGRAM_ID.toBase58());
+
     const ixInitOapp = await OAppProgram.methods.initOapp({
         admin: wallet.publicKey,
         endpointProgram: constants.ENDPOINT_PROGRAM_ID,
@@ -94,6 +97,7 @@ export async function setup() {
     
     const txInitOapp = new Transaction().add(ixInitOapp);
     const sigInitOapp = await provider.sendAndConfirm(txInitOapp, [wallet.payer]);
+    // const sigInitOapp = await provider.simulate(txInitOapp, [wallet.payer]);
     console.log("Init OApp transaction confirmed:", sigInitOapp);
 
     const ixSetPeer = await OAppProgram.methods.setPeer({

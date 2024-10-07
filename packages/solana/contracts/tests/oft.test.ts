@@ -21,18 +21,18 @@ describe('OApp', () => {
     console.log('starting test')
     // Configure the client to use the local cluster.
     const provider = anchor.AnchorProvider.local(undefined, {
+        skipPreflight: true,
         commitment: 'confirmed',
         preflightCommitment: 'confirmed',
     })
-    const rpc = "http://127.0.0.1:8899";
     const wallet = provider.wallet as anchor.Wallet
 
     const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
     const OAPP_PROGRAM_ID = new PublicKey(solanaVaultIdl.metadata.address)
     console.log("OAPP_PROGRAM_ID", OAPP_PROGRAM_ID.toBase58());
 
-    // const ENDPOINT_PROGRAM_ID = new PublicKey(endpointIdl.metadata.address)
-    // console.log("ENDPOINT_PROGRAM_ID", ENDPOINT_PROGRAM_ID.toBase58());
+    const ENDPOINT_PROGRAM_ID = new PublicKey(endpointIdl.metadata.address)
+    console.log("ENDPOINT_PROGRAM_ID", ENDPOINT_PROGRAM_ID.toBase58());
 
     const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
     console.log("OApp Config PDA:", oappConfigPda.toBase58());
@@ -43,10 +43,10 @@ describe('OApp', () => {
     const peerPda = utils.getPeerPda(OAPP_PROGRAM_ID, oappConfigPda, constants.DST_EID);
     console.log("Peer PDA:", peerPda.toBase58());
 
-    const eventAuthorityPda = utils.getEventAuthorityPda();
+    const eventAuthorityPda = utils.getEventAuthorityPda(ENDPOINT_PROGRAM_ID);
     console.log("Event Authority PDA:", eventAuthorityPda.toBase58());
 
-    const oappRegistryPda = utils.getOAppRegistryPda(oappConfigPda);
+    const oappRegistryPda = utils.getOAppRegistryPda(oappConfigPda, ENDPOINT_PROGRAM_ID);
     console.log("OApp Registry PDA:", oappRegistryPda.toBase58());
 
     const vaultOwnerPda = utils.getVaultOwnerPda(OAPP_PROGRAM_ID);
@@ -59,8 +59,9 @@ describe('OApp', () => {
         console.log("Setting up OApp...");
         const tokenSymble = "USDC";
         const tokenHash = utils.getTokenHash(tokenSymble);
+        console.log("tokenHash", tokenHash.toString());
         const codedTokenHash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'));
-        const mintAccount = await utils.getUSDCAddress(rpc);
+        const mintAccount = await utils.getUSDCAddress(constants.LOCAL_RPC);
 
         console.log("constructing initOapp instruction");
         // print wallet info
@@ -68,7 +69,7 @@ describe('OApp', () => {
 
         const ixInitOapp = await OAppProgram.methods.initOapp({
             admin: wallet.publicKey,
-            endpointProgram: constants.ENDPOINT_PROGRAM_ID,
+            endpointProgram: ENDPOINT_PROGRAM_ID,
             usdcHash: codedTokenHash,
             usdcMint: mintAccount,
         }).accounts({
@@ -81,7 +82,7 @@ describe('OApp', () => {
                 {
                     isSigner: false,
                     isWritable: false,
-                    pubkey: constants.ENDPOINT_PROGRAM_ID,
+                    pubkey: ENDPOINT_PROGRAM_ID,
                 },
                 {
                     isSigner: true,
@@ -111,16 +112,10 @@ describe('OApp', () => {
                 {
                     isSigner: false,
                     isWritable: false,
-                    pubkey: constants.ENDPOINT_PROGRAM_ID
+                    pubkey: ENDPOINT_PROGRAM_ID
                 },
             ]
-        ).instruction();
-        
-        // console.log("ixInitOapp", ixInitOapp);
-
-        const txInitOapp = new Transaction().add(ixInitOapp);
-        const sigInitOapp = await provider.sendAndConfirm(txInitOapp, [wallet.payer]);
-        console.log("Init OApp transaction confirmed:", sigInitOapp);
+        ).rpc();
 
         const ixSetPeer = await OAppProgram.methods.setPeer({
             dstEid: constants.DST_EID,
@@ -151,27 +146,24 @@ describe('OApp', () => {
         const txSetOption = await provider.sendAndConfirm(new anchor.web3.Transaction().add(ixSetOption), [wallet.payer]);
         console.log("Transaction to set options:", txSetOption);
 
-        // Get the vault authority account
-        const vaultAuthorityAccount = await OAppProgram.account.vaultAuthority.fetch(vaultAuthorityPda);
+        // Get the oapp config account
+        const oappConfigAccount = await OAppProgram.account.oAppConfig.fetch(oappConfigPda);
 
         // Log and check the values
-        console.log("Vault Authority values:");
-        console.log("Bump:", vaultAuthorityAccount.bump);
-        console.log("Owner:", vaultAuthorityAccount.owner.toBase58());
-        console.log("Deposit Nonce:", vaultAuthorityAccount.depositNonce.toString());
-        console.log("Order Delivery:", vaultAuthorityAccount.orderDelivery);
-        console.log("Inbound Nonce:", vaultAuthorityAccount.inboundNonce.toString());
-        console.log("Dst EID:", vaultAuthorityAccount.dstEid);
-        console.log("Sol Chain ID:", vaultAuthorityAccount.solChainId.toString());
+        console.log("OApp Config values:");
+        console.log("Admin:", oappConfigAccount.admin.toBase58());
+        console.log("Endpoint Program:", oappConfigAccount.endpointProgram.toBase58());
+        // usdc hash to hex string with 0x prefix
+        const usdcHash = "0x" + Buffer.from(oappConfigAccount.usdcHash).toString('hex');
+        console.log("USDC Hex hash", usdcHash);
+        console.log("USDC Mint:", oappConfigAccount.usdcMint.toBase58());
 
-        // Add assertions to check the correctness of the values
-        assert(vaultAuthorityAccount.owner.equals(wallet.publicKey), "Owner should be the wallet public key");
-        assert(vaultAuthorityAccount.depositNonce.eq(new anchor.BN(0)), "Initial deposit nonce should be 0");
-        assert(vaultAuthorityAccount.orderDelivery === true, "Order delivery should be true");
-        assert(vaultAuthorityAccount.inboundNonce.eq(new anchor.BN(0)), "Initial inbound nonce should be 0");
-        assert(vaultAuthorityAccount.dstEid === constants.DST_EID, "Dst EID should match the constant");
-        assert(vaultAuthorityAccount.solChainId.eq(new anchor.BN(constants.SOL_CHAIN_ID)), "Sol Chain ID should match the constant");
+        // check if the values are correct
+        assert(oappConfigAccount.admin.equals(wallet.publicKey), "Admin should be the wallet public key");
+        assert(oappConfigAccount.endpointProgram.equals(ENDPOINT_PROGRAM_ID), "Endpoint Program should be the endpoint program");
+        assert(usdcHash === tokenHash.toString(), "USDC Hash should be the token hash");
+        assert(oappConfigAccount.usdcMint.equals(mintAccount), "USDC Mint should be the mint account");
 
-        console.log("All vault authority values are correct!");
+        console.log("All OApp values are correct!");
     })
 })

@@ -7,7 +7,7 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-endpoint = "2MV3zaRrgPxFc61FtZxiMa6VA3cGnSV9v9KKL1TFUBJi"
+endpoint = "AbLVZsTVaWfY74fKLRh6eWMHMWt1hRsvVDX9Jy4nPkXs"
 solana-vault = "5seA2qXcGyC9najiKmUVK3u2hfotXZVHtaxuxfrwBLrX"
 
 [registry]

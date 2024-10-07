@@ -51,17 +51,17 @@ export function getPeerPda(OAPP_PROGRAM_ID: PublicKey, oappConfigPda: PublicKey,
 }
 
 // pda address: F8E8QGhKmHEx2esh5LpVizzcP4cHYhzXdXTwg9w3YYY2
-export function getEventAuthorityPda(): PublicKey {
+export function getEventAuthorityPda(endpointProgram: PublicKey | undefined = undefined): PublicKey {
     return PublicKey.findProgramAddressSync(
         [Buffer.from(EVENT_SEED, "utf8")],
-        constants.ENDPOINT_PROGRAM_ID
+        endpointProgram ?? constants.ENDPOINT_PROGRAM_ID
     )[0];
 }
 
-export function getOAppRegistryPda(oappConfigPda: PublicKey): PublicKey {
+export function getOAppRegistryPda(oappConfigPda: PublicKey, endpointProgram: PublicKey | undefined = undefined): PublicKey {
     return PublicKey.findProgramAddressSync(
         [Buffer.from(OAPP_SEED, "utf8"), oappConfigPda.toBuffer()],
-        constants.ENDPOINT_PROGRAM_ID
+        endpointProgram ?? constants.ENDPOINT_PROGRAM_ID
     )[0];
 }
 
@@ -83,29 +83,29 @@ export function getSendLibPda(): PublicKey {
     )[0];
 }
 
-export function getSendLibConfigPda(oappConfigPda: PublicKey, dstEid: number): PublicKey{
+export function getSendLibConfigPda(oappConfigPda: PublicKey, dstEid: number, endpointProgram: PublicKey | undefined = undefined): PublicKey{
     const bufferDstEid = Buffer.alloc(4);
     bufferDstEid.writeUInt32BE(dstEid);
     return PublicKey.findProgramAddressSync(
         [Buffer.from(SEND_LIBRARY_CONFIG_SEED, "utf8"), oappConfigPda.toBuffer(), bufferDstEid],
-        constants.ENDPOINT_PROGRAM_ID
+        endpointProgram ?? constants.ENDPOINT_PROGRAM_ID
     )[0];
 }
 
 // pda: 526PeNZfw8kSnDU4nmzJFVJzJWNhwmZykEyJr5XWz5Fv
-export function getSendLibInfoPda(sendLibPda: PublicKey): PublicKey {
+export function getSendLibInfoPda(sendLibPda: PublicKey, endpointProgram: PublicKey | undefined = undefined): PublicKey {
     return PublicKey.findProgramAddressSync(
         [Buffer.from(MESSAGE_LIB_SEED, "utf8"), sendLibPda.toBuffer()],
-        constants.ENDPOINT_PROGRAM_ID
+        endpointProgram ?? constants.ENDPOINT_PROGRAM_ID
     )[0];
 }
 
-export function getDefaultSendLibConfigPda(dstEid: number): PublicKey{
+export function getDefaultSendLibConfigPda(dstEid: number, endpointProgram: PublicKey | undefined = undefined): PublicKey{
     const bufferDstEid = Buffer.alloc(4);
     bufferDstEid.writeUInt32BE(dstEid);
     return PublicKey.findProgramAddressSync(
         [Buffer.from(SEND_LIBRARY_CONFIG_SEED, "utf8"), bufferDstEid],
-        constants.ENDPOINT_PROGRAM_ID
+        endpointProgram ?? constants.ENDPOINT_PROGRAM_ID
     )[0];
 }
 
@@ -163,29 +163,29 @@ export function getUlnSettingPda(): PublicKey {
 }
 
 // pda: 2uk9pQh3tB5ErV7LGQJcbWjb4KeJ2UJki5qJZ8QG56G3
-export function getEndpointSettingPda(): PublicKey {
+export function getEndpointSettingPda(endpointProgram: PublicKey | undefined = undefined): PublicKey {
     return PublicKey.findProgramAddressSync(
         [Buffer.from(ENDPOINT_SEED, "utf8")],
-        constants.ENDPOINT_PROGRAM_ID
+        endpointProgram ?? constants.ENDPOINT_PROGRAM_ID
     )[0];
 }
 
-export function getNoncePda(oappConfigPda: PublicKey, dstEid: number, peer_address: Uint8Array): PublicKey {
+export function getNoncePda(oappConfigPda: PublicKey, dstEid: number, peer_address: Uint8Array, endpointProgram: PublicKey | undefined = undefined): PublicKey {
     const bufferDstEid = Buffer.alloc(4);
     bufferDstEid.writeUInt32BE(dstEid);
     return PublicKey.findProgramAddressSync(
         [Buffer.from(NONCE_SEED, "utf8"), oappConfigPda.toBuffer(), bufferDstEid, peer_address],
-        constants.ENDPOINT_PROGRAM_ID
+        endpointProgram ?? constants.ENDPOINT_PROGRAM_ID
     )[0];
 }
 
 
-export function getPendingInboundNoncePda(oappConfigPda: PublicKey, dstEid: number, peer_address: Uint8Array): PublicKey {
+export function getPendingInboundNoncePda(oappConfigPda: PublicKey, dstEid: number, peer_address: Uint8Array, endpointProgram: PublicKey | undefined = undefined): PublicKey {
     const bufferDstEid = Buffer.alloc(4);
     bufferDstEid.writeUInt32BE(dstEid);
     return PublicKey.findProgramAddressSync(
         [Buffer.from(PENDING_NONCE_SEED, "utf8"), oappConfigPda.toBuffer(), bufferDstEid, peer_address],
-        constants.ENDPOINT_PROGRAM_ID
+        endpointProgram ?? constants.ENDPOINT_PROGRAM_ID
     )[0];
 }
 
@@ -226,6 +226,7 @@ export function setAnchor(): [anchor.AnchorProvider, anchor.Wallet, string] {
     console.log("Setting Anchor...");
     const provider = anchor.AnchorProvider.env();
     const rpc = provider.connection.rpcEndpoint;
+    console.log("RPC:", rpc);
     anchor.setProvider(provider);
     const wallet = provider.wallet as anchor.Wallet;
     return [provider, wallet, rpc];
