@@ -19,12 +19,36 @@ describe('solana-vault', () => {
     anchor.setProvider(provider)
     const program = anchor.workspace.SolanaVault as Program<SolanaVault>
 
+    const initializeVault = async (vaultAuthorityPda: PublicKey) => {
+        let vaultAuthority
+        try {
+            vaultAuthority = await program.account.vaultAuthority.fetch(vaultAuthorityPda)
+        } catch {
+            await program.methods
+                .initVault({
+                    owner: wallet.publicKey,
+                    orderDelivery: true,
+                    dstEid: 42,
+                    solChainId: new BN(12),
+                })
+                .accounts({
+                    signer: wallet.publicKey,
+                    vaultAuthority: vaultAuthorityPda,
+                    systemProgram: SystemProgram.programId,
+                })
+                .signers([wallet.payer])
+                .rpc(confirmOptions)
+            vaultAuthority = await program.account.vaultAuthority.fetch(vaultAuthorityPda)
+        }    
+        return vaultAuthority
+    }
+
     it('initializes vault', async () => {
         const [vaultAuthorityPda] = PublicKey.findProgramAddressSync(
             [Buffer.from("VaultAuthority")],
             program.programId
         )
-        const tx = await program.methods
+        await program.methods
             .initVault({
                 owner: wallet.publicKey,
                 orderDelivery: true,
@@ -192,5 +216,42 @@ describe('solana-vault', () => {
             console.log(logs)
             console.log(e.transactionError)
         }
+    })
+
+    it('reinitializes oapp', async () => {
+        const [vaultAuthorityPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("VaultAuthority")],
+            program.programId
+        )
+        await initializeVault(vaultAuthorityPda)
+
+        const [oappPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("OApp")],
+            program.programId
+        )        
+        const usdcMint = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
+        const usdcHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
+        await program.methods
+            .reinitOapp({
+                admin: wallet.publicKey,
+                endpointProgram: LAYERZERO_ENDPOINT_PROGRAM_ID,
+                usdcHash: usdcHash,
+                usdcMint: usdcMint
+            })
+            .accounts({
+                owner: wallet.publicKey,
+                oappConfig: oappPda,
+                vaultAuthority: vaultAuthorityPda,
+                systemProgram: SystemProgram.programId
+            })
+            .signers([wallet.payer])
+            .rpc()
+        
+        const oappConfig = await program.account.oAppConfig.fetch(oappPda)
+        assert.equal(oappConfig.admin.toString(), wallet.publicKey.toString())
+        assert.equal(oappConfig.endpointProgram.toString(), LAYERZERO_ENDPOINT_PROGRAM_ID.toString())
+        assert.equal(oappConfig.usdcMint.toString(), usdcMint.toString())
+        assert.deepEqual(oappConfig.usdcHash, usdcHash)
     })
 })
