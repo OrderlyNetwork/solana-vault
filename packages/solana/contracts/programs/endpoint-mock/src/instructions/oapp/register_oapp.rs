@@ -1,6 +1,11 @@
 use crate::*;
-
 use cpi_helper::CpiContext;
+
+#[event]
+pub struct OAppRegisteredEvent {
+    pub oapp: Pubkey,
+    pub delegate: Pubkey,
+}
 
 #[event_cpi]
 #[derive(CpiContext, Accounts)]
@@ -25,6 +30,7 @@ impl RegisterOApp<'_> {
     pub fn apply(ctx: &mut Context<RegisterOApp>, params: &RegisterOAppParams) -> Result<()> {
         ctx.accounts.oapp_registry.delegate = params.delegate;
         ctx.accounts.oapp_registry.bump = ctx.bumps.oapp_registry;
+        emit_cpi!(OAppRegisteredEvent { oapp: ctx.accounts.oapp.key(), delegate: params.delegate });
         Ok(())
     }
 }
