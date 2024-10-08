@@ -1,6 +1,7 @@
 import * as anchor from '@coral-xyz/anchor'
 import { BN, Program } from '@coral-xyz/anchor'
 import { SolanaVault } from '../target/types/solana_vault'
+import { Endpoint } from '../target/types/endpoint'
 // import { TOKEN_PROGRAM_ID, createInitializeMintInstruction, getMintLen } from '@solana/spl-token'
 import { EVENT_SEED } from "@layerzerolabs/lz-solana-sdk-v2";
 import { getLogs } from "@solana-developers/helpers";
@@ -10,8 +11,6 @@ import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
 
 
 const confirmOptions: ConfirmOptions = { maxRetries: 3, commitment: "confirmed" }
-
-const LAYERZERO_ENDPOINT_PROGRAM_ID = new PublicKey('76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6')
 const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
 
 describe('solana-vault', () => {
@@ -20,6 +19,7 @@ describe('solana-vault', () => {
     const wallet = provider.wallet as anchor.Wallet
     anchor.setProvider(provider)
     const program = anchor.workspace.SolanaVault as Program<SolanaVault>
+    const endpointProgram = anchor.workspace.Endpoint as Program<Endpoint>
 
     const initializeVault = async () => {
         const [vaultAuthorityPda] = PublicKey.findProgramAddressSync(
@@ -67,7 +67,7 @@ describe('solana-vault', () => {
             await program.methods
                 .reinitOapp({
                     admin: wallet.publicKey,
-                    endpointProgram: LAYERZERO_ENDPOINT_PROGRAM_ID,
+                    endpointProgram: endpointProgram.programId,
                     usdcHash: usdcHash,
                     usdcMint: USDC_MINT
                 })
@@ -184,7 +184,7 @@ describe('solana-vault', () => {
     })
 
     it('initializes oapp', async () => {
-        const [oappPda] = PublicKey.findProgramAddressSync(
+        const [oappPda, oappBump] = PublicKey.findProgramAddressSync(
             [Buffer.from("OApp")],
             program.programId
         )
@@ -193,84 +193,82 @@ describe('solana-vault', () => {
             program.programId
         )
 
-        const [oappRegistryPda] = PublicKey.findProgramAddressSync(
+        const [oappRegistryPda, oappRegistryBump] = PublicKey.findProgramAddressSync(
             [Buffer.from("OApp"), oappPda.toBuffer()],
-            program.programId
+            endpointProgram.programId
         )
 
         const [eventAuthorityPda] = PublicKey.findProgramAddressSync(
             [Buffer.from(EVENT_SEED)],
-            LAYERZERO_ENDPOINT_PROGRAM_ID
+            endpointProgram.programId
         )
 
-        // const accountInfo = await provider.connection.getAccountInfo(LAYERZERO_ENDPOINT_PROGRAM_ID)
-        // console.log("============ ENDPOINT: ", accountInfo.executable)
-        // console.log(" =============== Program Data: ", accountInfo.data)
-        // const balance = await provider.connection.getBalance(wallet.publicKey);
-        // console.log("Wallet balance:", balance);
+        const usdcHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
+        await program.methods
+                .initOapp({
+                admin: wallet.publicKey,
+                endpointProgram: endpointProgram.programId,
+                usdcHash: usdcHash,
+                usdcMint: USDC_MINT
+            })
+            .accounts({
+                payer: wallet.publicKey,
+                oappConfig: oappPda,
+                lzReceiveTypes: lzReceiveTypesPda,
+                systemProgram: SystemProgram.programId,
+            })
+            .remainingAccounts([
+                {
+                    pubkey: endpointProgram.programId,
+                    isWritable: true,
+                    isSigner: false,
+                },
+                {
+                    pubkey: wallet.publicKey,
+                    isWritable: true,
+                    isSigner: true,
+                },
+                {
+                    pubkey: oappPda,
+                    isWritable: false,
+                    isSigner: false,
+                },
+                {
+                    pubkey: oappRegistryPda,
+                    isWritable: true,
+                    isSigner: false,
+                },
+                {
+                    pubkey: SystemProgram.programId,
+                    isWritable: false,
+                    isSigner: false,
+                },
+                {
+                    pubkey: eventAuthorityPda,
+                    isWritable: true,
+                    isSigner: false,
+                },
+                {
+                    pubkey: endpointProgram.programId,
+                    isWritable: true,
+                    isSigner: false,
+                },
+            ])
+            .rpc()
         
-        let tx
-        try {
-            tx = await program.methods
-                    .initOapp({
-                    admin: wallet.publicKey,
-                    endpointProgram: null,
-                    usdcHash: [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-                    usdcMint: USDC_MINT
-                })
-                .accounts({
-                    payer: wallet.publicKey,
-                    oappConfig: oappPda,
-                    lzReceiveTypes: lzReceiveTypesPda,
-                    systemProgram: SystemProgram.programId,
-                })
-                .remainingAccounts([
-                    {
-                        pubkey: LAYERZERO_ENDPOINT_PROGRAM_ID,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: wallet.publicKey,
-                        isWritable: true,
-                        isSigner: true,
-                    },
-                    {
-                        pubkey: oappPda,
-                        isWritable: false,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: oappRegistryPda,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: SystemProgram.programId,
-                        isWritable: false,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: eventAuthorityPda,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: LAYERZERO_ENDPOINT_PROGRAM_ID,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                ])
-                .signers([wallet.payer])
-                .rpc()        
-            const logs = await getLogs(provider.connection, tx)
-            console.log(logs)
-        } catch (e) {
-            console.log("=================================== ERROR")
-            const logs = await e.getLogs(provider.connection)
-            console.log(logs)
-            console.log(e.transactionError)
-        }
+        const oappConfig = await program.account.oAppConfig.fetch(oappPda)
+        const lzReceiveTypes = await program.account.oAppLzReceiveTypesAccounts.fetch(lzReceiveTypesPda)
+        const oappRegistry = await endpointProgram.account.oAppRegistry.fetch(oappRegistryPda)
+
+        assert.equal(lzReceiveTypes.oappConfig.toString(), oappPda.toString())
+        assert.equal(oappConfig.bump, oappBump)
+        assert.deepEqual(oappConfig.usdcHash, usdcHash)
+        assert.equal(oappConfig.usdcMint.toString(), USDC_MINT.toString())
+        assert.equal(oappConfig.endpointProgram.toString(), endpointProgram.programId.toString())
+        assert.equal(oappConfig.admin.toString(), wallet.publicKey.toString())
+        assert.equal(oappRegistry.delegate.toString(), wallet.publicKey.toString())
+        assert.equal(oappRegistry.bump, oappRegistryBump)
     })
 
     it('reinitializes oapp', async () => {
@@ -288,9 +286,17 @@ describe('solana-vault', () => {
         const usdcHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
         await program.methods
+            .resetOapp()
+            .accounts({
+                admin: wallet.publicKey,
+                oappConfig: oappPda
+            })
+            .rpc()
+
+        await program.methods
             .reinitOapp({
                 admin: wallet.publicKey,
-                endpointProgram: LAYERZERO_ENDPOINT_PROGRAM_ID,
+                endpointProgram: endpointProgram.programId,
                 usdcHash: usdcHash,
                 usdcMint: usdcMint
             })
@@ -305,7 +311,7 @@ describe('solana-vault', () => {
         
         const oappConfig = await program.account.oAppConfig.fetch(oappPda)
         assert.equal(oappConfig.admin.toString(), wallet.publicKey.toString())
-        assert.equal(oappConfig.endpointProgram.toString(), LAYERZERO_ENDPOINT_PROGRAM_ID.toString())
+        assert.equal(oappConfig.endpointProgram.toString(), endpointProgram.programId.toString())
         assert.equal(oappConfig.usdcMint.toString(), usdcMint.toString())
         assert.deepEqual(oappConfig.usdcHash, usdcHash)
     })
