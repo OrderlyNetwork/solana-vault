@@ -1,17 +1,18 @@
 import * as anchor from '@coral-xyz/anchor'
-import { BN, Program } from '@coral-xyz/anchor'
+import { BN, Program, Idl } from '@coral-xyz/anchor'
 import { SolanaVault } from '../target/types/solana_vault'
 import { Endpoint } from '../target/types/endpoint'
-// import { TOKEN_PROGRAM_ID, createInitializeMintInstruction, getMintLen } from '@solana/spl-token'
+import { TOKEN_PROGRAM_ID, getOrCreateAssociatedTokenAccount, getMintLen } from '@solana/spl-token'
 import { EVENT_SEED } from "@layerzerolabs/lz-solana-sdk-v2";
 import { getLogs } from "@solana-developers/helpers";
-import { Connection, ConfirmOptions, Keypair, SendTransactionError, PublicKey, SystemProgram } from '@solana/web3.js'
-import { assert, expect } from 'chai'
-import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
-
+import { ConfirmOptions, Keypair, PublicKey, SystemProgram } from '@solana/web3.js'
+import { assert } from 'chai'
+import { getPeerPda, getOAppRegistryPda, getNoncePda, getEndpointSettingPda } from '../scripts/utils'
+import endpointIdl from '../target/idl/endpoint.json';
 
 const confirmOptions: ConfirmOptions = { maxRetries: 3, commitment: "confirmed" }
 const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
+const LAYERZERO_ENDPOINT_PROGRAM_ID = new PublicKey('76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6')
 
 describe('solana-vault', () => {
     // Configure the client to use the local cluster.
@@ -269,23 +270,20 @@ describe('solana-vault', () => {
             [Buffer.from("LzReceiveTypes"), oappPda.toBuffer()],
             program.programId
         )
-
         const [oappRegistryPda, oappRegistryBump] = PublicKey.findProgramAddressSync(
             [Buffer.from("OApp"), oappPda.toBuffer()],
-            endpointProgram.programId
+            LAYERZERO_ENDPOINT_PROGRAM_ID
         )
-
         const [eventAuthorityPda] = PublicKey.findProgramAddressSync(
             [Buffer.from(EVENT_SEED)],
-            endpointProgram.programId
+            LAYERZERO_ENDPOINT_PROGRAM_ID
         )
-
         const usdcHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
         await program.methods
                 .initOapp({
                 admin: wallet.publicKey,
-                endpointProgram: endpointProgram.programId,
+                endpointProgram: LAYERZERO_ENDPOINT_PROGRAM_ID,
                 usdcHash: usdcHash,
                 usdcMint: USDC_MINT
             })
@@ -297,7 +295,7 @@ describe('solana-vault', () => {
             })
             .remainingAccounts([
                 {
-                    pubkey: endpointProgram.programId,
+                    pubkey: LAYERZERO_ENDPOINT_PROGRAM_ID,
                     isWritable: true,
                     isSigner: false,
                 },
@@ -327,13 +325,14 @@ describe('solana-vault', () => {
                     isSigner: false,
                 },
                 {
-                    pubkey: endpointProgram.programId,
+                    pubkey: LAYERZERO_ENDPOINT_PROGRAM_ID,
                     isWritable: true,
                     isSigner: false,
                 },
             ])
             .rpc()
         
+        const endpointProgram = new Program(endpointIdl as Idl, LAYERZERO_ENDPOINT_PROGRAM_ID, provider)
         const oappConfig = await program.account.oAppConfig.fetch(oappPda)
         const lzReceiveTypes = await program.account.oAppLzReceiveTypesAccounts.fetch(lzReceiveTypesPda)
         const oappRegistry = await endpointProgram.account.oAppRegistry.fetch(oappRegistryPda)
@@ -342,7 +341,7 @@ describe('solana-vault', () => {
         assert.equal(oappConfig.bump, oappBump)
         assert.deepEqual(oappConfig.usdcHash, usdcHash)
         assert.equal(oappConfig.usdcMint.toString(), USDC_MINT.toString())
-        assert.equal(oappConfig.endpointProgram.toString(), endpointProgram.programId.toString())
+        assert.equal(oappConfig.endpointProgram.toString(), LAYERZERO_ENDPOINT_PROGRAM_ID.toString())
         assert.equal(oappConfig.admin.toString(), wallet.publicKey.toString())
         assert.equal(oappRegistry.delegate.toString(), wallet.publicKey.toString())
         assert.equal(oappRegistry.bump, oappRegistryBump)
