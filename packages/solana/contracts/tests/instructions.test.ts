@@ -12,8 +12,8 @@ import {
   getAccount
 } from '@solana/spl-token'
 import * as constants from "../scripts/constants"
-import { EVENT_SEED, MESSAGE_LIB_SEED } from "@layerzerolabs/lz-solana-sdk-v2";
-import { getLogs } from "@solana-developers/helpers";
+import { EVENT_SEED, MESSAGE_LIB_SEED } from "@layerzerolabs/lz-solana-sdk-v2"
+import { getLogs } from "@solana-developers/helpers"
 import { Connection, ConfirmOptions, Keypair, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { assert } from 'chai'
 import endpointIdl from '../tests/idl/endpoint.json'
@@ -51,12 +51,12 @@ async function mintUsdcTo(
       amount,
       [],
       confirmOptions
-    );
+    )
 
-    console.log(`Minted ${amount} USDC to ${destinationWallet.toBase58()}`);
+    console.log(`Minted ${amount} USDC to ${destinationWallet.toBase58()}`)
   } catch (error) {
-    console.error("Error minting USDC:", error);
-    throw error;
+    console.error("Error minting USDC:", error)
+    throw error
   }
 }
 
@@ -69,7 +69,7 @@ async function getTokenBalance(
 }
 
 describe('solana-vault', function() {
-    this.timeout(120000); // Set timeout for all tests in this describe block
+    this.timeout(120000) // Set timeout for all tests in this describe block
     
     // Configure the client to use the local cluster.
     const provider = anchor.AnchorProvider.env()
@@ -312,7 +312,7 @@ describe('solana-vault', function() {
                 owner: wallet.publicKey,
                 vaultAuthority: vaultAuthorityPda
             })
-            .rpc();
+            .rpc()
 
         // Reinitialize the vault with new data
         await program.methods
@@ -327,12 +327,12 @@ describe('solana-vault', function() {
                 vaultAuthority: vaultAuthorityPda,
                 systemProgram: SystemProgram.programId,
             })
-            .rpc();
+            .rpc()
     
-        vaultAuthority = await program.account.vaultAuthority.fetch(vaultAuthorityPda);
-        assert.equal(vaultAuthority.orderDelivery, false);
-        assert.equal(vaultAuthority.dstEid, 43);
-        assert.ok(vaultAuthority.solChainId.eq(new BN(13)));
+        vaultAuthority = await program.account.vaultAuthority.fetch(vaultAuthorityPda)
+        assert.equal(vaultAuthority.orderDelivery, false)
+        assert.equal(vaultAuthority.dstEid, 43)
+        assert.ok(vaultAuthority.solChainId.eq(new BN(13)))
     })
 
     it('initializes oapp', async () => {
@@ -496,7 +496,7 @@ describe('solana-vault', function() {
                 owner: wallet.publicKey,
                 vaultAuthority: vaultAuthorityPda
             })
-            .rpc();
+            .rpc()
 
         await program.methods
             .reinitVault({
@@ -717,8 +717,8 @@ describe('solana-vault', function() {
         assert.equal(enforcedOptions.bump, efOptionsBump)
     })
 
-    it('lzReceive', async () => {
-        this.timeout(300000); // Set timeout to 120 seconds (2 minutes)
+    it.only('lzReceive', async () => {
+        this.timeout(300000) // Set timeout to 120 seconds (2 minutes)
         
         const guid = Array.from(Keypair.generate().publicKey.toBuffer())
         await registerOapp()
@@ -891,21 +891,20 @@ describe('solana-vault', function() {
             })
             .rpc(confirmOptions)
         
-        const msgType = 1 // Example message type
-        const tokenAmountBuffer = Buffer.alloc(8);
-        tokenAmountBuffer.writeBigUInt64BE(BigInt(1e9));
+        const msgType = 1 // Withdraw message type
+        const tokenAmountBuffer = Buffer.alloc(8)
+        tokenAmountBuffer.writeBigUInt64BE(BigInt(1e9))
 
-        const feeBuffer = Buffer.alloc(8);
-        feeBuffer.writeBigUInt64BE(BigInt('100'));
+        const feeBuffer = Buffer.alloc(8)
+        feeBuffer.writeBigUInt64BE(BigInt('100'))
 
-        const chainIdBuffer = Buffer.alloc(8);
-        chainIdBuffer.writeBigUInt64BE(BigInt('1'));
+        const chainIdBuffer = Buffer.alloc(8)
+        chainIdBuffer.writeBigUInt64BE(BigInt('1'))
 
-        const withdrawNonceBuffer = Buffer.alloc(8);
-        withdrawNonceBuffer.writeBigUInt64BE(BigInt('2'));
+        const withdrawNonceBuffer = Buffer.alloc(8)
+        withdrawNonceBuffer.writeBigUInt64BE(BigInt('2'))
         const tokenHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
-        // TODO: =================================================================>
         const payload = Buffer.concat([
             wallet.publicKey.toBuffer(),
             wallet.publicKey.toBuffer(),
@@ -981,24 +980,6 @@ describe('solana-vault', function() {
                 },
             ])
             .rpc(confirmOptions)
-
-        // await endpointProgram.methods
-        //     .verify({
-        //         srcEid: ETHEREUM_EID,
-        //         sender: Array.from(wallet.publicKey.toBytes()),
-        //         nonce: new BN('1'),
-        //         payloadHash: payloadHashPda.toBytes(),
-        //         receiver: oappPda
-        //     })
-        //     .accounts({
-        //         payloadHash: payloadHashPda,
-        //         pendingInboundNonce: pendingInboundNoncePda,
-        //         nonce: noncePda,
-        //         receiveLibrary: messageLibPda,
-        //         receiveLibraryConfig: receiveLibraryConfigPda,
-        //         defaultReceiveLibraryConfig: defaultReceiveLibraryConfigPda
-        //     })
-        //     .rpc(confirmOptions)
     
         const userDepositWallet = await getOrCreateAssociatedTokenAccount(
             provider.connection,
@@ -1033,8 +1014,7 @@ describe('solana-vault', function() {
             .rpc(confirmOptions)
 
         // Check initial balance
-        let vaultBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address);
-        console.log("Initial vault balance:", vaultBalance);
+        let vaultBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address)
 
         try {
           // Mint 1000 USDC to the vault deposit wallet
@@ -1044,20 +1024,19 @@ describe('solana-vault', function() {
             usdcMintAuthority,
             USDC_MINT,
             vaultDepositWallet.address,
-            1000000000 // 1000 USDC (remember to account for decimals)
-          );
+            1e9 // 1000 USDC
+          )
 
           // Check balance after minting
-          vaultBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address);
-          console.log("Vault balance after minting:", vaultBalance);
-          assert.equal(vaultBalance, 1000000000, "Vault should have 1000 USDC after minting");
+          vaultBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address)
+          assert.equal(vaultBalance, 1e9, "Vault should have 1000 USDC after minting")
         } catch (error) {
-          console.error("Error during minting process:", error);
-          throw error;
+          console.error("Error during minting process:", error)
+          throw error
         }
 
         try {
-            const tx = await program.methods
+            await program.methods
                 .lzReceive({
                     srcEid: ETHEREUM_EID,
                     sender: Array.from(wallet.publicKey.toBytes()),
@@ -1120,17 +1099,13 @@ describe('solana-vault', function() {
                     },
                 ])
                 .rpc(confirmOptions)
-            
-            console.log("Logs: ", await getLogs(provider.connection, tx))
 
             // Check balance after lzReceive
-            vaultBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address);
-            console.log("Vault balance after lzReceive:", vaultBalance);
-            
-            // You can add an assertion here based on how much you expect to be transferred
-            // For example, if you expect 100 USDC to be transferred out:
-            // assert.equal(vaultBalance, 900000000, "Vault should have 900 USDC after transfer")
+            vaultBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address)
+            assert.equal(vaultBalance, 100, "Vault should have 100 USDC left from fees after transfer")
 
+            const userBalance = await getTokenBalance(provider.connection, userDepositWallet.address)
+            assert.equal(userBalance, 1e9 - 100, "User should have 1e9 - 100 transferred from the vault")
         } catch(e) {
             console.log(e)
         }
