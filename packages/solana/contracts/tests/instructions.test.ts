@@ -10,13 +10,11 @@ import {
   mintTo,
   getAccount
 } from '@solana/spl-token'
-import * as constants from "../scripts/constants"
 import { EVENT_SEED, MESSAGE_LIB_SEED } from "@layerzerolabs/lz-solana-sdk-v2"
-import { getLogs } from "@solana-developers/helpers"
-import { Connection, ConfirmOptions, Keypair, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js'
+import { Connection, ConfirmOptions, Keypair, PublicKey, SystemProgram, Transaction } from '@solana/web3.js'
 import { assert } from 'chai'
 import endpointIdl from '../tests/idl/endpoint.json'
-import { getDefaultReceiveConfigPda, getSendLibPda, getEndpointSettingPda } from '../scripts/utils'
+import { getEndpointSettingPda } from '../scripts/utils'
 import { MainnetV2EndpointId } from '@layerzerolabs/lz-definitions'
 
 const confirmOptions: ConfirmOptions = { maxRetries: 6, commitment: "confirmed", preflightCommitment: "confirmed"}
@@ -81,6 +79,7 @@ describe('solana-vault', function() {
     const usdcMintAuthority = Keypair.generate()
     const endpointAdmin = wallet.payer
     const DST_EID = ETHEREUM_EID
+    const PEER_HASH = Array.from(wallet.publicKey.toBytes())
 
     before(async () => {
         USDC_MINT = await createMint(
@@ -90,7 +89,7 @@ describe('solana-vault', function() {
             null,
             6 // USDC has 6 decimals
         )
-
+        // 1. Setup Solana Vault
         await registerOapp()
         const [oappPda, oappBump] = PublicKey.findProgramAddressSync(
             [Buffer.from("OApp")],
@@ -104,7 +103,24 @@ describe('solana-vault', function() {
             program.programId
         )
 
-        // Setup Solana Vault
+        const [peerPda] =  PublicKey.findProgramAddressSync(
+            [Buffer.from("Peer"), oappPda.toBuffer(), bufferDstEid],
+            program.programId
+        )
+
+        await program.methods
+            .setPeer({
+                dstEid: ETHEREUM_EID,
+                peer: PEER_HASH
+            })
+            .accounts({
+                admin: wallet.publicKey,
+                peer: peerPda,
+                oappConfig: oappPda,
+                systemProgram: SystemProgram.programId
+            })
+            .rpc(confirmOptions)
+
         await program.methods
             .setEnforcedOptions({
                 dstEid: DST_EID,
@@ -118,8 +134,9 @@ describe('solana-vault', function() {
                 systemProgram: SystemProgram.programId
             })
             .rpc(confirmOptions)
+        // =========================================================
 
-        // Setup Endpoint V2 settings
+        // 2. Setup Endpoint V2 settings
         const endpointPda = getEndpointSettingPda(endpointProgram.programId)
         await endpointProgram.methods
             .initEndpoint({
@@ -300,40 +317,6 @@ describe('solana-vault', function() {
             oapp = await program.account.oAppConfig.fetch(oappPda)
         }
         return {oappPda, oapp}
-    }
-
-    const initializePeer = async () => {
-        const [oappPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("OApp")],
-            program.programId
-        )
-        const buf = Buffer.alloc(4)
-        buf.writeUInt32BE(ETHEREUM_EID)
-        const [peerPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("Peer"), oappPda.toBuffer(), buf],
-            program.programId
-        )
-        const peerHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-
-        let peer
-        try {
-            peer = await program.account.peer.fetch(peerPda)
-        } catch(e) {
-            await program.methods
-                .setPeer({
-                    dstEid: ETHEREUM_EID,
-                    peer: peerHash
-                })
-                .accounts({
-                    admin: wallet.publicKey,
-                    peer: peerPda,
-                    oappConfig: oappPda,
-                    systemProgram: SystemProgram.programId
-                })
-                .rpc(confirmOptions)
-            peer = await program.account.peer.fetch(peerPda)
-        }
-        return {peer, peerPda}
     }
 
     it('initializes vault', async () => {
@@ -676,35 +659,26 @@ describe('solana-vault', function() {
         await initializeVault()
         const {oappPda} = await initializeOapp()
         const buf = Buffer.alloc(4)
-        buf.writeUInt32BE(12)
+        buf.writeUInt32BE(DST_EID)
         const [peerPda, peerBump] = PublicKey.findProgramAddressSync(
             [Buffer.from("Peer"), oappPda.toBuffer(), buf],
             program.programId
         )
-        const peerHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-
-        await program.methods
-            .setPeer({
-                dstEid: 12,
-                peer: peerHash
-            })
-            .accounts({
-                admin: wallet.publicKey,
-                peer: peerPda,
-                oappConfig: oappPda,
-                systemProgram: SystemProgram.programId
-            })
-            .rpc(confirmOptions)
-        
+        // Assertions only. `setPeer()` is called in the before() block.
         const peer = await program.account.peer.fetch(peerPda)
-        assert.deepEqual(peer.address, peerHash)
+        assert.deepEqual(peer.address, PEER_HASH)
         assert.equal(peer.bump, peerBump)
     })
 
     it('sets rate limit', async () => {
         await initializeVault()
         const {oappPda} = await initializeOapp()
-        const {peerPda} = await initializePeer()
+        const bufferDstEid = Buffer.alloc(4)
+        bufferDstEid.writeUInt32BE(DST_EID)
+        const [peerPda] =  PublicKey.findProgramAddressSync(
+            [Buffer.from("Peer"), oappPda.toBuffer(), bufferDstEid],
+            program.programId
+        )
 
         await program.methods
             .setRateLimit({
@@ -765,34 +739,14 @@ describe('solana-vault', function() {
             program.programId
         )
 
-        try {
-            await program.methods
-                .setEnforcedOptions({
-                    dstEid: DST_EID,
-                    send: Buffer.from([0, 3, 3]),
-                    sendAndCall: Buffer.from([0, 3, 3])
-                })
-                .accounts({
-                    admin: wallet.publicKey,
-                    oappConfig: oappPda,
-                    enforcedOptions: efOptionsPda,
-                    systemProgram: SystemProgram.programId
-                })
-                .signers([wallet.payer])
-                .rpc(confirmOptions)
-        } catch(e) {
-            console.log("Already called in test setup")
-        }
-
+        // Assertions only. Test setup is done in the before() block.
         const enforcedOptions = await program.account.enforcedOptions.fetch(efOptionsPda)
         assert.isTrue(enforcedOptions.send.equals(Buffer.from([0, 3, 3])))
         assert.isTrue(enforcedOptions.sendAndCall.equals(Buffer.from([0, 3, 3])))
         assert.equal(enforcedOptions.bump, efOptionsBump)
     })
 
-    it.only('lzReceive', async () => {
-        this.timeout(300000) // Set timeout to 120 seconds (2 minutes)
-        
+    it('lzReceive', async () => {        
         const guid = Array.from(Keypair.generate().publicKey.toBuffer())
         await registerOapp()
         const {oappPda} = await initializeOapp()
@@ -1034,24 +988,10 @@ describe('solana-vault', function() {
             vaultAuthorityPda,
             true
         )
-        const peerHash = Array.from(wallet.publicKey.toBytes())
         const [peerPda] =  PublicKey.findProgramAddressSync(
             [Buffer.from("Peer"), oappPda.toBuffer(), bufferSrcEid],
             program.programId
         )
-        
-        await program.methods
-            .setPeer({
-                dstEid: ETHEREUM_EID,
-                peer: peerHash
-            })
-            .accounts({
-                admin: wallet.publicKey,
-                peer: peerPda,
-                oappConfig: oappPda,
-                systemProgram: SystemProgram.programId
-            })
-            .rpc(confirmOptions)
 
         // Check initial balance
         let vaultBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address)
@@ -1151,119 +1091,14 @@ describe('solana-vault', function() {
         }
     })
 
-    it('setDelegate', async () => {
-        const [oappPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("OApp")],
-            program.programId
-        )
-        const [oappRegistryPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("OApp"), oappPda.toBuffer()],
-            endpointProgram.programId
-        )
-        const [eventAuthorityPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from(EVENT_SEED)],
-            endpointProgram.programId
-        )
-        await registerOapp()
-
-        const newDelegate = Keypair.generate().publicKey
-
-        await program.methods
-            .setDelegate({
-                delegate: newDelegate
-            })
-            .accounts({
-                admin: wallet.publicKey,
-                oappConfig: oappPda
-            })
-            .remainingAccounts([
-                {
-                    pubkey: endpointProgram.programId,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: oappPda,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: oappRegistryPda,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: eventAuthorityPda,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: endpointProgram.programId,
-                    isWritable: true,
-                    isSigner: false,
-                },
-            ])
-            .rpc(confirmOptions)
-        
-        const oappRegistry = await endpointProgram.account.oAppRegistry.fetch(oappRegistryPda)
-        assert.equal(oappRegistry.delegate.toString(), newDelegate.toString(), "Delegate should be changed")
-
-        // FAILURE CASE - when admin is not the signer
-        const nonAdmin = Keypair.generate()
-        let failed
-
-        try {
-            await program.methods
-                .setDelegate({
-                    delegate: Keypair.generate().publicKey
-                })
-                .accounts({
-                    admin: nonAdmin.publicKey,
-                    oappConfig: oappPda
-                })
-                .remainingAccounts([
-                    {
-                        pubkey: endpointProgram.programId,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: oappPda,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: oappRegistryPda,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: eventAuthorityPda,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: endpointProgram.programId,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                ])
-                .signers([nonAdmin])
-                .rpc(confirmOptions)
-        } catch(e) {
-            failed = true
-        }
-        assert.isTrue(failed, "Set Delegate should fail when oApp config admin is not the signer")
-    })
-
-    it.only('oappQuote', async () => {
+    it('gets oapp quote', async () => {
         await registerOapp()
         const endpointPda = getEndpointSettingPda(endpointProgram.programId)
         const [oappPda] = PublicKey.findProgramAddressSync(
             [Buffer.from("OApp")],
             program.programId
         )
-        const [oappRegistryPda, oappRegistryBump] = PublicKey.findProgramAddressSync(
+        const [oappRegistryPda] = PublicKey.findProgramAddressSync(
             [Buffer.from("OApp"), oappPda.toBuffer()],
             endpointProgram.programId
         )
@@ -1319,15 +1154,8 @@ describe('solana-vault', function() {
             .signers([endpointAdmin])
             .rpc(confirmOptions)
 
-        const buf = Buffer.alloc(4)
-        buf.writeUInt32BE(DST_EID)
-        const [peerPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("Peer"), oappPda.toBuffer(), buf],
-            program.programId
-        )
-        await initializePeer()
         const [efOptionsPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("EnforcedOptions"), oappPda.toBuffer(), buf],
+            [Buffer.from("EnforcedOptions"), oappPda.toBuffer(), bufferSrcEid],
             program.programId
         )
         
@@ -1363,6 +1191,11 @@ describe('solana-vault', function() {
         } catch(e) {
             console.log("Already initialized in 'lzReceive' test")
         }
+
+        const [peerPda] =  PublicKey.findProgramAddressSync(
+            [Buffer.from("Peer"), oappPda.toBuffer(), bufferSrcEid],
+            program.programId
+        )
 
         const {lzTokenFee, nativeFee} = await program.methods
             .oappQuote({
@@ -1428,5 +1261,77 @@ describe('solana-vault', function() {
 
         assert.isTrue(nativeFee.eq(new BN(1000)))
         assert.isTrue(lzTokenFee.eq(new BN(900)))
+    })
+
+    it('sets delegate', async () => {
+        const [oappPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("OApp")],
+            program.programId
+        )
+        const [oappRegistryPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("OApp"), oappPda.toBuffer()],
+            endpointProgram.programId
+        )
+        const [eventAuthorityPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from(EVENT_SEED)],
+            endpointProgram.programId
+        )
+        await registerOapp()
+
+        const newDelegate = Keypair.generate().publicKey
+
+        const setDelegate = async (newDelegate: PublicKey, admin: Keypair) => {
+            await program.methods
+                .setDelegate({
+                    delegate: newDelegate
+                })
+                .accounts({
+                    admin: admin.publicKey,
+                    oappConfig: oappPda
+                })
+                .remainingAccounts([
+                    {
+                        pubkey: endpointProgram.programId,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: oappPda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: oappRegistryPda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: eventAuthorityPda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: endpointProgram.programId,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                ])
+                .signers([admin])
+                .rpc(confirmOptions)
+        }
+        
+        await setDelegate(newDelegate, wallet.payer)
+        const oappRegistry = await endpointProgram.account.oAppRegistry.fetch(oappRegistryPda)
+        assert.equal(oappRegistry.delegate.toString(), newDelegate.toString(), "Delegate should be changed")
+
+        // FAILURE CASE - when admin is not the signer
+        const nonAdmin = Keypair.generate()
+        let failed
+        try {
+            await setDelegate(Keypair.generate().publicKey, nonAdmin)
+        } catch(e) {
+            failed = true
+        }
+        assert.isTrue(failed, "Set Delegate should fail when oApp config admin is not the signer")
     })
 })
