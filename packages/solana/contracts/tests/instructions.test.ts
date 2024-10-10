@@ -6,7 +6,6 @@ import { Endpoint } from '../tests/types/endpoint'
 import {
   TOKEN_PROGRAM_ID,
   getOrCreateAssociatedTokenAccount,
-  getMintLen,
   createMint,
   mintTo,
   getAccount
@@ -717,7 +716,7 @@ describe('solana-vault', function() {
         assert.equal(enforcedOptions.bump, efOptionsBump)
     })
 
-    it.only('lzReceive', async () => {
+    it('lzReceive', async () => {
         this.timeout(300000) // Set timeout to 120 seconds (2 minutes)
         
         const guid = Array.from(Keypair.generate().publicKey.toBuffer())
@@ -1109,5 +1108,110 @@ describe('solana-vault', function() {
         } catch(e) {
             console.log(e)
         }
+    })
+
+    it.only('setDelegate', async () => {
+        const [oappPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("OApp")],
+            program.programId
+        )
+        const [oappRegistryPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("OApp"), oappPda.toBuffer()],
+            endpointProgram.programId
+        )
+        const [eventAuthorityPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from(EVENT_SEED)],
+            endpointProgram.programId
+        )
+        await registerOapp()
+
+        const newDelegate = Keypair.generate().publicKey
+
+        await program.methods
+            .setDelegate({
+                delegate: newDelegate
+            })
+            .accounts({
+                admin: wallet.publicKey,
+                oappConfig: oappPda
+            })
+            .remainingAccounts([
+                {
+                    pubkey: endpointProgram.programId,
+                    isWritable: true,
+                    isSigner: false,
+                },
+                {
+                    pubkey: oappPda,
+                    isWritable: true,
+                    isSigner: false,
+                },
+                {
+                    pubkey: oappRegistryPda,
+                    isWritable: true,
+                    isSigner: false,
+                },
+                {
+                    pubkey: eventAuthorityPda,
+                    isWritable: true,
+                    isSigner: false,
+                },
+                {
+                    pubkey: endpointProgram.programId,
+                    isWritable: true,
+                    isSigner: false,
+                },
+            ])
+            .rpc(confirmOptions)
+        
+        const oappRegistry = await endpointProgram.account.oAppRegistry.fetch(oappRegistryPda)
+        assert.equal(oappRegistry.delegate.toString(), newDelegate.toString(), "Delegate should be changed")
+
+        // FAILURE CASE - when admin is not the signer
+        const nonAdmin = Keypair.generate()
+        let failed
+
+        try {
+            await program.methods
+                .setDelegate({
+                    delegate: Keypair.generate().publicKey
+                })
+                .accounts({
+                    admin: nonAdmin.publicKey,
+                    oappConfig: oappPda
+                })
+                .remainingAccounts([
+                    {
+                        pubkey: endpointProgram.programId,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: oappPda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: oappRegistryPda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: eventAuthorityPda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: endpointProgram.programId,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                ])
+                .signers([nonAdmin])
+                .rpc(confirmOptions)
+        } catch(e) {
+            failed = true
+        }
+        assert.isTrue(failed, "Set Delegate should fail when oApp config admin is not the signer")
     })
 })
