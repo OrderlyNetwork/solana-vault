@@ -16,7 +16,7 @@ import { getLogs } from "@solana-developers/helpers"
 import { Connection, ConfirmOptions, Keypair, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { assert } from 'chai'
 import endpointIdl from '../tests/idl/endpoint.json'
-import { getDefaultReceiveConfigPda, getSendLibPda } from '../scripts/utils'
+import { getDefaultReceiveConfigPda, getSendLibPda, getEndpointSettingPda } from '../scripts/utils'
 import { MainnetV2EndpointId } from '@layerzerolabs/lz-definitions'
 
 const confirmOptions: ConfirmOptions = { maxRetries: 6, commitment: "confirmed", preflightCommitment: "confirmed"}
@@ -79,6 +79,8 @@ describe('solana-vault', function() {
     const ulnProgram = anchor.workspace.Uln as Program<Uln>
     // Create a mint authority for USDC
     const usdcMintAuthority = Keypair.generate()
+    const endpointAdmin = wallet.payer
+    const DST_EID = ETHEREUM_EID
 
     before(async () => {
         USDC_MINT = await createMint(
@@ -88,7 +90,72 @@ describe('solana-vault', function() {
             null,
             6 // USDC has 6 decimals
         )
-    }) 
+
+        await registerOapp()
+        const [oappPda, oappBump] = PublicKey.findProgramAddressSync(
+            [Buffer.from("OApp")],
+            program.programId
+        )
+
+        const bufferDstEid = Buffer.alloc(4)
+        bufferDstEid.writeUInt32BE(DST_EID)
+        const [efOptionsPda, efOptionsBump] = PublicKey.findProgramAddressSync(
+            [Buffer.from("EnforcedOptions"), oappPda.toBuffer(), bufferDstEid],
+            program.programId
+        )
+
+        // Setup Solana Vault
+        await program.methods
+            .setEnforcedOptions({
+                dstEid: DST_EID,
+                send: Buffer.from([0, 3, 3]),
+                sendAndCall: Buffer.from([0, 3, 3])
+            })
+            .accounts({
+                admin: wallet.publicKey,
+                oappConfig: oappPda,
+                enforcedOptions: efOptionsPda,
+                systemProgram: SystemProgram.programId
+            })
+            .rpc(confirmOptions)
+
+        // Setup Endpoint V2 settings
+        const endpointPda = getEndpointSettingPda(endpointProgram.programId)
+        await endpointProgram.methods
+            .initEndpoint({
+                eid: 30168,
+                admin: endpointAdmin.publicKey
+            })
+            .accounts({
+                endpoint: endpointPda,
+                payer: wallet.publicKey,
+                systemProgram: SystemProgram.programId
+            })
+            .rpc(confirmOptions)
+        
+        // Message Library needs to be registered in the Endpoint for send and receive to work
+        const [messageLibPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from(MESSAGE_LIB_SEED, "utf8")],
+            ulnProgram.programId
+        )
+        const [messageLibInfoPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from(MESSAGE_LIB_SEED), messageLibPda.toBytes()],
+            endpointProgram.programId
+        )
+
+        await endpointProgram.methods
+            .registerLibrary({
+                libProgram: ulnProgram.programId,
+                libType: {sendAndReceive: {}}
+            })
+            .accounts({
+                admin: endpointAdmin.publicKey,
+                endpoint: endpointPda,
+                messageLibInfo: messageLibInfoPda,
+                systemProgram: SystemProgram.programId,
+            })
+            .rpc(confirmOptions)
+    })
 
     const registerOapp = async () => {
         const [oappPda, oappBump] = PublicKey.findProgramAddressSync(
@@ -164,7 +231,7 @@ describe('solana-vault', function() {
                         isSigner: false,
                     },
                 ])
-                .rpc()
+                .rpc(confirmOptions)
                 oappRegistry = await endpointProgram.account.oAppRegistry.fetch(oappRegistryPda)
         }
 
@@ -229,7 +296,7 @@ describe('solana-vault', function() {
                     systemProgram: SystemProgram.programId
                 })
                 .signers([wallet.payer])
-                .rpc()
+                .rpc(confirmOptions)
             oapp = await program.account.oAppConfig.fetch(oappPda)
         }
         return {oappPda, oapp}
@@ -241,7 +308,7 @@ describe('solana-vault', function() {
             program.programId
         )
         const buf = Buffer.alloc(4)
-        buf.writeUInt32BE(12)
+        buf.writeUInt32BE(ETHEREUM_EID)
         const [peerPda] = PublicKey.findProgramAddressSync(
             [Buffer.from("Peer"), oappPda.toBuffer(), buf],
             program.programId
@@ -253,17 +320,17 @@ describe('solana-vault', function() {
             peer = await program.account.peer.fetch(peerPda)
         } catch(e) {
             await program.methods
-            .setPeer({
-                dstEid: 12,
-                peer: peerHash
-            })
-            .accounts({
-                admin: wallet.publicKey,
-                peer: peerPda,
-                oappConfig: oappPda,
-                systemProgram: SystemProgram.programId
-            })
-            .rpc()
+                .setPeer({
+                    dstEid: ETHEREUM_EID,
+                    peer: peerHash
+                })
+                .accounts({
+                    admin: wallet.publicKey,
+                    peer: peerPda,
+                    oappConfig: oappPda,
+                    systemProgram: SystemProgram.programId
+                })
+                .rpc(confirmOptions)
             peer = await program.account.peer.fetch(peerPda)
         }
         return {peer, peerPda}
@@ -311,7 +378,7 @@ describe('solana-vault', function() {
                 owner: wallet.publicKey,
                 vaultAuthority: vaultAuthorityPda
             })
-            .rpc()
+            .rpc(confirmOptions)
 
         // Reinitialize the vault with new data
         await program.methods
@@ -326,7 +393,7 @@ describe('solana-vault', function() {
                 vaultAuthority: vaultAuthorityPda,
                 systemProgram: SystemProgram.programId,
             })
-            .rpc()
+            .rpc(confirmOptions)
     
         vaultAuthority = await program.account.vaultAuthority.fetch(vaultAuthorityPda)
         assert.equal(vaultAuthority.orderDelivery, false)
@@ -353,57 +420,61 @@ describe('solana-vault', function() {
         )
         const usdcHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
-        await program.methods
-                .initOapp({
-                admin: wallet.publicKey,
-                endpointProgram: endpointProgram.programId,
-                usdcHash: usdcHash,
-                usdcMint: USDC_MINT
-            })
-            .accounts({
-                payer: wallet.publicKey,
-                oappConfig: oappPda,
-                lzReceiveTypes: lzReceiveTypesPda,
-                systemProgram: SystemProgram.programId,
-            })
-            .remainingAccounts([
-                {
-                    pubkey: endpointProgram.programId,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: wallet.publicKey,
-                    isWritable: true,
-                    isSigner: true,
-                },
-                {
-                    pubkey: oappPda,
-                    isWritable: false,
-                    isSigner: false,
-                },
-                {
-                    pubkey: oappRegistryPda,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: SystemProgram.programId,
-                    isWritable: false,
-                    isSigner: false,
-                },
-                {
-                    pubkey: eventAuthorityPda,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: endpointProgram.programId,
-                    isWritable: true,
-                    isSigner: false,
-                },
-            ])
-            .rpc()
+        try {
+            await program.methods
+                    .initOapp({
+                    admin: wallet.publicKey,
+                    endpointProgram: endpointProgram.programId,
+                    usdcHash: usdcHash,
+                    usdcMint: USDC_MINT
+                })
+                .accounts({
+                    payer: wallet.publicKey,
+                    oappConfig: oappPda,
+                    lzReceiveTypes: lzReceiveTypesPda,
+                    systemProgram: SystemProgram.programId,
+                })
+                .remainingAccounts([
+                    {
+                        pubkey: endpointProgram.programId,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: wallet.publicKey,
+                        isWritable: true,
+                        isSigner: true,
+                    },
+                    {
+                        pubkey: oappPda,
+                        isWritable: false,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: oappRegistryPda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: SystemProgram.programId,
+                        isWritable: false,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: eventAuthorityPda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: endpointProgram.programId,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                ])
+                .rpc(confirmOptions)
+        } catch(e) {
+            console.log("Already called in test setup")
+        }
 
         const oappConfig = await program.account.oAppConfig.fetch(oappPda)
         const lzReceiveTypes = await program.account.oAppLzReceiveTypesAccounts.fetch(lzReceiveTypesPda)
@@ -439,7 +510,7 @@ describe('solana-vault', function() {
                 admin: wallet.publicKey,
                 oappConfig: oappPda
             })
-            .rpc()
+            .rpc(confirmOptions)
 
         await program.methods
             .reinitOapp({
@@ -455,7 +526,7 @@ describe('solana-vault', function() {
                 systemProgram: SystemProgram.programId
             })
             .signers([wallet.payer])
-            .rpc()
+            .rpc(confirmOptions)
         
         const oappConfig = await program.account.oAppConfig.fetch(oappPda)
         assert.equal(oappConfig.admin.toString(), wallet.publicKey.toString())
@@ -474,7 +545,7 @@ describe('solana-vault', function() {
                 admin: wallet.publicKey,
                 oappConfig: oappPda
             })
-            .rpc()
+            .rpc(confirmOptions)
         
         let oappPdaDoesNotExist: boolean
         try {
@@ -495,7 +566,7 @@ describe('solana-vault', function() {
                 owner: wallet.publicKey,
                 vaultAuthority: vaultAuthorityPda
             })
-            .rpc()
+            .rpc(confirmOptions)
 
         await program.methods
             .reinitVault({
@@ -512,7 +583,7 @@ describe('solana-vault', function() {
                 oappConfig: oappPda,
                 systemProgram: SystemProgram.programId
             })
-            .rpc()
+            .rpc(confirmOptions)
         
         const vaultAuthority = await program.account.vaultAuthority.fetch(vaultAuthorityPda)
         assert.equal(vaultAuthority.owner.toString(), wallet.publicKey.toString())
@@ -543,7 +614,7 @@ describe('solana-vault', function() {
                 oappConfig: oappPda,
                 systemProgram: SystemProgram.programId
             })
-            .rpc()
+            .rpc(confirmOptions)
 
         const allowedBroker = await program.account.allowedBroker.fetch(allowedBrokerPda)
         assert.equal(allowedBroker.allowed, true)
@@ -572,7 +643,7 @@ describe('solana-vault', function() {
                 mintAccount: USDC_MINT,
                 oappConfig: oappPda
             })
-            .rpc()
+            .rpc(confirmOptions)
         const allowedToken = await program.account.allowedToken.fetch(allowedTokenPda)
         assert.equal(allowedToken.mintAccount.toString(), USDC_MINT.toString())
         assert.deepEqual(allowedToken.tokenHash, tokenHash)
@@ -594,7 +665,7 @@ describe('solana-vault', function() {
                 owner: wallet.publicKey,
                 vaultAuthority: vaultAuthorityPda
             })
-            .rpc()
+            .rpc(confirmOptions)
 
         vaultAuthority = await program.account.vaultAuthority.fetch(vaultAuthorityPda)
         assert.isFalse(vaultAuthority.orderDelivery)
@@ -623,7 +694,7 @@ describe('solana-vault', function() {
                 oappConfig: oappPda,
                 systemProgram: SystemProgram.programId
             })
-            .rpc()
+            .rpc(confirmOptions)
         
         const peer = await program.account.peer.fetch(peerPda)
         assert.deepEqual(peer.address, peerHash)
@@ -637,7 +708,7 @@ describe('solana-vault', function() {
 
         await program.methods
             .setRateLimit({
-                dstEid: 12,
+                dstEid: DST_EID,
                 refillPerSecond: new BN('13'),
                 capacity: new BN('1000'),
                 enabled: true
@@ -647,7 +718,7 @@ describe('solana-vault', function() {
                 oappConfig: oappPda,
                 peer: peerPda
             })
-            .rpc()
+            .rpc(confirmOptions)
         
         const peer = await program.account.peer.fetch(peerPda)
         assert.isTrue(peer.rateLimiter.capacity.eq(new BN('1000')))
@@ -667,7 +738,7 @@ describe('solana-vault', function() {
                 admin: wallet.publicKey,
                 oappConfig: oappPda
             })
-            .rpc()
+            .rpc(confirmOptions)
         
         const oappConfig = await program.account.oAppConfig.fetch(oappPda)
         assert.equal(oappConfig.admin.toString(), newAdmin.publicKey.toString())
@@ -681,34 +752,37 @@ describe('solana-vault', function() {
                 oappConfig: oappPda
             })
             .signers([newAdmin])
-            .rpc()
+            .rpc(confirmOptions)
     })
 
     it('sets enforced options', async () => {
         await initializeVault()
-        const dstEid = 12
         const buf = Buffer.alloc(4)
-        buf.writeUInt32BE(dstEid)
+        buf.writeUInt32BE(DST_EID)
         const {oappPda} = await initializeOapp()
         const [efOptionsPda, efOptionsBump] = PublicKey.findProgramAddressSync(
             [Buffer.from("EnforcedOptions"), oappPda.toBuffer(), buf],
             program.programId
         )
 
-        await program.methods
-            .setEnforcedOptions({
-                dstEid: dstEid,
-                send: Buffer.from([0, 3, 3]),
-                sendAndCall: Buffer.from([0, 3, 3])
-            })
-            .accounts({
-                admin: wallet.publicKey,
-                oappConfig: oappPda,
-                enforcedOptions: efOptionsPda,
-                systemProgram: SystemProgram.programId
-            })
-            .signers([wallet.payer])
-            .rpc()
+        try {
+            await program.methods
+                .setEnforcedOptions({
+                    dstEid: DST_EID,
+                    send: Buffer.from([0, 3, 3]),
+                    sendAndCall: Buffer.from([0, 3, 3])
+                })
+                .accounts({
+                    admin: wallet.publicKey,
+                    oappConfig: oappPda,
+                    enforcedOptions: efOptionsPda,
+                    systemProgram: SystemProgram.programId
+                })
+                .signers([wallet.payer])
+                .rpc(confirmOptions)
+        } catch(e) {
+            console.log("Already called in test setup")
+        }
 
         const enforcedOptions = await program.account.enforcedOptions.fetch(efOptionsPda)
         assert.isTrue(enforcedOptions.send.equals(Buffer.from([0, 3, 3])))
@@ -716,7 +790,7 @@ describe('solana-vault', function() {
         assert.equal(enforcedOptions.bump, efOptionsBump)
     })
 
-    it('lzReceive', async () => {
+    it.only('lzReceive', async () => {
         this.timeout(300000) // Set timeout to 120 seconds (2 minutes)
         
         const guid = Array.from(Keypair.generate().publicKey.toBuffer())
@@ -752,26 +826,8 @@ describe('solana-vault', function() {
             endpointProgram.programId
         )
 
-        const [endpointPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("Endpoint")],
-            endpointProgram.programId
-        )
-        const endpointAdmin = wallet.payer
-
-        // Setup Endpoint V2 settings
-        await endpointProgram.methods
-            .initEndpoint({
-                eid: 30168,
-                admin: endpointAdmin.publicKey
-            })
-            .accounts({
-                endpoint: endpointPda,
-                payer: wallet.publicKey,
-                systemProgram: SystemProgram.programId
-            })
-            .rpc()
+        const endpointPda = getEndpointSettingPda(endpointProgram.programId)
         
-        // [RECEIVE_LIBRARY_CONFIG_SEED, &params.receiver.to_bytes(), &params.src_eid.to_be_bytes()]
         const [receiveLibraryConfigPda] = PublicKey.findProgramAddressSync(
             [Buffer.from("ReceiveLibraryConfig"), oappPda.toBytes(), bufferSrcEid],
             endpointProgram.programId
@@ -791,21 +847,6 @@ describe('solana-vault', function() {
         )
 
         const transaction = new Transaction()
-
-        transaction.add(
-            await endpointProgram.methods
-                .registerLibrary({
-                    libProgram: ulnProgram.programId,
-                    libType: {sendAndReceive: {}}
-                })
-                .accounts({
-                    admin: endpointAdmin.publicKey,
-                    endpoint: endpointPda,
-                    messageLibInfo: messageLibInfoPda,
-                    systemProgram: SystemProgram.programId,
-                })
-                .instruction()
-        )
         
         transaction.add(
             await endpointProgram.methods
@@ -1110,7 +1151,7 @@ describe('solana-vault', function() {
         }
     })
 
-    it.only('setDelegate', async () => {
+    it('setDelegate', async () => {
         const [oappPda] = PublicKey.findProgramAddressSync(
             [Buffer.from("OApp")],
             program.programId
@@ -1213,5 +1254,179 @@ describe('solana-vault', function() {
             failed = true
         }
         assert.isTrue(failed, "Set Delegate should fail when oApp config admin is not the signer")
+    })
+
+    it.only('oappQuote', async () => {
+        await registerOapp()
+        const endpointPda = getEndpointSettingPda(endpointProgram.programId)
+        const [oappPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("OApp")],
+            program.programId
+        )
+        const [oappRegistryPda, oappRegistryBump] = PublicKey.findProgramAddressSync(
+            [Buffer.from("OApp"), oappPda.toBuffer()],
+            endpointProgram.programId
+        )
+
+        const bufferSrcEid = Buffer.alloc(4)
+        bufferSrcEid.writeUInt32BE(DST_EID)
+        const bufferNonce = Buffer.alloc(8)
+        bufferNonce.writeBigUInt64BE(BigInt("1"))
+
+        const [sendLibraryConfigPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("SendLibraryConfig"), oappPda.toBytes(), bufferSrcEid],
+            endpointProgram.programId
+        )
+
+        const [defaultSendLibraryConfigPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("SendLibraryConfig"), bufferSrcEid],
+            endpointProgram.programId
+        )
+        const [messageLibPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from(MESSAGE_LIB_SEED, "utf8")],
+            ulnProgram.programId
+        )
+        const [messageLibInfoPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from(MESSAGE_LIB_SEED), messageLibPda.toBytes()],
+            endpointProgram.programId
+        )
+        
+        await endpointProgram.methods
+            .initSendLibrary({
+                sender: oappPda,
+                eid: DST_EID
+            })
+            .accounts({
+                delegate: wallet.publicKey,
+                oappRegistry: oappRegistryPda,
+                sendLibraryConfig: sendLibraryConfigPda,
+                systemProgram: SystemProgram.programId,        
+            })
+            .rpc(confirmOptions)
+
+        await endpointProgram.methods
+            .initDefaultSendLibrary({
+                eid: DST_EID,
+                newLib: messageLibPda
+            })
+            .accounts({
+                admin: endpointAdmin.publicKey,
+                endpoint: endpointPda,
+                defaultSendLibraryConfig: defaultSendLibraryConfigPda,
+                messageLibInfo: messageLibInfoPda,
+                systemProgram: SystemProgram.programId
+            })
+            .signers([endpointAdmin])
+            .rpc(confirmOptions)
+
+        const buf = Buffer.alloc(4)
+        buf.writeUInt32BE(DST_EID)
+        const [peerPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("Peer"), oappPda.toBuffer(), buf],
+            program.programId
+        )
+        await initializePeer()
+        const [efOptionsPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("EnforcedOptions"), oappPda.toBuffer(), buf],
+            program.programId
+        )
+        
+        const [eventAuthorityPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from(EVENT_SEED)],
+            endpointProgram.programId
+        )
+
+        const [noncePda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("Nonce"), oappPda.toBuffer(), bufferSrcEid, wallet.publicKey.toBuffer()],
+            endpointProgram.programId
+        )
+        const [pendingInboundNoncePda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("PendingNonce"), oappPda.toBuffer(), bufferSrcEid, wallet.publicKey.toBuffer()],
+            endpointProgram.programId
+        )
+
+        try {
+            await endpointProgram.methods
+                .initNonce({
+                    localOapp: oappPda,
+                    remoteEid: DST_EID,
+                    remoteOapp: Array.from(wallet.publicKey.toBytes())
+                })
+                .accounts({
+                    delegate: wallet.publicKey,
+                    oappRegistry: oappRegistryPda,
+                    nonce: noncePda,
+                    pendingInboundNonce: pendingInboundNoncePda,
+                    systemProgram: SystemProgram.programId
+                })
+                .rpc(confirmOptions)
+        } catch(e) {
+            console.log("Already initialized in 'lzReceive' test")
+        }
+
+        const {lzTokenFee, nativeFee} = await program.methods
+            .oappQuote({
+                dstEid: DST_EID,
+                to: Array.from(wallet.publicKey.toBytes()),
+                options: Buffer.from([]),
+                message: null,
+                payInLzToken: false
+            })
+            .accounts({
+                oappConfig: oappPda,
+                peer: peerPda,
+                enforcedOptions: efOptionsPda
+            })
+            .remainingAccounts([
+                {
+                    pubkey: endpointProgram.programId,
+                    isWritable: false,
+                    isSigner: false,
+                },
+                {
+                    pubkey: ulnProgram.programId,  // send_library_program
+                    isWritable: false,
+                    isSigner: false,
+                },
+                {
+                    pubkey: sendLibraryConfigPda, // send_library_config
+                    isWritable: false,
+                    isSigner: false,
+                },
+                {
+                    pubkey: defaultSendLibraryConfigPda, // default_send_library_config
+                    isWritable: false,
+                    isSigner: false,
+                },
+                {
+                    pubkey: messageLibInfoPda, // send_library_info
+                    isWritable: false,
+                    isSigner: false,
+                },
+                {
+                    pubkey: endpointPda, // endpoint settings
+                    isWritable: false,
+                    isSigner: false,
+                },
+                {
+                    pubkey: noncePda, // nonce
+                    isWritable: false,
+                    isSigner: false,
+                },
+                {
+                    pubkey: eventAuthorityPda,
+                    isWritable: false,
+                    isSigner: false,
+                },
+                {
+                    pubkey: endpointProgram.programId,
+                    isWritable: false,
+                    isSigner: false,
+                },
+            ])
+            .view()
+
+        assert.isTrue(nativeFee.eq(new BN(1000)))
+        assert.isTrue(lzTokenFee.eq(new BN(900)))
     })
 })
