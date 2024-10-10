@@ -163,10 +163,11 @@ export function getUlnSettingPda(): PublicKey {
 }
 
 // pda: 2uk9pQh3tB5ErV7LGQJcbWjb4KeJ2UJki5qJZ8QG56G3
-export function getEndpointSettingPda(): PublicKey {
+export function getEndpointSettingPda(programId?: PublicKey): PublicKey {
+    const endpointProgramId = programId ? programId : constants.ENDPOINT_PROGRAM_ID
     return PublicKey.findProgramAddressSync(
         [Buffer.from(ENDPOINT_SEED, "utf8")],
-        constants.ENDPOINT_PROGRAM_ID
+        endpointProgramId
     )[0];
 }
 

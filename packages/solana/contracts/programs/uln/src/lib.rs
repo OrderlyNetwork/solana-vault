@@ -29,4 +29,42 @@ pub mod uln {
     pub fn commit_verification(mut ctx: Context<CommitVerification>, params: CommitVerificationParams) -> Result<()> {
         CommitVerification::apply(&mut ctx, &params)
     }
+
+    pub fn quote(_ctx: Context<Interface>, _params: QuoteParams) -> Result<MessagingFee> {
+        let messaging_fee = MessagingFee {
+            native_fee: 1000,
+            lz_token_fee: 900
+        };
+
+        Ok(messaging_fee)
+    }
+}
+
+#[derive(Accounts)]
+pub struct Interface<'info> {
+    pub endpoint: Signer<'info>,
+}
+
+#[derive(Clone, AnchorSerialize, AnchorDeserialize, Default)]
+pub struct MessagingFee {
+    pub native_fee: u64,
+    pub lz_token_fee: u64,
+}
+
+#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct QuoteParams {
+    pub packet: Packet,
+    pub options: Vec<u8>,
+    pub pay_in_lz_token: bool,
+}
+
+#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct Packet {
+    pub nonce: u64,
+    pub src_eid: u32,
+    pub sender: Pubkey,
+    pub dst_eid: u32,
+    pub receiver: [u8; 32],
+    pub guid: [u8; 32],
+    pub message: Vec<u8>,
 }

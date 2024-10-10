@@ -7,7 +7,7 @@ use anchor_lang::prelude::*;
 use errors::*;
 use instructions::*;
 
-use oapp::endpoint::{MessagingFee, MessagingReceipt};
+use oapp::endpoint::MessagingReceipt;
 
 declare_id!("AdA9VFXwkKPj51SZxSQwJ4bqPJiAJqidCwPhb8zSJndx");
 
