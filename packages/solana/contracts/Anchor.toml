@@ -7,15 +7,15 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-endpoint = "C7m5cSdywrXKGRif5txcZkffRmsARtj1WssWfkdwKxMc"
 solana-vault = "AdA9VFXwkKPj51SZxSQwJ4bqPJiAJqidCwPhb8zSJndx"
+uln = "H5Uke9DE4jFiJi73Ade5g3yPwMhfVVbzPWqomoUfqQhb"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "Localnet"
-wallet = "~/.config/solana/id.json"
+wallet = "/Users/gjaldon/.config/solana/id.json"
 
 [scripts]
 deposit_vault = "yarn run ts-node scripts/05deposit_vault.ts"
@@ -39,15 +39,16 @@ startup_wait = 5000
 shutdown_wait = 2000
 upgradeable = false
 
+[[test.genesis]]
+address = "76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6"
+program = "endpoint.so"
+
 [test.validator]
 bind_address = "0.0.0.0"
 url = "https://api.mainnet-beta.solana.com"
 ledger = ".anchor/test-ledger"
 rpc_port = 8899
 
+# USDC Mint
 [[test.validator.clone]]
 address = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
-
-[[test.genesis]]
-address = "76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6"
-program = "endpoint.so"
