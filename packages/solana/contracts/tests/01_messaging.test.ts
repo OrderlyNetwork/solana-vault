@@ -13,14 +13,13 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID
 } from '@solana/spl-token'
 import { EVENT_SEED, MESSAGE_LIB_SEED } from "@layerzerolabs/lz-solana-sdk-v2"
-import { Connection, ConfirmOptions, Keypair, PublicKey, SystemProgram, Transaction } from '@solana/web3.js'
+import { Connection, Keypair, PublicKey, SystemProgram, Transaction } from '@solana/web3.js'
 import { assert } from 'chai'
 import endpointIdl from './idl/endpoint.json'
 import { getEndpointSettingPda } from '../scripts/utils'
 import { MainnetV2EndpointId } from '@layerzerolabs/lz-definitions'
-import { registerOapp, initializeVault } from './setup'
+import { registerOapp, initializeVault, confirmOptions } from './setup'
 
-const confirmOptions: ConfirmOptions = { maxRetries: 6, commitment: "confirmed", preflightCommitment: "confirmed"}
 const LAYERZERO_ENDPOINT_PROGRAM_ID = new PublicKey('76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6')
 const ETHEREUM_EID = MainnetV2EndpointId.ETHEREUM_V2_MAINNET
 const SOLANA_EID = MainnetV2EndpointId.SOLANA_V2_MAINNET
@@ -728,5 +727,147 @@ describe('messaging', function() {
 
         const newVaultBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address)
         assert.equal(newVaultBalance, previousVaultBalance + 1e9)
+    })
+
+    it('gets oapp quote', async () => {
+        const endpointPda = getEndpointSettingPda(endpointProgram.programId)
+        const [oappPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("OApp")],
+            program.programId
+        )
+        const [oappRegistryPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("OApp"), oappPda.toBuffer()],
+            endpointProgram.programId
+        )
+
+        const bufferSrcEid = Buffer.alloc(4)
+        bufferSrcEid.writeUInt32BE(DST_EID)
+        const bufferNonce = Buffer.alloc(8)
+        bufferNonce.writeBigUInt64BE(BigInt("1"))
+
+        const [sendLibraryConfigPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("SendLibraryConfig"), oappPda.toBytes(), bufferSrcEid],
+            endpointProgram.programId
+        )
+        const [defaultSendLibraryConfigPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("SendLibraryConfig"), bufferSrcEid],
+            endpointProgram.programId
+        )
+        const [messageLibPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from(MESSAGE_LIB_SEED, "utf8")],
+            ulnProgram.programId
+        )
+        const [messageLibInfoPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from(MESSAGE_LIB_SEED), messageLibPda.toBytes()],
+            endpointProgram.programId
+        )
+
+        const [efOptionsPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("EnforcedOptions"), oappPda.toBuffer(), bufferSrcEid],
+            program.programId
+        )
+        
+        const [eventAuthorityPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from(EVENT_SEED)],
+            endpointProgram.programId
+        )
+
+        const [noncePda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("Nonce"), oappPda.toBuffer(), bufferSrcEid, wallet.publicKey.toBuffer()],
+            endpointProgram.programId
+        )
+        const [pendingInboundNoncePda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("PendingNonce"), oappPda.toBuffer(), bufferSrcEid, wallet.publicKey.toBuffer()],
+            endpointProgram.programId
+        )
+
+        try {
+            await endpointProgram.methods
+                .initNonce({
+                    localOapp: oappPda,
+                    remoteEid: DST_EID,
+                    remoteOapp: Array.from(wallet.publicKey.toBytes())
+                })
+                .accounts({
+                    delegate: wallet.publicKey,
+                    oappRegistry: oappRegistryPda,
+                    nonce: noncePda,
+                    pendingInboundNonce: pendingInboundNoncePda,
+                    systemProgram: SystemProgram.programId
+                })
+                .rpc(confirmOptions)
+        } catch(e) {
+            console.log("Already initialized in 'lzReceive' test")
+        }
+
+        const [peerPda] =  PublicKey.findProgramAddressSync(
+            [Buffer.from("Peer"), oappPda.toBuffer(), bufferSrcEid],
+            program.programId
+        )
+
+        const {lzTokenFee, nativeFee} = await program.methods
+            .oappQuote({
+                dstEid: DST_EID,
+                to: Array.from(wallet.publicKey.toBytes()),
+                options: Buffer.from([]),
+                message: null,
+                payInLzToken: false
+            })
+            .accounts({
+                oappConfig: oappPda,
+                peer: peerPda,
+                enforcedOptions: efOptionsPda
+            })
+            .remainingAccounts([
+                {
+                    pubkey: endpointProgram.programId,
+                    isWritable: false,
+                    isSigner: false,
+                },
+                {
+                    pubkey: ulnProgram.programId,  // send_library_program
+                    isWritable: false,
+                    isSigner: false,
+                },
+                {
+                    pubkey: sendLibraryConfigPda, // send_library_config
+                    isWritable: false,
+                    isSigner: false,
+                },
+                {
+                    pubkey: defaultSendLibraryConfigPda, // default_send_library_config
+                    isWritable: false,
+                    isSigner: false,
+                },
+                {
+                    pubkey: messageLibInfoPda, // send_library_info
+                    isWritable: false,
+                    isSigner: false,
+                },
+                {
+                    pubkey: endpointPda, // endpoint settings
+                    isWritable: false,
+                    isSigner: false,
+                },
+                {
+                    pubkey: noncePda, // nonce
+                    isWritable: false,
+                    isSigner: false,
+                },
+                {
+                    pubkey: eventAuthorityPda,
+                    isWritable: false,
+                    isSigner: false,
+                },
+                {
+                    pubkey: endpointProgram.programId,
+                    isWritable: false,
+                    isSigner: false,
+                },
+            ])
+            .view()
+
+        assert.isTrue(nativeFee.eq(new BN(1000)))
+        assert.isTrue(lzTokenFee.eq(new BN(900)))
     })
 })
