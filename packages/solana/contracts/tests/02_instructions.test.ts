@@ -154,13 +154,17 @@ describe('solana-vault', function() {
 
         assert.equal(vaultAuthority.orderDelivery, true)
 
-        await program.methods 
-            .resetVault()
-            .accounts({
-                owner: wallet.publicKey,
-                vaultAuthority: vaultAuthorityPda
-            })
-            .rpc(confirmOptions)
+        const resetVault = async (signer: Keypair) => {
+            await program.methods 
+                .resetVault()
+                .accounts({
+                    owner: signer.publicKey,
+                    vaultAuthority: vaultAuthorityPda
+                })
+                .signers([signer])
+                .rpc(confirmOptions)
+        }
+        await resetVault(wallet.payer)
 
         // Reinitialize the vault with new data
         await program.methods
@@ -181,6 +185,16 @@ describe('solana-vault', function() {
         assert.equal(vaultAuthority.orderDelivery, false)
         assert.equal(vaultAuthority.dstEid, 43)
         assert.ok(vaultAuthority.solChainId.eq(new BN(13)))
+
+        // FAILURE CASE - when vaultAuthority owner is not the signer
+        const nonAdmin = Keypair.generate()
+        let failed
+        try {
+            await resetVault(nonAdmin)
+        } catch(e) {
+            failed = true
+        }
+        assert.isTrue(failed, "Reset Vault should fail when vaultAuthority owner is not the signer")
     })
 
     it('initializes oapp', async () => {
@@ -333,25 +347,41 @@ describe('solana-vault', function() {
         assert.isTrue(oappPdaDoesNotExist)
 
         const usdcHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        await program.methods
-            .reinitOapp({
-                admin: wallet.publicKey,
-                endpointProgram: endpointProgram.programId,
-                usdcHash: usdcHash,
-                usdcMint: USDC_MINT
-            })
-            .accounts({
-                owner: wallet.publicKey,
-                oappConfig: oappPda,
-                vaultAuthority: vaultAuthorityPda,
-                systemProgram: SystemProgram.programId
-            })
-            .signers([wallet.payer])
-            .rpc(confirmOptions)
+        const reinitOapp = async (admin: Keypair) => {
+            await program.methods
+                .reinitOapp({
+                    admin: admin.publicKey,
+                    endpointProgram: endpointProgram.programId,
+                    usdcHash: usdcHash,
+                    usdcMint: USDC_MINT
+                })
+                .accounts({
+                    owner: wallet.publicKey,
+                    oappConfig: oappPda,
+                    vaultAuthority: vaultAuthorityPda,
+                    systemProgram: SystemProgram.programId
+                })
+                .signers([admin])
+                .rpc(confirmOptions)
+        }
+        
+        await reinitOapp(wallet.payer)
+        const oappConfig = await program.account.oAppConfig.fetch(oappPda)
+        assert.isOk(oappConfig)
+        
+        // FAILURE CASE - when OApp admin is not the signer
+        const nonAdmin = Keypair.generate()
+        let failed
+        try {
+            await reinitOapp(nonAdmin)
+        } catch(e) {
+            failed = true
+        }
+        assert.isTrue(failed, "Reinit Oapp should fail when oApp config admin is not the signer")
     })
 
     it('reinitializes vault',  async () => {
-        await program.methods 
+        await program.methods
             .resetVault()
             .accounts({
                 owner: wallet.publicKey,
@@ -359,22 +389,26 @@ describe('solana-vault', function() {
             })
             .rpc(confirmOptions)
 
-        await program.methods
-            .reinitVault({
-                owner: wallet.publicKey,
-                dstEid: 12,
-                depositNonce: new BN('42'),
-                orderDelivery: true,
-                inboundNonce: new BN('42'),
-                solChainId: new BN('1')
-            })
-            .accounts({
-                vaultAuthority: vaultAuthorityPda,
-                admin: wallet.publicKey,
-                oappConfig: oappPda,
-                systemProgram: SystemProgram.programId
-            })
-            .rpc(confirmOptions)
+        const reinitVault = async (signer: Keypair) => {
+            await program.methods
+                .reinitVault({
+                    owner: wallet.publicKey,
+                    dstEid: 12,
+                    depositNonce: new BN('42'),
+                    orderDelivery: true,
+                    inboundNonce: new BN('42'),
+                    solChainId: new BN('1')
+                })
+                .accounts({
+                    vaultAuthority: vaultAuthorityPda,
+                    admin: signer.publicKey,
+                    oappConfig: oappPda,
+                    systemProgram: SystemProgram.programId
+                })
+                .signers([signer])
+                .rpc(confirmOptions)
+        }
+        await reinitVault(wallet.payer)
         
         const vaultAuthority = await program.account.vaultAuthority.fetch(vaultAuthorityPda)
         assert.equal(vaultAuthority.owner.toString(), wallet.publicKey.toString())
@@ -383,6 +417,16 @@ describe('solana-vault', function() {
         assert.isTrue(vaultAuthority.depositNonce.eq(new BN('42')))
         assert.isTrue(vaultAuthority.inboundNonce.eq(new BN('42')))
         assert.isTrue(vaultAuthority.solChainId.eq(new BN('1')))
+
+        // FAILURE CASE - when signer is not the VaultAuthority Owner
+        const nonAdmin = Keypair.generate()
+        let failed
+        try {
+            await reinitVault(nonAdmin)
+        } catch(e) {
+            failed = true
+        }
+        assert.isTrue(failed, "ReinitVault should fail when vaultAuthority owner is not the signer")
     }) 
 
     it('sets broker', async () => {
@@ -392,23 +436,37 @@ describe('solana-vault', function() {
             program.programId
         )
 
-        await program.methods
-            .setBroker({
-                brokerHash: brokerHash,
-                allowed: true
-            })
-            .accounts({
-                admin: wallet.publicKey,
-                allowedBroker: allowedBrokerPda,
-                oappConfig: oappPda,
-                systemProgram: SystemProgram.programId
-            })
-            .rpc(confirmOptions)
+        const setBroker = async (signer: Keypair) => {
+            await program.methods
+                .setBroker({
+                    brokerHash: brokerHash,
+                    allowed: true
+                })
+                .accounts({
+                    admin: signer.publicKey,
+                    allowedBroker: allowedBrokerPda,
+                    oappConfig: oappPda,
+                    systemProgram: SystemProgram.programId
+                })
+                .signers([signer])
+                .rpc(confirmOptions)
+        }
+        await setBroker(wallet.payer)
 
         const allowedBroker = await program.account.allowedBroker.fetch(allowedBrokerPda)
         assert.equal(allowedBroker.allowed, true)
         assert.deepEqual(allowedBroker.brokerHash, brokerHash)
         assert.equal(allowedBroker.bump, bump)
+
+        // FAILURE CASE - when admin/owner is not the signer
+        const nonAdmin = Keypair.generate()
+        let failed
+        try {
+            await setBroker(nonAdmin)
+        } catch(e) {
+            failed = true
+        }
+        assert.isTrue(failed, "Set Broker should fail when oApp config admin is not the signer")
     })
 
     it('sets token', async () => {
@@ -418,43 +476,72 @@ describe('solana-vault', function() {
             program.programId
         )
 
-        await program.methods
-            .setToken({
-                mintAccount: USDC_MINT,
-                tokenHash: tokenHash,
-                allowed: true
-            })
-            .accounts({
-                admin: wallet.publicKey,
-                allowedToken: allowedTokenPda,
-                mintAccount: USDC_MINT,
-                oappConfig: oappPda
-            })
-            .rpc(confirmOptions)
+        const setToken = async(signer: Keypair) => {
+            await program.methods
+                .setToken({
+                    mintAccount: USDC_MINT,
+                    tokenHash: tokenHash,
+                    allowed: true
+                })
+                .accounts({
+                    admin: signer.publicKey,
+                    allowedToken: allowedTokenPda,
+                    mintAccount: USDC_MINT,
+                    oappConfig: oappPda
+                })
+                .signers([signer])
+                .rpc(confirmOptions)
+        }
+        await setToken(wallet.payer)
+
         const allowedToken = await program.account.allowedToken.fetch(allowedTokenPda)
         assert.equal(allowedToken.mintAccount.toString(), USDC_MINT.toString())
         assert.deepEqual(allowedToken.tokenHash, tokenHash)
         assert.equal(allowedToken.tokenDecimals, 6)
         assert.equal(allowedToken.allowed, true)
         assert.equal(allowedToken.bump, bump)
+
+        // FAILURE CASE - when admin/owner is not the signer
+        const nonAdmin = Keypair.generate()
+        let failed
+        try {
+            await setToken(nonAdmin)
+        } catch(e) {
+            failed = true
+        }
+        assert.isTrue(failed, "Set Token should fail when oApp config is not the signer")
     })
 
     it('sets order delivery', async () => {
         assert.isFalse(vaultAuthority.orderDelivery)
-        await program.methods
-            .setOrderDelivery({
-                orderDelivery: true,
-                nonce: new BN(1)
-            })
-            .accounts({
-                owner: wallet.publicKey,
-                vaultAuthority: vaultAuthorityPda
-            })
-            .rpc(confirmOptions)
+        const setOrderDelivery = async (signer: Keypair) => {
+            await program.methods
+                .setOrderDelivery({
+                    orderDelivery: true,
+                    nonce: new BN(1)
+                })
+                .accounts({
+                    owner: signer.publicKey,
+                    vaultAuthority: vaultAuthorityPda
+                })
+                .signers([signer])
+                .rpc(confirmOptions)
+        }
+        await setOrderDelivery(wallet.payer)
 
         vaultAuthority = await program.account.vaultAuthority.fetch(vaultAuthorityPda)
         assert.isTrue(vaultAuthority.orderDelivery)
         assert.isTrue(vaultAuthority.inboundNonce.eq(new BN('1')))
+
+        // FAILURE CASE - when admin/owner is not the signer
+        const nonAdmin = Keypair.generate()
+        let failed
+        try {
+            await setOrderDelivery(nonAdmin)
+        } catch(e) {
+            failed = true
+        }
+        assert.isTrue(failed, "Set Order Delivery should fail when vaultAuthority owner is not the signer")
     })
 
     it('sets peer', async () => {
@@ -468,6 +555,28 @@ describe('solana-vault', function() {
         const peer = await program.account.peer.fetch(peerPda)
         assert.deepEqual(peer.address, PEER_HASH)
         assert.equal(peer.bump, peerBump)
+
+        // FAILURE CASE - when admin/owner is not the signer
+        const nonAdmin = Keypair.generate()
+        let failed
+        try {
+            await program.methods
+                .setPeer({
+                    dstEid: ETHEREUM_EID,
+                    peer: PEER_HASH
+                })
+                .accounts({
+                    admin: nonAdmin.publicKey,
+                    peer: peerPda,
+                    oappConfig: oappPda,
+                    systemProgram: SystemProgram.programId
+                })
+                .signers([nonAdmin])
+                .rpc(confirmOptions)
+        } catch(e) {
+            failed = true
+        }
+        assert.isTrue(failed, "Transfer Admin should fail when oappConfig admin is not the signer")
     })
 
     it('sets rate limit', async () => {
@@ -478,23 +587,37 @@ describe('solana-vault', function() {
             program.programId
         )
 
-        await program.methods
-            .setRateLimit({
-                dstEid: DST_EID,
-                refillPerSecond: new BN('13'),
-                capacity: new BN('1000'),
-                enabled: true
-            })
-            .accounts({
-                admin: wallet.publicKey,
-                oappConfig: oappPda,
-                peer: peerPda
-            })
-            .rpc(confirmOptions)
+        const setRateLimit = async (signer: Keypair) => {
+            await program.methods
+                .setRateLimit({
+                    dstEid: DST_EID,
+                    refillPerSecond: new BN('13'),
+                    capacity: new BN('1000'),
+                    enabled: true
+                })
+                .accounts({
+                    admin: signer.publicKey,
+                    oappConfig: oappPda,
+                    peer: peerPda
+                })
+                .signers([signer])
+                .rpc(confirmOptions)
+        }
+        await setRateLimit(wallet.payer)
         
         const peer = await program.account.peer.fetch(peerPda)
         assert.isTrue(peer.rateLimiter.capacity.eq(new BN('1000')))
         assert.isTrue(peer.rateLimiter.refillPerSecond.eq(new BN('13')))
+
+        // FAILURE CASE - when admin/owner is not the signer
+        const nonAdmin = Keypair.generate()
+        let failed
+        try {
+            await setRateLimit(nonAdmin)
+        } catch(e) {
+            failed = true
+        }
+        assert.isTrue(failed, "Set Rate Limit should fail when oappConfig admin is not the signer")
     })
 
     it('sets enforced options', async () => {
@@ -505,25 +628,39 @@ describe('solana-vault', function() {
             program.programId
         )
 
-        await program.methods
-            .setEnforcedOptions({
-                dstEid: DST_EID,
-                send: Buffer.from([0, 3, 3]),
-                sendAndCall: Buffer.from([0, 3, 3])
-            })
-            .accounts({
-                admin: wallet.publicKey,
-                oappConfig: oappPda,
-                enforcedOptions: efOptionsPda,
-                systemProgram: SystemProgram.programId
-            })
-            .rpc(confirmOptions)
+        const setEnforcedOptions = async (signer: Keypair) => {
+            await program.methods
+                .setEnforcedOptions({
+                    dstEid: DST_EID,
+                    send: Buffer.from([0, 3, 3]),
+                    sendAndCall: Buffer.from([0, 3, 3])
+                })
+                .accounts({
+                    admin: signer.publicKey,
+                    oappConfig: oappPda,
+                    enforcedOptions: efOptionsPda,
+                    systemProgram: SystemProgram.programId
+                })
+                .signers([signer])
+                .rpc(confirmOptions)
+        }
+        await setEnforcedOptions(wallet.payer)
 
         // Assertions only. Test setup is done in the before() block.
         const enforcedOptions = await program.account.enforcedOptions.fetch(efOptionsPda)
         assert.isTrue(enforcedOptions.send.equals(Buffer.from([0, 3, 3])))
         assert.isTrue(enforcedOptions.sendAndCall.equals(Buffer.from([0, 3, 3])))
         assert.equal(enforcedOptions.bump, efOptionsBump)
+
+        // FAILURE CASE - when admin/owner is not the signer
+        const nonAdmin = Keypair.generate()
+        let failed
+        try {
+            await setEnforcedOptions(nonAdmin)
+        } catch(e) {
+            failed = true
+        }
+        assert.isTrue(failed, "Set Enforced Options should fail when oappConfig admin is not the signer")
     })
 
     it('gets oapp quote', async () => {
@@ -728,7 +865,7 @@ describe('solana-vault', function() {
         const oappRegistry = await endpointProgram.account.oAppRegistry.fetch(oappRegistryPda)
         assert.equal(oappRegistry.delegate.toString(), newDelegate.toString(), "Delegate should be changed")
 
-        // FAILURE CASE - when admin is not the signer
+        // FAILURE CASE - when admin/owner is not the signer
         const nonAdmin = Keypair.generate()
         let failed
         try {
@@ -739,31 +876,33 @@ describe('solana-vault', function() {
         assert.isTrue(failed, "Set Delegate should fail when oApp config admin is not the signer")
     })
 
-    it('sets admin', async () => {
+    it('transfers admin', async () => {
         const newAdmin = Keypair.generate()
         
-        await program.methods
-            .transferAdmin({
-                admin: newAdmin.publicKey
-            })
-            .accounts({
-                admin: wallet.publicKey,
-                oappConfig: oappPda
-            })
-            .rpc(confirmOptions)
+        const transferAdmin = async (signer: Keypair) => {
+            await program.methods
+                .transferAdmin({
+                    admin: newAdmin.publicKey
+                })
+                .accounts({
+                    admin: wallet.publicKey,
+                    oappConfig: oappPda
+                })
+                .rpc(confirmOptions)
+        }
+        await transferAdmin(wallet.payer)
         
         const oappConfig = await program.account.oAppConfig.fetch(oappPda)
         assert.equal(oappConfig.admin.toString(), newAdmin.publicKey.toString())
 
-        await program.methods
-            .transferAdmin({
-                admin: wallet.publicKey
-            })
-            .accounts({
-                admin: newAdmin.publicKey,
-                oappConfig: oappPda
-            })
-            .signers([newAdmin])
-            .rpc(confirmOptions)
+        // FAILURE CASE - when admin/owner is not the signer
+        const nonAdmin = Keypair.generate()
+        let failed
+        try {
+            await transferAdmin(nonAdmin)
+        } catch(e) {
+            failed = true
+        }
+        assert.isTrue(failed, "Transfer Admin should fail when oappConfig admin is not the signer")
     })
 })
