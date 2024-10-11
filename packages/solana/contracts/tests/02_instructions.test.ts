@@ -49,7 +49,7 @@ describe('solana-vault', function() {
         // 1. Setup Solana Vault
         try {
             oappPda = (await registerOapp(wallet, program, endpointProgram, USDC_MINT)).oappPda
-            vaultAuthority = (await initializeVault(wallet, program)).vaultAuthority
+            vaultAuthority = (await initializeVault(wallet, program, DST_EID)).vaultAuthority
 
             const bufferDstEid = Buffer.alloc(4)
             bufferDstEid.writeUInt32BE(DST_EID)
@@ -142,7 +142,7 @@ describe('solana-vault', function() {
         const vaultAuthority = await program.account.vaultAuthority.fetch(vaultAuthorityPda)
         assert.equal(vaultAuthority.owner.toString(), wallet.publicKey.toString())
         assert.equal(vaultAuthority.orderDelivery, true)
-        assert.equal(vaultAuthority.dstEid, 42)
+        assert.equal(vaultAuthority.dstEid, DST_EID)
         assert.ok(vaultAuthority.solChainId.eq(new BN(12)))
     })
 
@@ -546,7 +546,6 @@ describe('solana-vault', function() {
             [Buffer.from("SendLibraryConfig"), oappPda.toBytes(), bufferSrcEid],
             endpointProgram.programId
         )
-
         const [defaultSendLibraryConfigPda] = PublicKey.findProgramAddressSync(
             [Buffer.from("SendLibraryConfig"), bufferSrcEid],
             endpointProgram.programId
@@ -559,34 +558,6 @@ describe('solana-vault', function() {
             [Buffer.from(MESSAGE_LIB_SEED), messageLibPda.toBytes()],
             endpointProgram.programId
         )
-        
-        await endpointProgram.methods
-            .initSendLibrary({
-                sender: oappPda,
-                eid: DST_EID
-            })
-            .accounts({
-                delegate: wallet.publicKey,
-                oappRegistry: oappRegistryPda,
-                sendLibraryConfig: sendLibraryConfigPda,
-                systemProgram: SystemProgram.programId,        
-            })
-            .rpc(confirmOptions)
-
-        await endpointProgram.methods
-            .initDefaultSendLibrary({
-                eid: DST_EID,
-                newLib: messageLibPda
-            })
-            .accounts({
-                admin: endpointAdmin.publicKey,
-                endpoint: endpointPda,
-                defaultSendLibraryConfig: defaultSendLibraryConfigPda,
-                messageLibInfo: messageLibInfoPda,
-                systemProgram: SystemProgram.programId
-            })
-            .signers([endpointAdmin])
-            .rpc(confirmOptions)
 
         const [efOptionsPda] = PublicKey.findProgramAddressSync(
             [Buffer.from("EnforcedOptions"), oappPda.toBuffer(), bufferSrcEid],

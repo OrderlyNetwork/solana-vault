@@ -89,7 +89,7 @@ export const registerOapp = async (wallet: anchor.Wallet, program: Program<Solan
     return {oappRegistry, oappPda}
 }
 
-export const initializeVault = async (wallet: anchor.Wallet, program: Program<SolanaVault>) => {
+export const initializeVault = async (wallet: anchor.Wallet, program: Program<SolanaVault>, dstEid: number) => {
     const [vaultAuthorityPda] = PublicKey.findProgramAddressSync(
         [Buffer.from("VaultAuthority")],
         program.programId
@@ -103,7 +103,7 @@ export const initializeVault = async (wallet: anchor.Wallet, program: Program<So
             .initVault({
                 owner: wallet.publicKey,
                 orderDelivery: true,
-                dstEid: 42,
+                dstEid: dstEid,
                 solChainId: new BN(12),
             })
             .accounts({
