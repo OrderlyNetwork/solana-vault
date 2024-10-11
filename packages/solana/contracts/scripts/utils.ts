@@ -137,12 +137,13 @@ export function getReceiveConfigPda(oappConfigPda: PublicKey, dstEid: number): P
 }
 
 
-export function getDefaultReceiveConfigPda(srcEid: number): PublicKey {
+export function getDefaultReceiveConfigPda(srcEid: number, receiveLibProgramId?: PublicKey): PublicKey {
     const bufferSrcEid = Buffer.alloc(4);
     bufferSrcEid.writeUInt32BE(srcEid);
+    const programId = receiveLibProgramId ? receiveLibProgramId : constants.RECEIVE_LIB_PROGRAM_ID
     return PublicKey.findProgramAddressSync(
         [Buffer.from(RECEIVE_CONFIG_SEED, "utf8"), bufferSrcEid],
-        constants.RECEIVE_LIB_PROGRAM_ID
+        programId
     )[0];
 }
 

@@ -21,13 +21,12 @@ pub mod uln {
         InitUln::apply(&mut ctx, &params)
     }
 
-    // TODO ===========================================================>
-    // 1. implement initialize ULN - DONE
-    // 2. replace messageLibPda to use the programId of this mock ULN program - DONE
-    // 3. run initUln to initialize messageLib - DONE
-    // 3. run commit_verification to call verify in Endpoint <======================================
     pub fn commit_verification(mut ctx: Context<CommitVerification>, params: CommitVerificationParams) -> Result<()> {
         CommitVerification::apply(&mut ctx, &params)
+    }
+
+    pub fn send(_ctx: Context<Interface>, _params: SendParams) -> Result<(MessagingFee, Vec<u8>)> {
+        Ok((MessagingFee::default(), Vec::new()))
     }
 
     pub fn quote(_ctx: Context<Interface>, _params: QuoteParams) -> Result<MessagingFee> {
@@ -67,4 +66,11 @@ pub struct Packet {
     pub receiver: [u8; 32],
     pub guid: [u8; 32],
     pub message: Vec<u8>,
+}
+
+#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct SendParams {
+    pub packet: Packet,
+    pub options: Vec<u8>,
+    pub native_fee: u64,
 }
