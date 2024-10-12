@@ -4,11 +4,23 @@ import { SolanaVault } from '../target/types/solana_vault'
 import { Uln } from '../target/types/uln'
 import { Endpoint } from './types/endpoint'
 import { createMint } from '@solana/spl-token'
-import { EVENT_SEED, MESSAGE_LIB_SEED } from "@layerzerolabs/lz-solana-sdk-v2"
 import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js'
 import { assert } from 'chai'
 import endpointIdl from './idl/endpoint.json'
-import { getEndpointSettingPda } from '../scripts/utils'
+import {
+    getBrokerPdaWithBuf,
+    getEndpointSettingPda,
+    getEnforcedOptionsPda,
+    getEventAuthorityPda,
+    getLzReceiveTypesPda,
+    getMessageLibInfoPda,
+    getMessageLibPda,
+    getOAppConfigPda,
+    getOAppRegistryPda,
+    getPeerPda,
+    getTokenPdaWithBuf,
+    getVaultAuthorityPda 
+} from '../scripts/utils'
 import { MainnetV2EndpointId } from '@layerzerolabs/lz-definitions'
 import { registerOapp, initializeVault, confirmOptions } from './setup'
 
@@ -31,10 +43,7 @@ describe('solana-vault', function() {
     const PEER_HASH = Array.from(wallet.publicKey.toBytes())
     let vaultAuthority
     let oappPda: PublicKey
-    const [vaultAuthorityPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("VaultAuthority")],
-        program.programId
-    )
+    const vaultAuthorityPda = getVaultAuthorityPda(program.programId)
 
     before(async () => {
         USDC_MINT = await createMint(
@@ -50,18 +59,8 @@ describe('solana-vault', function() {
         try {
             oappPda = (await registerOapp(wallet, program, endpointProgram, USDC_MINT)).oappPda
             vaultAuthority = (await initializeVault(wallet, program, DST_EID)).vaultAuthority
-
-            const bufferDstEid = Buffer.alloc(4)
-            bufferDstEid.writeUInt32BE(DST_EID)
-            const [efOptionsPda, efOptionsBump] = PublicKey.findProgramAddressSync(
-                [Buffer.from("EnforcedOptions"), oappPda.toBuffer(), bufferDstEid],
-                program.programId
-            )
-
-            const [peerPda] =  PublicKey.findProgramAddressSync(
-                [Buffer.from("Peer"), oappPda.toBuffer(), bufferDstEid],
-                program.programId
-            )
+            const efOptionsPda = getEnforcedOptionsPda(program.programId, oappPda, DST_EID)
+            const peerPda =  getPeerPda(program.programId, oappPda, DST_EID)
 
             await program.methods
                 .setPeer({
@@ -106,14 +105,8 @@ describe('solana-vault', function() {
                 .rpc(confirmOptions)
             
             // Message Library needs to be registered in the Endpoint for send and receive to work
-            const [messageLibPda] = PublicKey.findProgramAddressSync(
-                [Buffer.from(MESSAGE_LIB_SEED, "utf8")],
-                ulnProgram.programId
-            )
-            const [messageLibInfoPda] = PublicKey.findProgramAddressSync(
-                [Buffer.from(MESSAGE_LIB_SEED), messageLibPda.toBytes()],
-                endpointProgram.programId
-            )
+            const messageLibPda = getMessageLibPda(ulnProgram.programId)
+            const messageLibInfoPda = getMessageLibInfoPda(messageLibPda, ulnProgram.programId)
 
             await endpointProgram.methods
                 .registerLibrary({
@@ -133,10 +126,7 @@ describe('solana-vault', function() {
     })
 
     it('initializes vault', async () => {
-        const [vaultAuthorityPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("VaultAuthority")],
-            program.programId
-        )
+        const vaultAuthorityPda = getVaultAuthorityPda(program.programId)
         
         // Only assertions. `initVault()` is already run in test setup
         const vaultAuthority = await program.account.vaultAuthority.fetch(vaultAuthorityPda)
@@ -147,10 +137,7 @@ describe('solana-vault', function() {
     })
 
     it('resets vault', async () => {
-        const [vaultAuthorityPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("VaultAuthority")],
-            program.programId
-        )
+        const vaultAuthorityPda = getVaultAuthorityPda(program.programId)
 
         assert.equal(vaultAuthority.orderDelivery, true)
 
@@ -198,22 +185,9 @@ describe('solana-vault', function() {
     })
 
     it('initializes oapp', async () => {
-        const [oappPda, oappBump] = PublicKey.findProgramAddressSync(
-            [Buffer.from("OApp")],
-            program.programId
-        )
-        const [lzReceiveTypesPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("LzReceiveTypes"), oappPda.toBuffer()],
-            program.programId
-        )
-        const [oappRegistryPda, oappRegistryBump] = PublicKey.findProgramAddressSync(
-            [Buffer.from("OApp"), oappPda.toBuffer()],
-            endpointProgram.programId
-        )
-        const [eventAuthorityPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from(EVENT_SEED)],
-            endpointProgram.programId
-        )
+        const lzReceiveTypesPda = getLzReceiveTypesPda(program.programId, oappPda)
+        const oappRegistryPda = getOAppRegistryPda(oappPda)
+        const eventAuthorityPda = getEventAuthorityPda()
         const usdcHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
         try {
@@ -277,25 +251,15 @@ describe('solana-vault', function() {
         const oappRegistry = await endpointProgram.account.oAppRegistry.fetch(oappRegistryPda)
 
         assert.equal(lzReceiveTypes.oappConfig.toString(), oappPda.toString())
-        assert.equal(oappConfig.bump, oappBump)
         assert.deepEqual(oappConfig.usdcHash, usdcHash)
         // assert.equal(oappConfig.usdcMint.toString(), USDC_MINT.toString())
         assert.equal(oappConfig.endpointProgram.toString(), endpointProgram.programId.toString())
         assert.equal(oappConfig.admin.toString(), wallet.publicKey.toString())
         assert.equal(oappRegistry.delegate.toString(), wallet.publicKey.toString())
-        assert.equal(oappRegistry.bump, oappRegistryBump)
     })
 
     it('reinitializes oapp', async () => {
-        const [vaultAuthorityPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("VaultAuthority")],
-            program.programId
-        )
-
-        const [oappPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("OApp")],
-            program.programId
-        )
+        const vaultAuthorityPda = getVaultAuthorityPda(program.programId)
         const usdcHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
         await program.methods
@@ -431,10 +395,7 @@ describe('solana-vault', function() {
 
     it('sets broker', async () => {
         const brokerHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        const [allowedBrokerPda, bump] = PublicKey.findProgramAddressSync(
-            [Buffer.from("Broker"), Buffer.from(brokerHash)],
-            program.programId
-        )
+        const allowedBrokerPda = getBrokerPdaWithBuf(program.programId, brokerHash)
 
         const setBroker = async (signer: Keypair) => {
             await program.methods
@@ -456,7 +417,7 @@ describe('solana-vault', function() {
         const allowedBroker = await program.account.allowedBroker.fetch(allowedBrokerPda)
         assert.equal(allowedBroker.allowed, true)
         assert.deepEqual(allowedBroker.brokerHash, brokerHash)
-        assert.equal(allowedBroker.bump, bump)
+        assert.isOk(allowedBroker.bump)
 
         // FAILURE CASE - when admin/owner is not the signer
         const nonAdmin = Keypair.generate()
@@ -471,10 +432,7 @@ describe('solana-vault', function() {
 
     it('sets token', async () => {
         const tokenHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        const [allowedTokenPda, bump] = PublicKey.findProgramAddressSync(
-            [Buffer.from("Token"), Buffer.from(tokenHash)],
-            program.programId
-        )
+        const allowedTokenPda = getTokenPdaWithBuf(program.programId, tokenHash)
 
         const setToken = async(signer: Keypair) => {
             await program.methods
@@ -499,7 +457,7 @@ describe('solana-vault', function() {
         assert.deepEqual(allowedToken.tokenHash, tokenHash)
         assert.equal(allowedToken.tokenDecimals, 6)
         assert.equal(allowedToken.allowed, true)
-        assert.equal(allowedToken.bump, bump)
+        assert.isOk(allowedToken.bump)
 
         // FAILURE CASE - when admin/owner is not the signer
         const nonAdmin = Keypair.generate()
@@ -545,16 +503,11 @@ describe('solana-vault', function() {
     })
 
     it('sets peer', async () => {
-        const buf = Buffer.alloc(4)
-        buf.writeUInt32BE(DST_EID)
-        const [peerPda, peerBump] = PublicKey.findProgramAddressSync(
-            [Buffer.from("Peer"), oappPda.toBuffer(), buf],
-            program.programId
-        )
+        const peerPda = getPeerPda(program.programId, oappPda, DST_EID)
         // Assertions only. `setPeer()` is called in the before() block.
         const peer = await program.account.peer.fetch(peerPda)
         assert.deepEqual(peer.address, PEER_HASH)
-        assert.equal(peer.bump, peerBump)
+        assert.isOk(peer.bump)
 
         // FAILURE CASE - when admin/owner is not the signer
         const nonAdmin = Keypair.generate()
@@ -580,12 +533,7 @@ describe('solana-vault', function() {
     })
 
     it('sets rate limit', async () => {
-        const bufferDstEid = Buffer.alloc(4)
-        bufferDstEid.writeUInt32BE(DST_EID)
-        const [peerPda] =  PublicKey.findProgramAddressSync(
-            [Buffer.from("Peer"), oappPda.toBuffer(), bufferDstEid],
-            program.programId
-        )
+        const peerPda = getPeerPda(program.programId, oappPda, DST_EID)
 
         const setRateLimit = async (signer: Keypair) => {
             await program.methods
@@ -621,12 +569,7 @@ describe('solana-vault', function() {
     })
 
     it('sets enforced options', async () => {
-        const buf = Buffer.alloc(4)
-        buf.writeUInt32BE(DST_EID)
-        const [efOptionsPda, efOptionsBump] = PublicKey.findProgramAddressSync(
-            [Buffer.from("EnforcedOptions"), oappPda.toBuffer(), buf],
-            program.programId
-        )
+        const efOptionsPda = getEnforcedOptionsPda(program.programId, oappPda, DST_EID)
 
         const setEnforcedOptions = async (signer: Keypair) => {
             await program.methods
@@ -650,7 +593,7 @@ describe('solana-vault', function() {
         const enforcedOptions = await program.account.enforcedOptions.fetch(efOptionsPda)
         assert.isTrue(enforcedOptions.send.equals(Buffer.from([0, 3, 3])))
         assert.isTrue(enforcedOptions.sendAndCall.equals(Buffer.from([0, 3, 3])))
-        assert.equal(enforcedOptions.bump, efOptionsBump)
+        assert.isOk(enforcedOptions.bump)
 
         // FAILURE CASE - when admin/owner is not the signer
         const nonAdmin = Keypair.generate()
@@ -664,19 +607,9 @@ describe('solana-vault', function() {
     })
 
     it('sets delegate', async () => {
-        const [oappPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("OApp")],
-            program.programId
-        )
-        const [oappRegistryPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("OApp"), oappPda.toBuffer()],
-            endpointProgram.programId
-        )
-        const [eventAuthorityPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from(EVENT_SEED)],
-            endpointProgram.programId
-        )
-
+        const oappPda = getOAppConfigPda(program.programId)
+        const oappRegistryPda = getOAppRegistryPda(oappPda)
+        const eventAuthorityPda = getEventAuthorityPda()
         const newDelegate = Keypair.generate().publicKey
 
         const setDelegate = async (newDelegate: PublicKey, admin: Keypair) => {

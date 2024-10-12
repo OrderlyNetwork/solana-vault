@@ -39,6 +39,7 @@ startup_wait = 5000
 shutdown_wait = 2000
 upgradeable = false
 
+# Endpoint Program
 [[test.genesis]]
 address = "76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6"
 program = "endpoint.so"

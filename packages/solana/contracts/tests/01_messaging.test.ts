@@ -12,11 +12,29 @@ import {
   Account,
   ASSOCIATED_TOKEN_PROGRAM_ID
 } from '@solana/spl-token'
-import { EVENT_SEED, MESSAGE_LIB_SEED } from "@layerzerolabs/lz-solana-sdk-v2"
 import { Connection, Keypair, PublicKey, SystemProgram, Transaction } from '@solana/web3.js'
 import { assert } from 'chai'
 import endpointIdl from './idl/endpoint.json'
-import { getEndpointSettingPda } from '../scripts/utils'
+import { 
+    getEndpointSettingPda, 
+    getPeerPda, 
+    getVaultAuthorityPda, 
+    getEnforcedOptionsPda, 
+    getMessageLibPda, 
+    getMessageLibInfoPda, 
+    getOAppRegistryPda,
+    getOAppConfigPda,
+    getSendLibConfigPda,
+    getDefaultSendLibConfigPda,
+    getEventAuthorityPda,
+    getPayloadHashPda,
+    getNoncePda,
+    getPendingInboundNoncePda,
+    getReceiveLibConfigPda,
+    getDefaultReceiveLibConfigPda,
+    getTokenPdaWithBuf,
+    getBrokerPdaWithBuf,
+} from '../scripts/utils'
 import { MainnetV2EndpointId } from '@layerzerolabs/lz-definitions'
 import { registerOapp, initializeVault, confirmOptions } from './setup'
 
@@ -80,10 +98,7 @@ describe('messaging', function() {
     let oappPda: PublicKey
     let userDepositWallet: Account
     let vaultDepositWallet: Account
-    const [vaultAuthorityPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("VaultAuthority")],
-        program.programId
-    )
+    const vaultAuthorityPda = getVaultAuthorityPda(program.programId)
     let sendLibraryConfigPda: PublicKey
     let defaultSendLibraryConfigPda: PublicKey
     let messageLibInfoPda: PublicKey
@@ -103,12 +118,7 @@ describe('messaging', function() {
         await initializeVault(wallet, program, DST_EID)
         oappPda = (await registerOapp(wallet, program, endpointProgram, USDC_MINT)).oappPda
 
-        const bufferDstEid = Buffer.alloc(4)
-        bufferDstEid.writeUInt32BE(DST_EID)
-        const [peerPda] =  PublicKey.findProgramAddressSync(
-            [Buffer.from("Peer"), oappPda.toBuffer(), bufferDstEid],
-            program.programId
-        )
+        const peerPda = getPeerPda(program.programId, oappPda, DST_EID)
         const PEER_HASH = Array.from(wallet.publicKey.toBytes())
 
         await program.methods
@@ -124,10 +134,8 @@ describe('messaging', function() {
             })
             .rpc(confirmOptions)
 
-        const [efOptionsPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("EnforcedOptions"), oappPda.toBuffer(), bufferDstEid],
-            program.programId
-        )
+        const efOptionsPda = getEnforcedOptionsPda(program.programId, oappPda, DST_EID)
+
         await program.methods
             .setEnforcedOptions({
                 dstEid: DST_EID,
@@ -156,14 +164,8 @@ describe('messaging', function() {
             })
             .rpc(confirmOptions)
         
-        messageLibPda = PublicKey.findProgramAddressSync(
-            [Buffer.from(MESSAGE_LIB_SEED, "utf8")],
-            ulnProgram.programId
-        )[0]
-        messageLibInfoPda = PublicKey.findProgramAddressSync(
-            [Buffer.from(MESSAGE_LIB_SEED), messageLibPda.toBytes()],
-            endpointProgram.programId
-        )[0]
+        messageLibPda = getMessageLibPda(ulnProgram.programId)
+        messageLibInfoPda = getMessageLibInfoPda(messageLibPda)
         
         await endpointProgram.methods
             .registerLibrary({
@@ -178,21 +180,9 @@ describe('messaging', function() {
             })
             .rpc(confirmOptions)
         
-        const [oappRegistryPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("OApp"), oappPda.toBuffer()],
-            endpointProgram.programId
-        )
-        const bufferSrcEid = Buffer.alloc(4)
-        bufferSrcEid.writeUInt32BE(DST_EID)
-        sendLibraryConfigPda = PublicKey.findProgramAddressSync(
-            [Buffer.from("SendLibraryConfig"), oappPda.toBytes(), bufferSrcEid],
-            endpointProgram.programId
-        )[0]
-
-        defaultSendLibraryConfigPda = PublicKey.findProgramAddressSync(
-            [Buffer.from("SendLibraryConfig"), bufferSrcEid],
-            endpointProgram.programId
-        )[0]
+        const oappRegistryPda = getOAppRegistryPda(oappPda)
+        sendLibraryConfigPda = getSendLibConfigPda(oappPda, DST_EID)
+        defaultSendLibraryConfigPda = getDefaultSendLibConfigPda(DST_EID)
         
         // Need to initialize the Send Library before clear() and send() can be called in the Endpoint
         // These are needed for deposit() and oapp_quote() instructions in SolanaVault
@@ -242,55 +232,16 @@ describe('messaging', function() {
     
     it('lzReceive', async () => {        
         const guid = Array.from(Keypair.generate().publicKey.toBuffer())
-
-        const [oappRegistryPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("OApp"), oappPda.toBuffer()],
-            endpointProgram.programId
-        )
-        const [eventAuthorityPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from(EVENT_SEED)],
-            endpointProgram.programId
-        )
-
-        const bufferSrcEid = Buffer.alloc(4)
-        bufferSrcEid.writeUInt32BE(ETHEREUM_EID)
-        const bufferNonce = Buffer.alloc(8)
-        bufferNonce.writeBigUInt64BE(BigInt("1"))
-
-        const [payloadHashPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("PayloadHash"), oappPda.toBuffer(), bufferSrcEid, wallet.publicKey.toBuffer(), bufferNonce],
-            endpointProgram.programId
-        )
-
-        const [noncePda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("Nonce"), oappPda.toBuffer(), bufferSrcEid, wallet.publicKey.toBuffer()],
-            endpointProgram.programId
-        )
-
-        const [pendingInboundNoncePda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("PendingNonce"), oappPda.toBuffer(), bufferSrcEid, wallet.publicKey.toBuffer()],
-            endpointProgram.programId
-        )
-
+        const oappRegistryPda = getOAppRegistryPda(oappPda)
+        const eventAuthorityPda = getEventAuthorityPda()
+        const payloadHashPda = getPayloadHashPda(oappPda, ETHEREUM_EID, wallet.publicKey, BigInt('1'))
+        const noncePda = getNoncePda(oappPda, ETHEREUM_EID, wallet.publicKey.toBuffer())
+        const pendingInboundNoncePda = getPendingInboundNoncePda(oappPda, ETHEREUM_EID, wallet.publicKey.toBuffer())
         const endpointPda = getEndpointSettingPda(endpointProgram.programId)
-        
-        const [receiveLibraryConfigPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("ReceiveLibraryConfig"), oappPda.toBytes(), bufferSrcEid],
-            endpointProgram.programId
-        )
-
-        const [defaultReceiveLibraryConfigPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("ReceiveLibraryConfig"), bufferSrcEid],
-            endpointProgram.programId
-        )
-        const [messageLibPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from(MESSAGE_LIB_SEED, "utf8")],
-            ulnProgram.programId
-        )
-        const [messageLibInfoPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from(MESSAGE_LIB_SEED), messageLibPda.toBytes()],
-            endpointProgram.programId
-        )
+        const receiveLibraryConfigPda = getReceiveLibConfigPda(oappPda, ETHEREUM_EID)
+        const defaultReceiveLibraryConfigPda = getDefaultReceiveLibConfigPda(ETHEREUM_EID)
+        const messageLibPda = getMessageLibPda(ulnProgram.programId)
+        const messageLibInfoPda = getMessageLibInfoPda(messageLibPda)
 
         const transaction = new Transaction()
         
@@ -467,10 +418,7 @@ describe('messaging', function() {
             ])
             .rpc(confirmOptions)
         
-        const [peerPda] =  PublicKey.findProgramAddressSync(
-            [Buffer.from("Peer"), oappPda.toBuffer(), bufferSrcEid],
-            program.programId
-        )
+        const peerPda = getPeerPda(program.programId, oappPda, DST_EID)
 
         // Check initial balance
         let vaultBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address)
@@ -567,20 +515,9 @@ describe('messaging', function() {
 
     it('deposits', async() => {
         const tokenHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        const [allowedTokenPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("Token"), Buffer.from(tokenHash)],
-            program.programId
-        )
-        const bufferDstEid = Buffer.alloc(4)
-        bufferDstEid.writeUInt32BE(DST_EID)
-        const [peerPda] =  PublicKey.findProgramAddressSync(
-            [Buffer.from("Peer"), oappPda.toBuffer(), bufferDstEid],
-            program.programId
-        )
-        const [efOptionsPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("EnforcedOptions"), oappPda.toBuffer(), bufferDstEid],
-            program.programId
-        )
+        const allowedTokenPda = getTokenPdaWithBuf(program.programId, tokenHash)
+        const peerPda = getPeerPda(program.programId, oappPda, DST_EID)
+        const efOptionsPda = getEnforcedOptionsPda(program.programId, oappPda, DST_EID)
 
         await program.methods
             .setToken({
@@ -597,10 +534,7 @@ describe('messaging', function() {
             .rpc(confirmOptions)
         
         const brokerHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        const [allowedBrokerPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("Broker"), Buffer.from(brokerHash)],
-            program.programId
-        )
+        const allowedBrokerPda = getBrokerPdaWithBuf(program.programId, brokerHash)
 
         await program.methods
             .setBroker({
@@ -624,15 +558,8 @@ describe('messaging', function() {
             1e9 // 1000 USDC
         )
         const endpointPda = getEndpointSettingPda(endpointProgram.programId)
-        const [eventAuthorityPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from(EVENT_SEED)],
-            endpointProgram.programId
-        )
-        const [noncePda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("Nonce"), oappPda.toBuffer(), bufferDstEid, wallet.publicKey.toBuffer()],
-            endpointProgram.programId
-        )
-
+        const eventAuthorityPda = getEventAuthorityPda()
+        const noncePda = getNoncePda(oappPda, DST_EID, wallet.publicKey.toBuffer())
         const previousVaultBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address)
         const previousUserBalance = await getTokenBalance(provider.connection, userDepositWallet.address)
 
@@ -731,55 +658,16 @@ describe('messaging', function() {
 
     it('gets oapp quote', async () => {
         const endpointPda = getEndpointSettingPda(endpointProgram.programId)
-        const [oappPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("OApp")],
-            program.programId
-        )
-        const [oappRegistryPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("OApp"), oappPda.toBuffer()],
-            endpointProgram.programId
-        )
-
-        const bufferSrcEid = Buffer.alloc(4)
-        bufferSrcEid.writeUInt32BE(DST_EID)
-        const bufferNonce = Buffer.alloc(8)
-        bufferNonce.writeBigUInt64BE(BigInt("1"))
-
-        const [sendLibraryConfigPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("SendLibraryConfig"), oappPda.toBytes(), bufferSrcEid],
-            endpointProgram.programId
-        )
-        const [defaultSendLibraryConfigPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("SendLibraryConfig"), bufferSrcEid],
-            endpointProgram.programId
-        )
-        const [messageLibPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from(MESSAGE_LIB_SEED, "utf8")],
-            ulnProgram.programId
-        )
-        const [messageLibInfoPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from(MESSAGE_LIB_SEED), messageLibPda.toBytes()],
-            endpointProgram.programId
-        )
-
-        const [efOptionsPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("EnforcedOptions"), oappPda.toBuffer(), bufferSrcEid],
-            program.programId
-        )
-        
-        const [eventAuthorityPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from(EVENT_SEED)],
-            endpointProgram.programId
-        )
-
-        const [noncePda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("Nonce"), oappPda.toBuffer(), bufferSrcEid, wallet.publicKey.toBuffer()],
-            endpointProgram.programId
-        )
-        const [pendingInboundNoncePda] = PublicKey.findProgramAddressSync(
-            [Buffer.from("PendingNonce"), oappPda.toBuffer(), bufferSrcEid, wallet.publicKey.toBuffer()],
-            endpointProgram.programId
-        )
+        const oappPda = getOAppConfigPda(program.programId)
+        const oappRegistryPda = getOAppRegistryPda(oappPda)
+        const sendLibraryConfigPda = getSendLibConfigPda(oappPda, DST_EID)
+        const defaultSendLibraryConfigPda = getDefaultSendLibConfigPda(DST_EID)
+        const messageLibPda = getMessageLibPda(ulnProgram.programId)
+        const messageLibInfoPda = getMessageLibInfoPda(messageLibPda)
+        const efOptionsPda = getEnforcedOptionsPda(program.programId, oappPda, DST_EID)    
+        const eventAuthorityPda = getEventAuthorityPda()
+        const noncePda = getNoncePda(oappPda, DST_EID, wallet.publicKey.toBuffer())
+        const pendingInboundNoncePda = getPendingInboundNoncePda(oappPda, DST_EID, wallet.publicKey.toBuffer())
 
         try {
             await endpointProgram.methods
@@ -800,10 +688,7 @@ describe('messaging', function() {
             console.log("Already initialized in 'lzReceive' test")
         }
 
-        const [peerPda] =  PublicKey.findProgramAddressSync(
-            [Buffer.from("Peer"), oappPda.toBuffer(), bufferSrcEid],
-            program.programId
-        )
+        const peerPda = getPeerPda(program.programId, oappPda, DST_EID)
 
         const {lzTokenFee, nativeFee} = await program.methods
             .oappQuote({
