@@ -15,7 +15,7 @@ url = "https://api.apr.dev"
 
 [provider]
 cluster = "Localnet"
-wallet = "/Users/gjaldon/.config/solana/id.json"
+wallet = "~/.config/solana/id.json"
 
 [scripts]
 deposit_vault = "yarn run ts-node scripts/05deposit_vault.ts"
