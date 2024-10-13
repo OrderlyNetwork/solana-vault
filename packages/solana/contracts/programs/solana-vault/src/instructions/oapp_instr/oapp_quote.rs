@@ -1,7 +1,7 @@
 use crate::instructions::{ENFORCED_OPTIONS_SEED, OAPP_SEED, PEER_SEED};
 use crate::state::{EnforcedOptions, OAppConfig, Peer};
 use anchor_lang::prelude::*;
-use oapp::endpoint::{instructions::QuoteParams as EndpointQuoteParams, MessagingFee};
+use oapp::endpoint::instructions::QuoteParams as EndpointQuoteParams;
 
 #[derive(Accounts)]
 #[instruction(params: OAppQuoteParams)]
@@ -34,7 +34,7 @@ pub struct OAppQuote<'info> {
 impl OAppQuote<'_> {
     pub fn apply(ctx: &Context<OAppQuote>, params: &OAppQuoteParams) -> Result<MessagingFee> {
         // calling endpoint cpi
-        oapp::endpoint_cpi::quote(
+        let messaging_fee = oapp::endpoint_cpi::quote(
             ctx.accounts.oapp_config.endpoint_program,
             ctx.remaining_accounts,
             EndpointQuoteParams {
@@ -48,8 +48,21 @@ impl OAppQuote<'_> {
                     .enforced_options
                     .combine_options(&params.message, &params.options)?,
             },
-        )
+        )?;
+
+        return Ok(MessagingFee{
+            native_fee: messaging_fee.native_fee,
+            lz_token_fee: messaging_fee.lz_token_fee
+        });
     }
+}
+
+// Redefined MessagingFee here as a workaround to be able to use view() in tests
+// https://github.com/coral-xyz/anchor/issues/3220
+#[derive(Clone, AnchorSerialize, AnchorDeserialize, Default)]
+pub struct MessagingFee {
+    pub native_fee: u64,
+    pub lz_token_fee: u64,
 }
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]

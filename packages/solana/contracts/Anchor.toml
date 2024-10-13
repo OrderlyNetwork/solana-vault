@@ -1,39 +1,55 @@
 [toolchain]
 anchor_version = "0.29.0"
-solana_version = "1.18.18"
+solana_version = "1.17.31"
 
 [features]
 seeds = false
 skip-lint = false
 
 [programs.localnet]
-oft = "HZuGXo97nFuv6UmvcYtt7T8L8vB3KAFRZTmohTA3k63m"
-solana-vault = "5seA2qXcGyC9najiKmUVK3u2hfotXZVHtaxuxfrwBLrX"
+solana-vault = "AdA9VFXwkKPj51SZxSQwJ4bqPJiAJqidCwPhb8zSJndx"
+uln = "H5Uke9DE4jFiJi73Ade5g3yPwMhfVVbzPWqomoUfqQhb"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-
-oft = "yarn run ts-node scripts/oft.ts"
-send_oapp = "yarn run ts-node scripts/send.ts"
-
-print_pda = "yarn run ts-node scripts/00print_pda.ts"
-setup_oapp = "yarn run ts-node scripts/01setup_oapp.ts"
-setconfig_oapp = "yarn run ts-node scripts/02setconfig_oapp.ts"
-init_oapp = "yarn run ts-node scripts/03init_oapp.ts"
-setup_vault = "yarn run ts-node scripts/04setup_vault.ts"
 deposit_vault = "yarn run ts-node scripts/05deposit_vault.ts"
-
+init_oapp = "yarn run ts-node scripts/03init_oapp.ts"
+oft = "yarn run ts-node scripts/oft.ts"
+order_delivery = "yarn run ts-node scripts/set_order_delivery.ts"
+print_pda = "yarn run ts-node scripts/00print_pda.ts"
+quote_deposit = "yarn run ts-node scripts/quote_oapp.ts"
+reinit_oapp = "yarn run ts-node scripts/reinit_oapp_config.ts"
+reset_oapp = "yarn run ts-node scripts/reset_oapp_config.ts"
+send_oapp = "yarn run ts-node scripts/send.ts"
 set_broker = "yarn run ts-node scripts/set_broker.ts"
 set_token = "yarn run ts-node scripts/set_token.ts"
-reset_oapp = "yarn run ts-node scripts/reset_oapp_config.ts"
-reinit_oapp = "yarn run ts-node scripts/reinit_oapp_config.ts"
-quote_deposit = "yarn run ts-node scripts/quote_oapp.ts"
-order_delivery = "yarn run ts-node scripts/set_order_delivery.ts"
-
+setconfig_oapp = "yarn run ts-node scripts/02setconfig_oapp.ts"
+setup_oapp = "yarn run ts-node scripts/01setup_oapp.ts"
+setup_vault = "yarn run ts-node scripts/04setup_vault.ts"
 test = "yarn run ts-mocha -b -p ./tsconfig.json -t 1000000 tests/**/*.test.ts"
+
+[test]
+startup_wait = 5000
+shutdown_wait = 2000
+upgradeable = false
+
+# Endpoint Program
+[[test.genesis]]
+address = "76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6"
+program = "endpoint.so"
+
+[test.validator]
+bind_address = "0.0.0.0"
+url = "https://api.mainnet-beta.solana.com"
+ledger = ".anchor/test-ledger"
+rpc_port = 8899
+
+# USDC Mint
+[[test.validator.clone]]
+address = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
