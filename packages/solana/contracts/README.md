@@ -15,7 +15,7 @@ anchor keys sync
 
 ### Set Env
 
-Edit the `Anchor.toml` file to set the proper clustor (`localnet`, `devnet`, or `mainnet`) and the wallet (keypair) for your needs.
+Edit the `Anchor.toml` file to set the proper cluster (`localnet`, `devnet`, or `mainnet`) and the wallet (keypair) for your needs.
 
 ```
 [provider]
