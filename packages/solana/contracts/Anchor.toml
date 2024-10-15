@@ -7,14 +7,14 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-solana-vault = "AdA9VFXwkKPj51SZxSQwJ4bqPJiAJqidCwPhb8zSJndx"
+solana-vault = "EYJq9eU4GMRUriUJBgGoZ8YLQBXcWaciXuSsEXE7ieQS"
 uln = "H5Uke9DE4jFiJi73Ade5g3yPwMhfVVbzPWqomoUfqQhb"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
@@ -45,7 +45,7 @@ address = "76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6"
 program = "endpoint.so"
 
 [test.validator]
-bind_address = "0.0.0.0"
+bind_address = "127.0.0.1"
 url = "https://api.mainnet-beta.solana.com"
 ledger = ".anchor/test-ledger"
 rpc_port = 8899
