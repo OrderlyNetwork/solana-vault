@@ -8,7 +8,7 @@ skip-lint = false
 
 [programs.localnet]
 solana-vault = "AdA9VFXwkKPj51SZxSQwJ4bqPJiAJqidCwPhb8zSJndx"
-uln = "H5Uke9DE4jFiJi73Ade5g3yPwMhfVVbzPWqomoUfqQhb"
+uln = "CduQbgrsyGupNemhnwQhtQjqBkawJk4pFx3axQLGg4bL"
 
 [registry]
 url = "https://api.apr.dev"
@@ -39,7 +39,6 @@ startup_wait = 5000
 shutdown_wait = 2000
 upgradeable = false
 
-# Endpoint Program
 [[test.genesis]]
 address = "76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6"
 program = "endpoint.so"
@@ -50,6 +49,5 @@ url = "https://api.mainnet-beta.solana.com"
 ledger = ".anchor/test-ledger"
 rpc_port = 8899
 
-# USDC Mint
 [[test.validator.clone]]
 address = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
