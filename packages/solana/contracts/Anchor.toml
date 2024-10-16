@@ -1,14 +1,14 @@
 [toolchain]
 anchor_version = "0.29.0"
-solana_version = "1.17.31"
+solana_version = "1.18.18"
 
 [features]
 seeds = false
 skip-lint = false
 
 [programs.localnet]
-solana-vault = "EYJq9eU4GMRUriUJBgGoZ8YLQBXcWaciXuSsEXE7ieQS"
-uln = "H5Uke9DE4jFiJi73Ade5g3yPwMhfVVbzPWqomoUfqQhb"
+solana-vault = "9shwxWDUNhtwkHocsUAmrNAQfBH2DHh4njdAEdHZZkF2"
+uln = "CduQbgrsyGupNemhnwQhtQjqBkawJk4pFx3axQLGg4bL"
 
 [registry]
 url = "https://api.apr.dev"
@@ -19,7 +19,7 @@ wallet = "~/.config/solana/id.json"
 
 [scripts]
 deposit_vault = "yarn run ts-node scripts/05deposit_vault.ts"
-init_oapp = "yarn run ts-node scripts/03init_oapp.ts"
+init_oapp = "yarn run ts-node scripts/02init_oapp.ts"
 oft = "yarn run ts-node scripts/oft.ts"
 order_delivery = "yarn run ts-node scripts/set_order_delivery.ts"
 print_pda = "yarn run ts-node scripts/00print_pda.ts"
@@ -29,7 +29,7 @@ reset_oapp = "yarn run ts-node scripts/reset_oapp_config.ts"
 send_oapp = "yarn run ts-node scripts/send.ts"
 set_broker = "yarn run ts-node scripts/set_broker.ts"
 set_token = "yarn run ts-node scripts/set_token.ts"
-setconfig_oapp = "yarn run ts-node scripts/02setconfig_oapp.ts"
+setconfig_oapp = "yarn run ts-node scripts/03setconfig_oapp.ts"
 setup_oapp = "yarn run ts-node scripts/01setup_oapp.ts"
 setup_vault = "yarn run ts-node scripts/04setup_vault.ts"
 test = "yarn run ts-mocha -b -p ./tsconfig.json -t 1000000 tests/**/*.test.ts"
@@ -39,10 +39,13 @@ startup_wait = 5000
 shutdown_wait = 2000
 upgradeable = false
 
-# Endpoint Program
 [[test.genesis]]
 address = "76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6"
 program = "endpoint.so"
+
+[[test.genesis]]
+address = "7a4WjyR8VZ7yZz5XJAKm39BUGn5iT9CKcv2pmG9tdXVH"
+program = "uln.so"
 
 [test.validator]
 bind_address = "127.0.0.1"
@@ -50,6 +53,5 @@ url = "https://api.mainnet-beta.solana.com"
 ledger = ".anchor/test-ledger"
 rpc_port = 8899
 
-# USDC Mint
 [[test.validator.clone]]
 address = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"

@@ -1,5 +1,5 @@
 import { ENFORCED_OPTIONS_SEED, EVENT_SEED, LZ_RECEIVE_TYPES_SEED, OAPP_SEED, PEER_SEED, MESSAGE_LIB_SEED, SEND_LIBRARY_CONFIG_SEED, ENDPOINT_SEED, NONCE_SEED, ULN_SEED, SEND_CONFIG_SEED, EXECUTOR_CONFIG_SEED, PRICE_FEED_SEED, DVN_CONFIG_SEED, OFT_SEED, RECEIVE_CONFIG_SEED, PENDING_NONCE_SEED, PAYLOAD_HASH_SEED, RECEIVE_LIBRARY_CONFIG_SEED } from "@layerzerolabs/lz-solana-sdk-v2";
-import { PublicKey, TransactionInstruction, VersionedTransaction, TransactionMessage, AddressLookupTableProgram, Keypair } from "@solana/web3.js";
+import { PublicKey, TransactionInstruction, VersionedTransaction, TransactionMessage, AddressLookupTableProgram } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
 import {
     createMint,
@@ -9,10 +9,7 @@ import {
     mintTo
   } from "@solana/spl-token";
 import * as constants from "./constants";
-import { seed } from "@coral-xyz/anchor/dist/cjs/idl";
-import { hexToBytes } from 'ethereum-cryptography/utils';
-import { keccak256, AbiCoder, solidityPackedKeccak256, decodeBase58 } from "ethers"
-import { getKeypairFromEnvironment } from "@solana-developers/helpers";
+import { keccak256, AbiCoder, solidityPackedKeccak256 } from "ethers"
 
 import OAppIdl from "../target/idl/solana_vault.json";
 import { SolanaVault } from "../target/types/solana_vault";
@@ -299,12 +296,12 @@ export async function createAndSendV0Tx(txInstructions: TransactionInstruction[]
         (r, 2000));
 }
 
-export async function createAndSendV0TxWithTable(txInstructions: TransactionInstruction[], provider: anchor.AnchorProvider, wallet: anchor.Wallet, addressList: PublicKey[], OAPP_PROGRAM_ID: PublicKey) {
-    const lookupTableAddress = await getLookupTableAddress(provider, wallet, provider.connection.rpcEndpoint, OAPP_PROGRAM_ID);
+export async function createAndSendV0TxWithTable(txInstructions: TransactionInstruction[], provider: anchor.AnchorProvider, wallet: anchor.Wallet, addressList: PublicKey[], ENV: String) {
+    // const lookupTableAddress = await getLookupTableAddress(provider, wallet, provider.connection.rpcEndpoint, OAPP_PROGRAM_ID);
     // if (provider.connection.rpcEndpoint === constants.LOCAL_RPC) {
     //     await extendLookupTable(provider, wallet, lookupTableAddress, addressList);
     // }
-   
+    const lookupTableAddress = getLookupTableAddress(ENV);
     const lookupTableAccount = await getLookupTableAccount(provider, lookupTableAddress);
     const msg = new TransactionMessage({
         payerKey: wallet.payer.publicKey,
@@ -320,16 +317,30 @@ export async function createAndSendV0TxWithTable(txInstructions: TransactionInst
 
 }
 
-export async function getLookupTableAddress(provider: anchor.AnchorProvider, wallet: anchor.Wallet, rpc: string, OAPP_PROGRAM_ID: PublicKey): Promise<PublicKey> {
-     if (OAPP_PROGRAM_ID.toBase58() === constants.DEV_OAPP_PROGRAM_ID.toBase58()) {
-        console.log("DEV_LOOKUP_TABLE_ADDRESS: ", constants.DEV_LOOKUP_TABLE_ADDRESS.toBase58());
+// export async function getLookupTableAddress(provider: anchor.AnchorProvider, wallet: anchor.Wallet, rpc: string, OAPP_PROGRAM_ID: PublicKey): Promise<PublicKey> {
+//      if (OAPP_PROGRAM_ID.toBase58() === constants.DEV_OAPP_PROGRAM_ID.toBase58()) {
+//         console.log("DEV_LOOKUP_TABLE_ADDRESS: ", constants.DEV_LOOKUP_TABLE_ADDRESS.toBase58());
+//         return constants.DEV_LOOKUP_TABLE_ADDRESS;
+//     } else if (OAPP_PROGRAM_ID.toBase58() === constants.QA_OAPP_PROGRAM_ID.toBase58()) {
+//         return constants.QA_LOOKUP_TABLE_ADDRESS;
+//     } else if (OAPP_PROGRAM_ID.toBase58() === constants.STAGING_OAPP_PROGRAM_ID.toBase58()) {
+//         return constants.STAGING_LOOKUP_TABLE_ADDRESS;
+//     } else {
+//         throw new Error("Invalid OAPP Program ID or rpc");
+//     }
+// }
+
+export function getLookupTableAddress(env: String): PublicKey {
+    if (env === "DEV") {
         return constants.DEV_LOOKUP_TABLE_ADDRESS;
-    } else if (OAPP_PROGRAM_ID.toBase58() === constants.QA_OAPP_PROGRAM_ID.toBase58()) {
+    } else if (env === "QA") {
         return constants.QA_LOOKUP_TABLE_ADDRESS;
-    } else if (OAPP_PROGRAM_ID.toBase58() === constants.STAGING_OAPP_PROGRAM_ID.toBase58()) {
+    } else if (env === "STAGING") {
         return constants.STAGING_LOOKUP_TABLE_ADDRESS;
+    } else if (env === "MAIN") {
+        return constants.MAIN_LOOKUP_TABLE_ADDRESS;
     } else {
-        throw new Error("Invalid OAPP Program ID or rpc");
+        throw new Error("Invalid Environment");
     }
 }
 
@@ -353,24 +364,23 @@ export async function getLookupTableAccount(provider: anchor.AnchorProvider, loo
     return lookupTableAccount;
 }
 
-export async function getMintAccount(provider: anchor.AnchorProvider, rpc: string) {
-
-}
 
 // get the usdc address, user account, and vault account
 export function getRelatedUSDCAcount(wallet: anchor.Wallet, rpc: string): PublicKey[] {
     const [VAULT_PROGRAM_ID, VaultProgram] =  getDeployedProgram();
+    const vaultAuthorityPda = getVaultAuthorityPda(VAULT_PROGRAM_ID);
     const usdcAddress = getUSDCAddress(rpc);
     const userUSDCAccount = getUSDCAccount(usdcAddress, wallet.publicKey);
-    const vaultUSDCAccount = getUSDCAccount(usdcAddress, VAULT_PROGRAM_ID);
+    const vaultUSDCAccount = getUSDCAccount(usdcAddress, vaultAuthorityPda);
     return [usdcAddress, userUSDCAccount, vaultUSDCAccount];
 }
 
 export async function createRelatedUSDCAcount(provider: anchor.AnchorProvider, wallet: anchor.Wallet, rpc: string): Promise<PublicKey[]> {
     const [VAULT_PROGRAM_ID, VaultProgram] =  getDeployedProgram();
     const usdcAddress = getUSDCAddress(rpc);
+    const vaultAuthorityPda = getVaultAuthorityPda(VAULT_PROGRAM_ID);
     const userUSDCAccount = await createUSDCAccount(provider, wallet, usdcAddress, wallet.publicKey);
-    const vaultUSDCAccount = await createUSDCAccount(provider, wallet, usdcAddress, VAULT_PROGRAM_ID);
+    const vaultUSDCAccount = await createUSDCAccount(provider, wallet, usdcAddress, vaultAuthorityPda);
     return [usdcAddress, userUSDCAccount, vaultUSDCAccount];
 }
 
@@ -468,7 +478,7 @@ export async function createUSDCAccount(provider: anchor.Provider, wallet: ancho
         owner,
         true
     );
-    console.log(`💶 USDC Account for ${owner}: ${usdcTokenAccount.address.toBase58()}`);
+    console.log(`💶 Created USDC Account for ${owner}: ${usdcTokenAccount.address.toBase58()}`);
     return usdcTokenAccount.address;
 }
 
@@ -490,7 +500,9 @@ export async function mintUSDC(provider: anchor.Provider, wallet: anchor.Wallet,
     console.log(`💶 Minted ${amount} USDC to ${receiverATA.toBase58()}: ${sigMint}`);
 }
 
-export function printPda(OAPP_PROGRAM_ID: PublicKey, wallet: anchor.Wallet, rpc: string) {
+export function printPda(OAPP_PROGRAM_ID: PublicKey, wallet: anchor.Wallet, rpc: string, ENV) {
+    const PEER_ADDRESS = getPeerAddress(ENV);
+    const DST_EID = getDstEid(ENV);
     const oappConfigPda = getOAppConfigPda(OAPP_PROGRAM_ID);
     console.log("🔑 OApp Config PDA:", oappConfigPda.toBase58());
 
@@ -503,7 +515,7 @@ export function printPda(OAPP_PROGRAM_ID: PublicKey, wallet: anchor.Wallet, rpc:
     const lzReceiveTypesPda = getLzReceiveTypesPda(OAPP_PROGRAM_ID, oappConfigPda);
     console.log("🔑 LZ Receive Types PDA:", lzReceiveTypesPda.toBase58());
 
-    const peerPda = getPeerPda(OAPP_PROGRAM_ID, oappConfigPda, constants.DST_EID);
+    const peerPda = getPeerPda(OAPP_PROGRAM_ID, oappConfigPda, DST_EID);
     console.log("🔑 Peer PDA:", peerPda.toBase58());
 
     const eventAuthorityPda = getEventAuthorityPda();
@@ -512,31 +524,31 @@ export function printPda(OAPP_PROGRAM_ID: PublicKey, wallet: anchor.Wallet, rpc:
     const oappRegistryPda = getOAppRegistryPda(oappConfigPda);
     console.log("🔑 OApp Registry PDA:", oappRegistryPda.toBase58());
 
-    const enforceOptioinsPda = getEnforcedOptionsPda(OAPP_PROGRAM_ID, oappConfigPda, constants.DST_EID);
+    const enforceOptioinsPda = getEnforcedOptionsPda(OAPP_PROGRAM_ID, oappConfigPda, DST_EID);
     console.log("🔑 Enforced Options PDA:", enforceOptioinsPda.toBase58());
 
     const sendLibPda = getSendLibPda();
     console.log("🔑 Send Library PDA:", sendLibPda.toBase58());
 
-    const sendLibConfigPda = getSendLibConfigPda(oappConfigPda, constants.DST_EID);
+    const sendLibConfigPda = getSendLibConfigPda(oappConfigPda, DST_EID);
     console.log("🔑 Send Library Config PDA:", sendLibConfigPda.toBase58());
 
     const sendLibInfoPda = getSendLibInfoPda(sendLibPda);
     console.log("🔑 Send Library Info PDA:", sendLibInfoPda.toBase58());
 
-    const defaultSendLibConfigPda = getDefaultSendLibConfigPda(constants.DST_EID);
+    const defaultSendLibConfigPda = getDefaultSendLibConfigPda(DST_EID);
     console.log("🔑 Default Send Library Config PDA:", defaultSendLibConfigPda.toBase58());
 
-    const sendConfigPda = getSendConfigPda(oappConfigPda, constants.DST_EID);
+    const sendConfigPda = getSendConfigPda(oappConfigPda, DST_EID);
     console.log("🔑 Send Config PDA:", sendConfigPda.toBase58());
 
-    const defaultSendConfigPda = getDefaultSendConfigPda(constants.DST_EID);
+    const defaultSendConfigPda = getDefaultSendConfigPda(DST_EID);
     console.log("🔑 Default Send Config PDA:", defaultSendConfigPda.toBase58());
 
-    const receiveConfigPda = getReceiveConfigPda(oappConfigPda, constants.DST_EID);
+    const receiveConfigPda = getReceiveConfigPda(oappConfigPda, DST_EID);
     console.log("🔑 Receive Config PDA:", receiveConfigPda.toBase58());
 
-    const defaultReceiveConfigPda = getDefaultReceiveConfigPda(constants.DST_EID);
+    const defaultReceiveConfigPda = getDefaultReceiveConfigPda(DST_EID);
     console.log("🔑 Default Receive Config PDA:", defaultReceiveConfigPda.toBase58());
 
     const ulnEventAuthorityPda = getUlnEventAuthorityPda();
@@ -548,10 +560,10 @@ export function printPda(OAPP_PROGRAM_ID: PublicKey, wallet: anchor.Wallet, rpc:
     const endpointSettingPda = getEndpointSettingPda();
     console.log("🔑 Endpoint Setting PDA: ", endpointSettingPda.toString());
 
-    const noncePda = getNoncePda(oappConfigPda, constants.DST_EID, constants.PEER_ADDRESS);
+    const noncePda = getNoncePda(oappConfigPda, DST_EID, PEER_ADDRESS);
     console.log("🔑 Nonce PDA: ", noncePda.toString());
    
-    const pendingInboundNoncePda = getPendingInboundNoncePda(oappConfigPda, constants.DST_EID, constants.PEER_ADDRESS);
+    const pendingInboundNoncePda = getPendingInboundNoncePda(oappConfigPda, DST_EID, PEER_ADDRESS);
     console.log("🔑 Pending Inbound Nonce PDA: ", pendingInboundNoncePda.toString());
 
     const executorConfigPda = getExecutorConfigPda();
@@ -580,5 +592,55 @@ export function printPda(OAPP_PROGRAM_ID: PublicKey, wallet: anchor.Wallet, rpc:
     const lookupTableList = [oappConfigPda, lzReceiveTypesPda, peerPda, eventAuthorityPda, oappRegistryPda, enforceOptioinsPda, sendLibPda, sendLibConfigPda, sendLibInfoPda, defaultSendLibConfigPda, sendConfigPda, defaultSendConfigPda, ulnEventAuthorityPda, ulnSettingPda, endpointSettingPda, noncePda, executorConfigPda, pricefeedConfigPda, dvnConfigPda, messageLibPda, vaultAuthorityPda];
 
     return lookupTableList;
+}
+
+export function getEnv(OAPP_PROGRAM_ID: PublicKey): String {
+    if (OAPP_PROGRAM_ID.toBase58() === constants.DEV_OAPP_PROGRAM_ID.toBase58()) {
+        return "DEV";
+    } else if (OAPP_PROGRAM_ID.toBase58() === constants.QA_OAPP_PROGRAM_ID.toBase58()) {
+        return "QA";
+    } else if (OAPP_PROGRAM_ID.toBase58() === constants.STAGING_OAPP_PROGRAM_ID.toBase58()) {
+        return "STAGING";
+    } else if (OAPP_PROGRAM_ID.toBase58() === constants.MAIN_OAPP_PRORAM_ID.toBase58()) {
+        return "MAIN";
+    } else {
+        throw new Error("Invalid OAPP Program ID");
+    }
+}
+
+export function getPeerAddress(ENV: String): Uint8Array {
+    if (ENV === "DEV") {
+        return constants.DEV_PEER_ADDRESS;
+    } else if (ENV === "QA") {
+        return constants.QA_PEER_ADDRESS;
+    } else if (ENV === "STAGING") {
+        return constants.STAGING_PEER_ADDRESS;
+    } else if (ENV === "MAIN") {
+        return constants.MAIN_PEER_ADDRESS;
+    } else {
+        throw new Error("Invalid Environment");
+    }
+}
+
+export function getDstEid(ENV: String): number {
+    if (ENV === "DEV" || ENV === "QA" || ENV === "STAGING" ) {
+        return constants.TEST_DST_EID;
+    } else if (ENV === "MAIN") {
+        return constants.MAIN_DST_EID;
+    }
+    else {
+        throw new Error("Invalid Environment");
+    }
+}
+
+export function getSolChainId(ENV: String): number {
+    if (ENV === "DEV" || ENV === "QA" || ENV === "STAGING" ) {
+        return constants.DEV_SOL_CHAIN_ID;
+    } else if (ENV === "MAIN") {
+        return constants.MAIN_SOL_CHAIN_ID;
+    }
+    else {
+        throw new Error("Invalid Environment");
+    }
 }
 

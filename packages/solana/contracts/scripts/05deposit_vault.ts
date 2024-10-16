@@ -19,14 +19,16 @@ const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
 const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
 
 const [provider, wallet, rpc] = utils.setAnchor();
+const ENV = utils.getEnv(OAPP_PROGRAM_ID);
 
 
 
 async function deposit() {
     console.log("Setting up Vault...");
-    const lookupTableAddresses = utils.printPda(OAPP_PROGRAM_ID, wallet, rpc);
+    const lookupTableList = utils.printPda(OAPP_PROGRAM_ID, wallet, rpc, ENV);
     const senderAddress = wallet.publicKey;
-    // const receiverAddress = new PublicKey("4bbnSXvV48dPEecRwbaQwWw4ajXKiMuUvN29zNY1LqY3");
+    // const receiverAddress = new PublicKey("9aFZUMoeVRvUnaE34RsHxpcJXvFMPPSWrG3QDNm6Sskf");
+
     const receiverAddress = senderAddress;
     const usdc = utils.getUSDCAddress(rpc);
     const userUSDCAccount = utils.getUSDCAccount(usdc, senderAddress);
@@ -63,7 +65,7 @@ async function deposit() {
         brokerHash: codedBrokerHash,
         tokenHash:  codedTokenHash,
         userAddress: Array.from(receiverAddress.toBuffer()),
-        tokenAmount: new anchor.BN(10_000_000),
+        tokenAmount: new anchor.BN(1_000_000_000),
     };
 
 
@@ -79,9 +81,9 @@ async function deposit() {
         vaultTokenAccount: vaultUSDCAccount,
         depositToken: usdc,
         user: wallet.publicKey,
-        peer: lookupTableAddresses[2],
-        enforcedOptions: lookupTableAddresses[5],
-        oappConfig: lookupTableAddresses[0],
+        peer: lookupTableList[2],
+        enforcedOptions: lookupTableList[5],
+        oappConfig: lookupTableList[0],
         allowedBroker: allowedBrokerPda,
         allowedToken: allowedTokenPda
     }).remainingAccounts([
@@ -94,7 +96,7 @@ async function deposit() {
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: lookupTableAddresses[0],
+                        pubkey: lookupTableList[0],
                     },
                     {
                         isSigner: false,
@@ -104,32 +106,32 @@ async function deposit() {
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: lookupTableAddresses[7], 
+                        pubkey: lookupTableList[7], 
                     },
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: lookupTableAddresses[9], 
+                        pubkey: lookupTableList[9], 
                     },
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: lookupTableAddresses[8], 
+                        pubkey: lookupTableList[8], 
                     },
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: lookupTableAddresses[14], 
+                        pubkey: lookupTableList[14], 
                     },
                     {
                         isSigner: false,
                         isWritable: true,
-                        pubkey: lookupTableAddresses[15], 
+                        pubkey: lookupTableList[15], 
                     },
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: lookupTableAddresses[3], 
+                        pubkey: lookupTableList[3], 
                     },
                     // ULN solana/programs/programs/uln/src/instructions/endpoint/send.rs
                     {
@@ -140,17 +142,17 @@ async function deposit() {
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: lookupTableAddresses[13],
+                        pubkey: lookupTableList[13],
                     },
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: lookupTableAddresses[10],
+                        pubkey: lookupTableList[10],
                     },
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: lookupTableAddresses[11],
+                        pubkey: lookupTableList[11],
                     },
                     {
                         isSigner: true,
@@ -170,7 +172,7 @@ async function deposit() {
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: lookupTableAddresses[12], 
+                        pubkey: lookupTableList[12], 
                     },
                     {
                         isSigner: false,
@@ -185,7 +187,7 @@ async function deposit() {
                     {
                         isSigner: false,
                         isWritable: true,
-                        pubkey: lookupTableAddresses[16]
+                        pubkey: lookupTableList[16]
                     },
                     {
                         isSigner: false,
@@ -195,7 +197,7 @@ async function deposit() {
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: lookupTableAddresses[17]
+                        pubkey: lookupTableList[17]
                     },
                     {
                         isSigner: false,
@@ -205,7 +207,7 @@ async function deposit() {
                     {
                         isSigner: false,
                         isWritable: true,
-                        pubkey: lookupTableAddresses[18]
+                        pubkey: lookupTableList[18]
                     },
                     {
                         isSigner: false,
@@ -215,7 +217,7 @@ async function deposit() {
                     {
                         isSigner: false,
                         isWritable: false,
-                        pubkey: lookupTableAddresses[17]
+                        pubkey: lookupTableList[17]
                     }
     ]).instruction();
 
@@ -227,82 +229,11 @@ async function deposit() {
         [ixDepositEntry, ixAddComputeBudget],
         provider,
         wallet,
-        lookupTableAddresses,
-        OAPP_PROGRAM_ID
+        lookupTableList,
+        ENV
     );
     
     
 }
 
 deposit();
-
-// function getTableAddresses() {
-//     const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
-//     console.log("🔑 OApp Config PDA:", oappConfigPda.toBase58());
-
-//     const lzReceiveTypesPda = utils.getLzReceiveTypesPda(OAPP_PROGRAM_ID, oappConfigPda);
-//     console.log("🔑 LZ Receive Types PDA:", lzReceiveTypesPda.toBase58());
-
-//     const peerPda = utils.getPeerPda(OAPP_PROGRAM_ID, oappConfigPda, constants.DST_EID);
-//     console.log("🔑 Peer PDA:", peerPda.toBase58());
-
-//     const eventAuthorityPda = utils.getEventAuthorityPda();
-//     console.log("🔑 Event Authority PDA:", eventAuthorityPda.toBase58());
-
-//     const oappRegistryPda = utils.getOAppRegistryPda(oappConfigPda);
-//     console.log("🔑 OApp Registry PDA:", oappRegistryPda.toBase58());
-
-//     const enforceOptioinsPda = utils.getEndorcedOptionsPda(OAPP_PROGRAM_ID, oappConfigPda, constants.DST_EID);
-//     console.log("🔑 Enforced Options PDA:", enforceOptioinsPda.toBase58());
-
-//     const sendLibPda = utils.getSendLibPda();
-//     console.log("🔑 Send Library PDA:", sendLibPda.toBase58());
-
-//     const sendLibConfigPda = utils.getSendLibConfigPda(oappConfigPda, constants.DST_EID);
-//     console.log("🔑 Send Library Config PDA:", sendLibConfigPda.toBase58());
-
-//     const sendLibInfoPda = utils.getSendLibInfoPda(sendLibPda);
-//     console.log("🔑 Send Library Info PDA:", sendLibInfoPda.toBase58());
-
-//     const defaultSendLibConfigPda = utils.getDefaultSendLibConfigPda(constants.DST_EID);
-//     console.log("🔑 Default Send Library Config PDA:", defaultSendLibConfigPda.toBase58());
-
-//     const sendConfigPda = utils.getSendConfigPda(oappConfigPda, constants.DST_EID);
-//     console.log("🔑 Send Config PDA:", sendConfigPda.toBase58());
-
-//     const defaultSendConfigPda = utils.getDefaultSendConfigPda(constants.DST_EID);
-//     console.log("🔑 Default Send Config PDA:", defaultSendConfigPda.toBase58());
-
-//     const ulnEventAuthorityPda = utils.getUlnEventAuthorityPda();
-//     console.log("🔑 ULN Event Authority PDA:", ulnEventAuthorityPda.toBase58());
-
-//     const ulnSettingPda = utils.getUlnSettingPda();
-//     console.log("🔑 ULN Setting PDA:", ulnSettingPda.toBase58());
-
-//     const endpointSettingPda = utils.getEndpointSettingPda();
-//     console.log("🔑 Endpoint Setting PDA: ", endpointSettingPda.toString());
-
-//     const noncePda = utils.getNoncePda(oappConfigPda, constants.DST_EID, constants.PEER_ADDRESS);
-//     console.log("🔑 Nonce PDA: ", noncePda.toString());
-
-//     const executorConfigPda = utils.getExecutorConfigPda();
-//     console.log("🔑 Executor Config PDA: ", executorConfigPda.toString());
-
-//     const pricefeedConfigPda = utils.getPriceFeedPda();
-//     console.log("🔑 Price Feed Config PDA: ", pricefeedConfigPda.toString());
-
-//     const dvnConfigPda = utils.getDvnConfigPda();
-//     console.log("🔑 DVN Config PDA: ", dvnConfigPda.toString());
-
-//     const messageLibPda = utils.getMessageLibPda();
-//     console.log("🔑 Message Lib PDA: ", messageLibPda.toString());
-
-
-//     // const [usdcAddress, userUSDCAccount, vaultUSDCAccount] = await utils.getRelatedUSDCAcount(provider, wallet, rpc);
-//     // console.log("💶 USDC Address: ", usdcAddress.toString());
-//     // console.log("💶 User USDC Account: ", userUSDCAccount.toString());
-//     // console.log("💶 Vault USDC Account: ", vaultUSDCAccount.toString());
-//     //                              0                   1            2             3                  4                 5               6             7                 8                    9                  10                 11                   12                 13              14              15              16                 17                18             19           
-//     const lookupTableAddress = [oappConfigPda, lzReceiveTypesPda, peerPda, eventAuthorityPda, oappRegistryPda, enforceOptioinsPda, sendLibPda, sendLibConfigPda, sendLibInfoPda, defaultSendLibConfigPda, sendConfigPda, defaultSendConfigPda, ulnEventAuthorityPda, ulnSettingPda, endpointSettingPda, noncePda, executorConfigPda, pricefeedConfigPda, dvnConfigPda, messageLibPda];
-//     return lookupTableAddress;
-// }
