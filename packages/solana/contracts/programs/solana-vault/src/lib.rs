@@ -1,7 +1,7 @@
-mod errors;
-mod events;
-mod instructions;
-mod state;
+pub mod errors;
+pub mod events;
+pub mod instructions;
+pub mod state;
 
 use anchor_lang::prelude::*;
 use errors::*;
