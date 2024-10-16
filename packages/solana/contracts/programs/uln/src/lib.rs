@@ -11,7 +11,7 @@ pub const SEND_CONFIG_SEED: &[u8] = b"SendConfig";
 pub const RECEIVE_CONFIG_SEED: &[u8] = b"ReceiveConfig";
 pub const CONFIRMATIONS_SEED: &[u8] = b"Confirmations";
 
-declare_id!("H5Uke9DE4jFiJi73Ade5g3yPwMhfVVbzPWqomoUfqQhb");
+declare_id!("CduQbgrsyGupNemhnwQhtQjqBkawJk4pFx3axQLGg4bL");
 
 #[program]
 pub mod uln {
@@ -21,7 +21,10 @@ pub mod uln {
         InitUln::apply(&mut ctx, &params)
     }
 
-    pub fn commit_verification(mut ctx: Context<CommitVerification>, params: CommitVerificationParams) -> Result<()> {
+    pub fn commit_verification(
+        mut ctx: Context<CommitVerification>,
+        params: CommitVerificationParams,
+    ) -> Result<()> {
         CommitVerification::apply(&mut ctx, &params)
     }
 
@@ -32,7 +35,7 @@ pub mod uln {
     pub fn quote(_ctx: Context<Interface>, _params: QuoteParams) -> Result<MessagingFee> {
         let messaging_fee = MessagingFee {
             native_fee: 1000,
-            lz_token_fee: 900
+            lz_token_fee: 900,
         };
 
         Ok(messaging_fee)

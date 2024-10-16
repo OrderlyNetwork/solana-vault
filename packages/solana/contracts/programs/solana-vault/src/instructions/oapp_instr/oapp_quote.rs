@@ -43,23 +43,20 @@ impl OAppQuote<'_> {
                 receiver: ctx.accounts.peer.address,
                 message: params.message.clone().unwrap_or_default(),
                 pay_in_lz_token: params.pay_in_lz_token,
-                options: ctx
-                    .accounts
-                    .enforced_options
-                    .combine_options(&params.message, &params.options)?,
+                options: ctx.accounts.enforced_options.get_enforced_options(&None),
             },
         )?;
 
-        return Ok(MessagingFee{
+        return Ok(MessagingFee {
             native_fee: messaging_fee.native_fee,
-            lz_token_fee: messaging_fee.lz_token_fee
+            lz_token_fee: messaging_fee.lz_token_fee,
         });
     }
 }
 
 // Redefined MessagingFee here as a workaround to be able to use view() in tests
 // https://github.com/coral-xyz/anchor/issues/3220
-#[derive(Clone, AnchorSerialize, AnchorDeserialize, Default)]
+#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct MessagingFee {
     pub native_fee: u64,
     pub lz_token_fee: u64,
