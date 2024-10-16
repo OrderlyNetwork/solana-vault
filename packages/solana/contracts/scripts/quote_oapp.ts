@@ -9,9 +9,12 @@ import { SolanaVault } from "../target/types/solana_vault";
 
 const [provider, wallet, rpc] = utils.setAnchor();
 
+
 const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
 const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
-
+const ENV = utils.getEnv(OAPP_PROGRAM_ID);
+const DST_EID = utils.getDstEid(ENV);
+const PEER_ADDRESS = utils.getPeerAddress(ENV);
 
 // Enum for MsgType
 enum MsgType {
@@ -66,22 +69,22 @@ function encodeLzMessage(message: LzMessage): Buffer {
 
 async function quoteLayerZeroFee() {
     console.log("Quoting LayerZero cross-chain fee...");
-    const lookupTableAddresses = utils.printPda(OAPP_PROGRAM_ID, wallet, rpc);
+    const lookupTableList = utils.printPda(OAPP_PROGRAM_ID, wallet, rpc, ENV);
     
-    const oappConfigPda = lookupTableAddresses[0];
-    const peerPda = lookupTableAddresses[2];
-    const enforcedOptionsPda = lookupTableAddresses[5];
+    const oappConfigPda = lookupTableList[0];
+    const peerPda = lookupTableList[2];
+    const enforcedOptionsPda = lookupTableList[5];
     const endpointPda = utils.getEndpointSettingPda(constants.ENDPOINT_PROGRAM_ID)
     const oappPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
     const oappRegistryPda = utils.getOAppRegistryPda(oappPda)
-    const sendLibraryConfigPda = utils.getSendLibConfigPda(oappPda, constants.DST_EID)
-    const defaultSendLibraryConfigPda = utils.getDefaultSendLibConfigPda(constants.DST_EID)
+    const sendLibraryConfigPda = utils.getSendLibConfigPda(oappPda, DST_EID)
+    const defaultSendLibraryConfigPda = utils.getDefaultSendLibConfigPda(DST_EID)
     const messageLibPda = utils.getMessageLibPda(constants.SEND_LIB_PROGRAM_ID)
     const messageLibInfoPda = utils.getMessageLibInfoPda(messageLibPda)
-    const efOptionsPda = utils.getEnforcedOptionsPda(OAPP_PROGRAM_ID, oappPda, constants.DST_EID)    
+    const efOptionsPda = utils.getEnforcedOptionsPda(OAPP_PROGRAM_ID, oappPda, DST_EID)    
     const eventAuthorityPda = utils.getEventAuthorityPda()
-    const noncePda = utils.getNoncePda(oappPda, constants.DST_EID, constants.PEER_ADDRESS)
-    const pendingInboundNoncePda = utils.getPendingInboundNoncePda(oappPda, constants.DST_EID, constants.PEER_ADDRESS)
+    const noncePda = utils.getNoncePda(oappPda, DST_EID, PEER_ADDRESS)
+    const pendingInboundNoncePda = utils.getPendingInboundNoncePda(oappPda, DST_EID, PEER_ADDRESS)
 
     // Create a sample deposit message
     const depositMsg = Buffer.alloc(32*7); // Adjust size as needed
@@ -95,8 +98,8 @@ async function quoteLayerZeroFee() {
     });
 
     const quoteParams = {
-        dstEid: constants.DST_EID,
-        to: Array.from(constants.PEER_ADDRESS),
+        dstEid: DST_EID,
+        to: Array.from(PEER_ADDRESS),
         options: Buffer.from([]),
         message: lzMessage,
         payInLzToken: false
@@ -155,12 +158,12 @@ async function quoteLayerZeroFee() {
                     isSigner: false,
                 },
                 {
-                    pubkey: utils.getSendConfigPda(oappConfigPda, constants.DST_EID),
+                    pubkey: utils.getSendConfigPda(oappConfigPda, DST_EID),
                     isWritable: false,
                     isSigner: false,
                 },
                 {
-                    pubkey: utils.getDefaultSendConfigPda(constants.DST_EID),
+                    pubkey: utils.getDefaultSendConfigPda(DST_EID),
                     isWritable: false,
                     isSigner: false,
                 },
