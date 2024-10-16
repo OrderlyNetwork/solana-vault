@@ -5,12 +5,12 @@ import { Options } from "@layerzerolabs/lz-v2-utilities";
 import * as utils from "./utils";
 import * as constants from "./constants";
 
-import OAppIdl from "../target/idl/solana_vault.json";
-import { SolanaVault } from "../target/types/solana_vault";
-const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
-const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
+const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram();  
 
 const [provider, wallet, rpc] = utils.setAnchor();
+
+const ENV = utils.getEnv(OAPP_PROGRAM_ID);
+const DST_EID = utils.getDstEid(ENV);
 
 const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
 console.log("OApp Config PDA:", oappConfigPda.toBase58());
@@ -18,7 +18,7 @@ console.log("OApp Config PDA:", oappConfigPda.toBase58());
 const lzReceiveTypesPda = utils.getLzReceiveTypesPda(OAPP_PROGRAM_ID, oappConfigPda);
 console.log("LZ Receive Types PDA:", lzReceiveTypesPda.toBase58());
 
-const peerPda = utils.getPeerPda(OAPP_PROGRAM_ID, oappConfigPda, constants.DST_EID);
+const peerPda = utils.getPeerPda(OAPP_PROGRAM_ID, oappConfigPda, DST_EID);
 console.log("Peer PDA:", peerPda.toBase58());
 
 const eventAuthorityPda = utils.getEventAuthorityPda();
@@ -29,8 +29,6 @@ console.log("OApp Registry PDA:", oappRegistryPda.toBase58());
 
 const vaultOwnerPda = utils.getVaultOwnerPda(OAPP_PROGRAM_ID);
 console.log("Owner PDA:", vaultOwnerPda.toBase58());
-
-
 
 async function setup() {
     console.log("Setting up OApp...");
@@ -93,9 +91,10 @@ async function setup() {
     const sigInitOapp = await provider.sendAndConfirm(txInitOapp, [wallet.payer]);
     console.log("Init OApp transaction confirmed:", sigInitOapp);
 
+    const peerAddress = utils.getPeerAddress(ENV);
     const ixSetPeer = await OAppProgram.methods.setPeer({
-        dstEid: constants.DST_EID,
-        peer: Array.from(constants.PEER_ADDRESS)
+        dstEid: DST_EID,
+        peer: Array.from(peerAddress)
     }).accounts({
         admin: wallet.publicKey,
         peer: peerPda,
@@ -111,7 +110,7 @@ async function setup() {
     const ixSetOption = await OftTools.createSetEnforcedOptionsIx(
         wallet.publicKey,
         oappConfigPda,
-        constants.DST_EID,
+        DST_EID,
         Options.newOptions().addExecutorLzReceiveOption(constants.LZ_RECEIVE_GAS, constants.LZ_RECEIVE_VALUE).addExecutorOrderedExecutionOption().toBytes(),
         Options.newOptions().addExecutorLzReceiveOption(constants.LZ_RECEIVE_GAS, constants.LZ_RECEIVE_VALUE).addExecutorComposeOption(0, constants.LZ_COMPOSE_GAS, constants.LZ_COMPOSE_VALUE).toBytes(),
         OAPP_PROGRAM_ID

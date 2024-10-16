@@ -7,12 +7,14 @@ const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
 
 
 const [provider, wallet, rpc] = utils.setAnchor();
+const ENV = utils.getEnv(OAPP_PROGRAM_ID);
+const DST_EID = utils.getDstEid(ENV);
 
 
 const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
 console.log("OApp Config PDA:", oappConfigPda.toBase58());
 
-const sendLibConfigPda = utils.getSendLibConfigPda(oappConfigPda, constants.DST_EID);
+const sendLibConfigPda = utils.getSendLibConfigPda(oappConfigPda, DST_EID);
 console.log("Send Library Config PDA:", sendLibConfigPda.toBase58());
 
 const sendLibPda = utils.getSendLibPda();
@@ -33,7 +35,7 @@ async function setSendConfig() {
         await OftTools.createInitSendLibraryIx(
             wallet.publicKey,
             oappConfigPda,
-            constants.DST_EID,
+            DST_EID,
         ),        
     );
 
@@ -59,7 +61,7 @@ async function setSendConfig() {
             wallet.publicKey,
             oappConfigPda,
             constants.SEND_LIB_PROGRAM_ID,
-            constants.DST_EID,
+            DST_EID,
         ),
     );
 
@@ -83,7 +85,7 @@ async function setReceiveConfig() {
             await OftTools.createInitReceiveLibraryIx(
                 wallet.publicKey,
                 oappConfigPda,
-                constants.DST_EID,
+                DST_EID,
                 constants.ENDPOINT_PROGRAM_ID
             ),
         );
@@ -108,7 +110,7 @@ async function setReceiveConfig() {
             wallet.publicKey,
             oappConfigPda,
             constants.RECEIVE_LIB_PROGRAM_ID,
-            constants.DST_EID,
+            DST_EID,
             BigInt(0),
             constants.ENDPOINT_PROGRAM_ID
         ),
@@ -133,16 +135,6 @@ async function setReceiveConfig() {
 
 setconfig();
 
-async function getConfig() {
-    const config = await OftTools.getEndpointConfig(
-        provider.connection,
-        new PublicKey("5Lgo8UDHs9q76YZLtZpWMPFXzopTEqux4PLEJj5HG6Hs"),
-        constants.DST_EID,
-    );
-
-    console.log("Config:", config);
-}
-
 async function setULN() {
     // Set the Executor config for the pathway.
         const setExecutorConfigTransaction = new Transaction().add(
@@ -150,7 +142,7 @@ async function setULN() {
                 provider.connection,
                 wallet.publicKey,
                 oappConfigPda,
-                constants.DST_EID,
+                DST_EID,
                 SetConfigType.EXECUTOR,
                 {
                     executor: constants.EXECUTOR_PDA,
@@ -165,7 +157,7 @@ async function setULN() {
             [wallet.payer],
         );
         console.log(
-            `✅ Set executor configuration for dstEid ${constants.DST_EID}! View the transaction here: ${setExecutorConfigSignature}`,
+            `✅ Set executor configuration for dstEid ${DST_EID}! View the transaction here: ${setExecutorConfigSignature}`,
         );
 
         // Set the Executor config for the pathway.
@@ -174,7 +166,7 @@ async function setULN() {
                 provider.connection,
                 wallet.publicKey,
                 oappConfigPda,
-                constants.DST_EID,
+                DST_EID,
                 SetConfigType.SEND_ULN,
                 {
                     confirmations: 10, // should be consistent with the target chain
@@ -193,7 +185,7 @@ async function setULN() {
             [wallet.payer],
         );
         console.log(
-            `✅ Set send uln configuration for dstEid ${constants.DST_EID}! View the transaction here: ${setSendUlnConfigSignature}`,
+            `✅ Set send uln configuration for dstEid ${DST_EID}! View the transaction here: ${setSendUlnConfigSignature}`,
         );
 
         // Set the Executor config for the pathway.
@@ -202,7 +194,7 @@ async function setULN() {
                 provider.connection,
                 wallet.publicKey,
                 oappConfigPda,
-                constants.DST_EID,
+                DST_EID,
                 SetConfigType.RECEIVE_ULN,
                 {
                     confirmations: 1, // should be consistent with the target chain
@@ -221,6 +213,6 @@ async function setULN() {
             [wallet.payer],
         );
         console.log(
-            `✅ Set receive uln configuration for dstEid ${constants.DST_EID}! View the transaction here: ${setReceiveUlnConfigSignature}`,
+            `✅ Set receive uln configuration for dstEid ${DST_EID}! View the transaction here: ${setReceiveUlnConfigSignature}`,
         );
 }
