@@ -11,8 +11,10 @@ const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
 const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
 
 const [provider, wallet, rpc] = utils.setAnchor();
-
+const ENV = utils.getEnv(OAPP_PROGRAM_ID);
+const DST_EID = utils.getDstEid(ENV);
 const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
+
 console.log("OApp Config PDA:", oappConfigPda.toBase58());
 
 
@@ -22,7 +24,7 @@ async function setup() {
     const ixSetOption = await OftTools.createSetEnforcedOptionsIx(
         wallet.publicKey,
         oappConfigPda,
-        constants.DST_EID,
+        DST_EID,
         Options.newOptions().addExecutorLzReceiveOption(constants.LZ_RECEIVE_GAS, constants.LZ_RECEIVE_VALUE).addExecutorOrderedExecutionOption().toBytes(),
         Options.newOptions().addExecutorLzReceiveOption(constants.LZ_RECEIVE_GAS, constants.LZ_RECEIVE_VALUE).addExecutorComposeOption(0, constants.LZ_COMPOSE_GAS, constants.LZ_COMPOSE_VALUE).toBytes(),
         OAPP_PROGRAM_ID

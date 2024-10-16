@@ -9,6 +9,9 @@ const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
 const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
 
 const [provider, wallet, rpc] = utils.setAnchor();
+const ENV = utils.getEnv(OAPP_PROGRAM_ID);
+const DST_EID = utils.getDstEid(ENV);
+const SOL_CHAIN_ID = utils.getSolChainId(ENV);
 
 
 
@@ -19,8 +22,8 @@ async function reinit() {
 
     const reinitVaultParams = {
         owner: wallet.publicKey,
-        dstEid: constants.DST_EID,
-        solChainId: new anchor.BN(constants.SOL_CHAIN_ID),
+        dstEid: DST_EID,
+        solChainId: new anchor.BN(SOL_CHAIN_ID),
         orderDelivery: true,
         inboundNonce: new anchor.BN(74),   // to check the latest nonce, need to check on lzscan
         depositNonce: new anchor.BN(78),   //
