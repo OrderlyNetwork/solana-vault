@@ -24,7 +24,26 @@ yarn && yarn build
 
 1. Make sure the oapp program id is set correctly in source code and Anchor.toml
 
-2. Because the definition of `MessagingFee` is not included in the IDL, you can copy the files in `interface/` to overwrite the generated files in `target/types/` after you build the project.
+2. Because the definition of `MessagingFee` is not included in the IDL, please add the following definition to the idl types file `target/types/solana_vault.ts`.
+
+```typescript
+{
+      "name": "MessagingFee",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "nativeFee",
+            "type": "u64"
+          },
+          {
+            "name": "lzTokenFee",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+```
 
 3. Run the script
 
