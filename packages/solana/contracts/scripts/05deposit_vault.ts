@@ -60,22 +60,41 @@ async function deposit() {
     
 
     
-    const vaultDepositParams = {
+    const depositParams = {
         accountId:  codedAccountId,
         brokerHash: codedBrokerHash,
         tokenHash:  codedTokenHash,
         userAddress: Array.from(receiverAddress.toBuffer()),
-        tokenAmount: new anchor.BN(1_000_000_000),
+        tokenAmount: new anchor.BN(10_000_000),
     };
 
 
-    const sendParam = {
-        nativeFee: new anchor.BN(1_000_000_000),
-        lzTokenFee: new anchor.BN(0),
-    }
+    
     const allowedBrokerPda = utils.getBrokerPda(OAPP_PROGRAM_ID, brokerHash);
     const allowedTokenPda = utils.getTokenPda(OAPP_PROGRAM_ID, tokenHash);
-    const ixDepositEntry = await OAppProgram.methods.deposit(vaultDepositParams, sendParam).accounts({
+    const quoteRemainingAccounts = utils.getQuoteRemainingAccounts(OAPP_PROGRAM_ID, ENV);
+    const oappConfigPda = lookupTableList[0];
+    const peerPda = lookupTableList[2];
+    const enforcedOptionsPda = lookupTableList[5];
+    const {nativeFee, lzTokenFee } = await OAppProgram.methods
+    .oappQuote(depositParams)
+    .accounts({
+        oappConfig: oappConfigPda,
+        peer: peerPda,
+        enforcedOptions: enforcedOptionsPda,
+        vaultAuthority: vaultAuthorityPda,
+    })
+    .remainingAccounts(quoteRemainingAccounts)
+    .view();
+
+    console.log("Native Fee:", nativeFee.toString());
+
+    const sendParam = {
+        nativeFee: nativeFee,
+        lzTokenFee: new anchor.BN(0),
+    }
+    const depositRemainingAccounts = utils.getDepositRemainingAccounts(OAPP_PROGRAM_ID, ENV, wallet);
+    const ixDepositEntry = await OAppProgram.methods.deposit(depositParams, sendParam).accounts({
         userTokenAccount: userUSDCAccount,
         vaultAuthority: vaultAuthorityPda,
         vaultTokenAccount: vaultUSDCAccount,
@@ -86,140 +105,7 @@ async function deposit() {
         oappConfig: lookupTableList[0],
         allowedBroker: allowedBrokerPda,
         allowedToken: allowedTokenPda
-    }).remainingAccounts([
-                    // ENDPOINT solana/programs/programs/uln/src/instructions/endpoint/send.rs
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: constants.ENDPOINT_PROGRAM_ID,
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: lookupTableList[0],
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: constants.SEND_LIB_PROGRAM_ID
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: lookupTableList[7], 
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: lookupTableList[9], 
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: lookupTableList[8], 
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: lookupTableList[14], 
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: true,
-                        pubkey: lookupTableList[15], 
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: lookupTableList[3], 
-                    },
-                    // ULN solana/programs/programs/uln/src/instructions/endpoint/send.rs
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: constants.ENDPOINT_PROGRAM_ID,
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: lookupTableList[13],
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: lookupTableList[10],
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: lookupTableList[11],
-                    },
-                    {
-                        isSigner: true,
-                        isWritable: false,
-                        pubkey: wallet.publicKey,
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: constants.TREASURY_PROGRAM_ID,
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: SystemProgram.programId,
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: lookupTableList[12], 
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: constants.SEND_LIB_PROGRAM_ID
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: constants.EXECUTOR_PROGRAM_ID
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: true,
-                        pubkey: lookupTableList[16]
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: constants.PRICE_FEED_PROGRAM_ID
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: lookupTableList[17]
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: constants.DVN_PROGRAM_ID
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: true,
-                        pubkey: lookupTableList[18]
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: constants.PRICE_FEED_PROGRAM_ID 
-                    },
-                    {
-                        isSigner: false,
-                        isWritable: false,
-                        pubkey: lookupTableList[17]
-                    }
-    ]).instruction();
+    }).remainingAccounts(depositRemainingAccounts).instruction();
 
     const ixAddComputeBudget = ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 });
 
