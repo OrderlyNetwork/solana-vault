@@ -111,7 +111,7 @@ impl<'info> Deposit<'info> {
     ) -> Result<MessagingReceipt> {
         transfer(
             ctx.accounts.transfer_token_ctx(),
-            deposit_params.token_amount,
+            deposit_params.token_amount as u128,
         )?;
 
         msg!("User deposited : {}", deposit_params.token_amount);

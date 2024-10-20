@@ -119,7 +119,7 @@ impl<'info> OAppLzReceive<'info> {
                 ctx.accounts
                     .transfer_token_ctx()
                     .with_signer(&[&vault_authority_seeds[..]]),
-                amount_to_transfer,
+                amount_to_transfer as u128,
             )?;
 
             let vault_withdraw_params: VaultWithdrawParams = withdraw_params.into();
