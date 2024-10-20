@@ -62,7 +62,7 @@ pub mod solana_vault {
         SetOrderDelivery::apply(&mut ctx, &params)
     }
 
-    pub fn oapp_quote(ctx: Context<OAppQuote>, params: OAppQuoteParams) -> Result<MessagingFee> {
+    pub fn oapp_quote(ctx: Context<OAppQuote>, params: DepositParams) -> Result<MessagingFee> {
         OAppQuote::apply(&ctx, &params)
     }
 
