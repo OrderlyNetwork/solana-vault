@@ -689,19 +689,21 @@ describe('messaging', function() {
         }
 
         const peerPda = getPeerPda(program.programId, oappPda, DST_EID)
-
+        const tokenHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+        const brokerHash = tokenHash;
         const {lzTokenFee, nativeFee} = await program.methods
             .oappQuote({
-                dstEid: DST_EID,
-                to: Array.from(wallet.publicKey.toBytes()),
-                options: Buffer.from([]),
-                message: null,
-                payInLzToken: false
+                accountId: Array.from(wallet.publicKey.toBytes()),
+                brokerHash: brokerHash,
+                tokenHash: tokenHash,
+                userAddress: Array.from(wallet.publicKey.toBytes()),
+                tokenAmount: new BN(1e9),
             })
             .accounts({
                 oappConfig: oappPda,
                 peer: peerPda,
-                enforcedOptions: efOptionsPda
+                enforcedOptions: efOptionsPda,
+                vaultAuthority: vaultAuthorityPda,
             })
             .remainingAccounts([
                 {
