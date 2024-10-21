@@ -97,117 +97,56 @@ async function quoteLayerZeroFee() {
         payload: depositMsg,
     });
 
-    const quoteParams = {
-        dstEid: DST_EID,
-        to: Array.from(PEER_ADDRESS),
-        options: Buffer.from([]),
-        message: lzMessage,
-        payInLzToken: false
+    console.log("Setting up Vault...");
+    const senderAddress = wallet.publicKey;
+    // const receiverAddress = new PublicKey("9aFZUMoeVRvUnaE34RsHxpcJXvFMPPSWrG3QDNm6Sskf");
+
+    const receiverAddress = senderAddress;
+    const usdc = utils.getUSDCAddress(rpc);
+    const userUSDCAccount = utils.getUSDCAccount(usdc, senderAddress);
+
+    const vaultAuthorityPda = utils.getVaultAuthorityPda(OAPP_PROGRAM_ID);
+    console.log("🔑 Vault Deposit Authority PDA:", vaultAuthorityPda.toBase58());
+
+    const vaultUSDCAccount = await utils.getUSDCAccount(usdc, vaultAuthorityPda);
+    console.log("💶 Vault USDCAccount", vaultUSDCAccount.toBase58());
+
+    const brokerId = "woofi_pro";
+    const tokenSymbol = "USDC";
+    const brokerHash = utils.getBrokerHash(brokerId);
+    console.log("Broker Hash:", brokerHash);
+    const codedBrokerHash = Array.from(Buffer.from(brokerHash.slice(2), 'hex'));
+    const tokenHash = utils.getTokenHash(tokenSymbol);
+    console.log("Token Hash:", tokenHash);
+
+    const codedTokenHash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'));
+    const solAccountId = utils.getSolAccountId(receiverAddress, brokerId); 
+    console.log("Sol Account Id:", solAccountId);
+    const codedAccountId = Array.from(Buffer.from(solAccountId.slice(2), 'hex'));
+    
+
+    
+    const depositParams = {
+        accountId:  codedAccountId,
+        brokerHash: codedBrokerHash,
+        tokenHash:  codedTokenHash,
+        userAddress: Array.from(receiverAddress.toBuffer()),
+        tokenAmount: new anchor.BN(1_000_000_000),
     };
 
     // print utils.getUlnSettingPda()
     console.log("Uln Setting PDA:", utils.getUlnSettingPda());
-
+    const quoteRemainingAccounts =  utils.getQuoteRemainingAccounts(OAPP_PROGRAM_ID, ENV);
     try {
         const { lzTokenFee, nativeFee } = await OAppProgram.methods
-            .oappQuote(quoteParams)
+            .oappQuote(depositParams)
             .accounts({
                 oappConfig: oappConfigPda,
                 peer: peerPda,
-                enforcedOptions: enforcedOptionsPda
+                enforcedOptions: enforcedOptionsPda,
+                vaultAuthority: vaultAuthorityPda,
             })
-            .remainingAccounts([
-                {
-                    pubkey: constants.ENDPOINT_PROGRAM_ID,
-                    isWritable: false,
-                    isSigner: false,
-                },
-                {
-                    pubkey: constants.SEND_LIB_PROGRAM_ID,
-                    isWritable: false,
-                    isSigner: false,
-                },
-                {
-                    pubkey: sendLibraryConfigPda, // send_library_config
-                    isWritable: false,
-                    isSigner: false,
-                },
-                {
-                    pubkey: defaultSendLibraryConfigPda, // default_send_library_config
-                    isWritable: false,
-                    isSigner: false,
-                },
-                {
-                    pubkey: messageLibInfoPda, // send_library_info
-                    isWritable: false,
-                    isSigner: false,
-                },
-                {
-                    pubkey: endpointPda, // endpoint settings
-                    isWritable: false,
-                    isSigner: false,
-                },
-                {
-                    pubkey: noncePda, // nonce
-                    isWritable: false,
-                    isSigner: false,
-                },
-                {
-                    pubkey: messageLibPda,
-                    isWritable: false,
-                    isSigner: false,
-                },
-                {
-                    pubkey: utils.getSendConfigPda(oappConfigPda, DST_EID),
-                    isWritable: false,
-                    isSigner: false,
-                },
-                {
-                    pubkey: utils.getDefaultSendConfigPda(DST_EID),
-                    isWritable: false,
-                    isSigner: false,
-                },
-                {
-                    pubkey: constants.EXECUTOR_PROGRAM_ID,
-                    isWritable: false,
-                    isSigner: false,
-                },
-                {
-                    pubkey: utils.getExecutorConfigPda(),
-                    isWritable: false,
-                    isSigner: false,
-                },
-                {
-                    pubkey: constants.PRICE_FEED_PROGRAM_ID,
-                    isWritable: false,
-                    isSigner: false,
-                },
-                {
-                    pubkey: utils.getPriceFeedPda(),
-                    isWritable: false,
-                    isSigner: false,
-                },
-                {
-                    pubkey: constants.DVN_PROGRAM_ID,
-                    isWritable: false,
-                    isSigner: false,
-                },
-                {
-                    pubkey: utils.getDvnConfigPda(),
-                    isWritable: false,
-                    isSigner: false,
-                },
-                {
-                    pubkey: constants.PRICE_FEED_PROGRAM_ID,
-                    isWritable: false,
-                    isSigner: false,
-                },
-                {
-                    pubkey: utils.getPriceFeedPda(),
-                    isWritable: false,
-                    isSigner: false,
-                },
-            ])
+            .remainingAccounts(quoteRemainingAccounts)
             .view();
 
         console.log("LayerZero cross-chain fee quote:");
