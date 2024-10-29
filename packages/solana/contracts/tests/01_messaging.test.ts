@@ -370,9 +370,9 @@ describe('messaging', function() {
         const tokenHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
         const payload = Buffer.concat([
-            wallet.publicKey.toBuffer(),
-            wallet.publicKey.toBuffer(),
-            oappPda.toBuffer(),
+            wallet.publicKey.toBuffer(),  // placeholder for account_id
+            wallet.publicKey.toBuffer(),  // sender
+            wallet.publicKey.toBuffer(),  // receiver
             Buffer.from(tokenHash), // placeholder for broker hash
             Buffer.from(tokenHash), // placeholder
             tokenAmountBuffer,
@@ -464,6 +464,90 @@ describe('messaging', function() {
         vaultBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address)
         assert.equal(vaultBalance, 1e9, "Vault should have 1000 USDC after minting")
 
+         // try to frontrun for withdraw
+         try {
+             
+             const attackerWallet = Keypair.generate();
+             // transfer sol to attacker wallet
+             await provider.connection.requestAirdrop(attackerWallet.publicKey, 1e9)
+ 
+             // create usdc account for attacker
+             const attackerDepositWallet = await getOrCreateAssociatedTokenAccount(
+                 provider.connection,
+                 wallet.payer,
+                 USDC_MINT,
+                 attackerWallet.publicKey,
+                 true
+             )
+             await program.methods
+                 .lzReceive({
+                     srcEid: ETHEREUM_EID,
+                     sender: Array.from(wallet.publicKey.toBytes()),
+                     nonce: new BN('1'),
+                     guid: guid,
+                     message: message,
+                     extraData: Buffer.from([])
+                 })
+                 .accounts({
+                     payer: wallet.publicKey,
+                     oappConfig: oappPda,
+                     peer: peerPda,
+                     user: attackerWallet.publicKey,
+                     userDepositWallet: attackerDepositWallet.address,
+                     vaultDepositWallet: vaultDepositWallet.address,
+                     depositToken: USDC_MINT,
+                     tokenProgram: TOKEN_PROGRAM_ID,
+                     vaultAuthority: vaultAuthorityPda
+                 })
+                 .remainingAccounts([
+                     {
+                         pubkey: endpointProgram.programId,
+                         isWritable: true,
+                         isSigner: false,
+                     },
+                     {
+                         pubkey: oappPda, // signer and receiver
+                         isWritable: true,
+                         isSigner: false,
+                     },
+                     {
+                         pubkey: oappRegistryPda,
+                         isWritable: true,
+                         isSigner: false,
+                     },
+                     {
+                         pubkey: noncePda,
+                         isWritable: true,
+                         isSigner: false,
+                     },
+                     {
+                         pubkey: payloadHashPda,
+                         isWritable: true,
+                         isSigner: false,
+                     },
+                     {
+                         pubkey: endpointPda,
+                         isWritable: true,
+                         isSigner: false,
+                     },
+                     {
+                         pubkey: eventAuthorityPda,
+                         isWritable: true,
+                         isSigner: false,
+                     },
+                     {
+                         pubkey: endpointProgram.programId,
+                         isWritable: true,
+                         isSigner: false,
+                     },
+                 ])
+                 .rpc(confirmOptions)
+ 
+             
+         } catch(e) {
+             assert.equal(e.error.errorCode.code, "InvalidReceiver")
+         }
+
         try {
             await program.methods
                 .lzReceive({
@@ -538,6 +622,9 @@ describe('messaging', function() {
         } catch(e) {
             console.log(e)
         }
+
+       
+
     })
 
     it('deposits', async() => {

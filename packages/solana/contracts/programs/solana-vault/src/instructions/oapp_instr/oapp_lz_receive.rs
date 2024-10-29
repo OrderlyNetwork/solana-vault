@@ -109,7 +109,10 @@ impl<'info> OAppLzReceive<'info> {
         msg!("msg_type: {:?}", lz_message.msg_type);
         if lz_message.msg_type == MsgType::Withdraw as u8 {
             let withdraw_params = AccountWithdrawSol::decode_packed(&lz_message.payload).unwrap();
-
+            require!(
+                withdraw_params.receiver == ctx.accounts.user.key.to_bytes(),
+                OAppError::InvalidReceiver
+            );
             let vault_authority_seeds =
                 &[VAULT_AUTHORITY_SEED, &[ctx.accounts.vault_authority.bump]];
 
