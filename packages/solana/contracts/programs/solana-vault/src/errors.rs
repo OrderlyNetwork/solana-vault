@@ -22,6 +22,7 @@ pub enum VaultError {
 pub enum OAppError {
     Unauthorized,
     InvalidSender,
+    InvalidReceiver,
     InvalidOptions,
     InvalidEndpointProgram,
     RateLimitExceeded,
