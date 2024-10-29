@@ -1,4 +1,4 @@
-use crate::errors::OAppError;
+use crate::errors::{OAppError, VaultError};
 use crate::events::VaultWithdrawn;
 use crate::instructions::{to_bytes32, OAppLzReceiveParams};
 use crate::instructions::{LzMessage, MsgType, OAPP_SEED, PEER_SEED, VAULT_AUTHORITY_SEED};
@@ -113,6 +113,14 @@ impl<'info> OAppLzReceive<'info> {
                 withdraw_params.receiver == ctx.accounts.user.key.to_bytes(),
                 OAppError::InvalidReceiver
             );
+            if withdraw_params.token_hash == ctx.accounts.oapp_config.usdc_hash {
+                require!(
+                    ctx.accounts.oapp_config.usdc_mint == ctx.accounts.deposit_token.key(),
+                    VaultError::TokenNotAllowed
+                );
+            } else {
+                return Err(VaultError::TokenNotAllowed.into());
+            }
             let vault_authority_seeds =
                 &[VAULT_AUTHORITY_SEED, &[ctx.accounts.vault_authority.bump]];
 

@@ -130,6 +130,10 @@ describe('messaging', function() {
     let defaultSendLibraryConfigPda: PublicKey
     let messageLibInfoPda: PublicKey
     let messageLibPda: PublicKey
+    let MEME_MINT: PublicKey
+    let userMemeDepositWallet: Account
+    let vaultMemeDepositWallet: Account
+    const memeMintAuthority = Keypair.generate()
 
     before(async () => {
         USDC_MINT = await createMint(
@@ -140,6 +144,21 @@ describe('messaging', function() {
             6, // USDC has 6 decimals
             Keypair.generate(),
             confirmOptions
+        )
+
+        // Setup Wallets
+        userDepositWallet = await getOrCreateAssociatedTokenAccount(
+            provider.connection,
+            wallet.payer,
+            USDC_MINT,
+            wallet.publicKey
+        )
+        vaultDepositWallet = await getOrCreateAssociatedTokenAccount(
+            provider.connection,
+            wallet.payer,
+            USDC_MINT,
+            vaultAuthorityPda,
+            true
         )
 
         await initializeVault(wallet, program, DST_EID)
@@ -241,20 +260,46 @@ describe('messaging', function() {
             .signers([endpointAdmin])
             .rpc(confirmOptions)
 
-        // Setup Wallets
-        userDepositWallet = await getOrCreateAssociatedTokenAccount(
+
+
+        // deploy a memecoin
+        MEME_MINT = await createMint(
             provider.connection,
             wallet.payer,
-            USDC_MINT,
+            memeMintAuthority.publicKey,
+            null,
+            6, // USDC has 6 decimals
+            Keypair.generate(),
+            confirmOptions
+        );
+
+        // Setup Wallets for MEME coin
+        userMemeDepositWallet = await getOrCreateAssociatedTokenAccount(
+            provider.connection,
+            wallet.payer,
+            MEME_MINT,
             wallet.publicKey
         )
-        vaultDepositWallet = await getOrCreateAssociatedTokenAccount(
+        vaultMemeDepositWallet = await getOrCreateAssociatedTokenAccount(
             provider.connection,
             wallet.payer,
-            USDC_MINT,
+            MEME_MINT,
             vaultAuthorityPda,
             true
         )
+        
+        // mint 1000 MEME coin to the user
+        await mintMEMETo(
+            provider.connection,
+            wallet.payer,
+            memeMintAuthority,
+            MEME_MINT,   // MEME coin
+            userMemeDepositWallet.address,
+            1e9 // 1000 USDC
+        )
+
+
+         
     })
     
     it('lzReceive', async () => {        
@@ -464,90 +509,178 @@ describe('messaging', function() {
         vaultBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address)
         assert.equal(vaultBalance, 1e9, "Vault should have 1000 USDC after minting")
 
-         // try to frontrun for withdraw
-         try {
-             
-             const attackerWallet = Keypair.generate();
-             // transfer sol to attacker wallet
-             await provider.connection.requestAirdrop(attackerWallet.publicKey, 1e9)
- 
-             // create usdc account for attacker
-             const attackerDepositWallet = await getOrCreateAssociatedTokenAccount(
-                 provider.connection,
-                 wallet.payer,
-                 USDC_MINT,
-                 attackerWallet.publicKey,
-                 true
-             )
-             await program.methods
-                 .lzReceive({
-                     srcEid: ETHEREUM_EID,
-                     sender: Array.from(wallet.publicKey.toBytes()),
-                     nonce: new BN('1'),
-                     guid: guid,
-                     message: message,
-                     extraData: Buffer.from([])
-                 })
-                 .accounts({
-                     payer: wallet.publicKey,
-                     oappConfig: oappPda,
-                     peer: peerPda,
-                     user: attackerWallet.publicKey,
-                     userDepositWallet: attackerDepositWallet.address,
-                     vaultDepositWallet: vaultDepositWallet.address,
-                     depositToken: USDC_MINT,
-                     tokenProgram: TOKEN_PROGRAM_ID,
-                     vaultAuthority: vaultAuthorityPda
-                 })
-                 .remainingAccounts([
-                     {
-                         pubkey: endpointProgram.programId,
-                         isWritable: true,
-                         isSigner: false,
-                     },
-                     {
-                         pubkey: oappPda, // signer and receiver
-                         isWritable: true,
-                         isSigner: false,
-                     },
-                     {
-                         pubkey: oappRegistryPda,
-                         isWritable: true,
-                         isSigner: false,
-                     },
-                     {
-                         pubkey: noncePda,
-                         isWritable: true,
-                         isSigner: false,
-                     },
-                     {
-                         pubkey: payloadHashPda,
-                         isWritable: true,
-                         isSigner: false,
-                     },
-                     {
-                         pubkey: endpointPda,
-                         isWritable: true,
-                         isSigner: false,
-                     },
-                     {
-                         pubkey: eventAuthorityPda,
-                         isWritable: true,
-                         isSigner: false,
-                     },
-                     {
-                         pubkey: endpointProgram.programId,
-                         isWritable: true,
-                         isSigner: false,
-                     },
-                 ])
-                 .rpc(confirmOptions)
- 
-             
-         } catch(e) {
-             assert.equal(e.error.errorCode.code, "InvalidReceiver")
-         }
+        // try to frontrun to steal USDC
+        try {
+            
+            const attackerWallet = Keypair.generate();
+            // transfer sol to attacker wallet
+            await provider.connection.requestAirdrop(attackerWallet.publicKey, 1e9)
 
+            // create usdc account for attacker
+            const attackerDepositWallet = await getOrCreateAssociatedTokenAccount(
+                provider.connection,
+                wallet.payer,
+                USDC_MINT,
+                attackerWallet.publicKey,
+                true
+            )
+            await program.methods
+                .lzReceive({
+                    srcEid: ETHEREUM_EID,
+                    sender: Array.from(wallet.publicKey.toBytes()),
+                    nonce: new BN('1'),
+                    guid: guid,
+                    message: message,
+                    extraData: Buffer.from([])
+                })
+                .accounts({
+                    payer: wallet.publicKey,
+                    oappConfig: oappPda,
+                    peer: peerPda,
+                    user: attackerWallet.publicKey,
+                    userDepositWallet: attackerDepositWallet.address,
+                    vaultDepositWallet: vaultDepositWallet.address,
+                    depositToken: USDC_MINT,
+                    tokenProgram: TOKEN_PROGRAM_ID,
+                    vaultAuthority: vaultAuthorityPda
+                })
+                .remainingAccounts([
+                    {
+                        pubkey: endpointProgram.programId,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: oappPda, // signer and receiver
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: oappRegistryPda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: noncePda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: payloadHashPda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: endpointPda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: eventAuthorityPda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: endpointProgram.programId,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                ])
+                .rpc(confirmOptions)
+
+            
+        } catch(e) {
+            assert.equal(e.error.errorCode.code, "InvalidReceiver")
+        }
+        
+        // try to frontrun to withdraw memecoin
+        try {
+
+            // mint 1000 MEME coin to the vault
+            await mintMEMETo(
+                provider.connection,
+                wallet.payer,
+                memeMintAuthority,
+                MEME_MINT,   // MEME coin
+                vaultMemeDepositWallet.address,
+                1e9 // 1000 MEME coin
+            )
+
+            const attackerWallet = Keypair.generate();
+            // transfer sol to attacker wallet
+            await provider.connection.requestAirdrop(attackerWallet.publicKey, 1e9)
+
+            await program.methods
+                .lzReceive({
+                    srcEid: ETHEREUM_EID,
+                    sender: Array.from(wallet.publicKey.toBytes()),
+                    nonce: new BN('1'),
+                    guid: guid,
+                    message: message,
+                    extraData: Buffer.from([])
+                })
+                .accounts({
+                    payer: wallet.publicKey,
+                    oappConfig: oappPda,
+                    peer: peerPda,
+                    user: wallet.publicKey,
+                    userDepositWallet: userMemeDepositWallet.address,
+                    vaultDepositWallet: vaultMemeDepositWallet.address,
+                    depositToken: MEME_MINT,
+                    tokenProgram: TOKEN_PROGRAM_ID,
+                    vaultAuthority: vaultAuthorityPda
+                })
+                .remainingAccounts([
+                    {
+                        pubkey: endpointProgram.programId,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: oappPda, // signer and receiver
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: oappRegistryPda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: noncePda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: payloadHashPda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: endpointPda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: eventAuthorityPda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: endpointProgram.programId,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                ])
+                .rpc(confirmOptions)
+
+            
+        } catch(e) {
+            assert.equal(e.error.errorCode.code, "TokenNotAllowed")
+        }
+
+        
+        // execute the lzReceive instruction successfully
         try {
             await program.methods
                 .lzReceive({
@@ -768,50 +901,13 @@ describe('messaging', function() {
 
         const newVaultBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address)
         assert.equal(newVaultBalance, previousVaultBalance + 1e9)
-
+        
+        // try to deposit memecoin
         try {
-             // deploy a memecoin
-            const memeMintAuthority = Keypair.generate()
-            let MEME_MINT = await createMint(
-                provider.connection,
-                wallet.payer,
-                memeMintAuthority.publicKey,
-                null,
-                6, // USDC has 6 decimals
-                Keypair.generate(),
-                confirmOptions
-            );
-
-                // Setup Wallets for MEME coin
-                const userMemeDepositWallet = await getOrCreateAssociatedTokenAccount(
-                    provider.connection,
-                    wallet.payer,
-                    MEME_MINT,
-                    wallet.publicKey
-                )
-                const vaultMemeDepositWallet = await getOrCreateAssociatedTokenAccount(
-                    provider.connection,
-                    wallet.payer,
-                    MEME_MINT,
-                    vaultAuthorityPda,
-                    true
-                )
-                
-                // mint 1000 MEME coin to the user
-                await mintMEMETo(
-                    provider.connection,
-                    wallet.payer,
-                    memeMintAuthority,
-                    MEME_MINT,   // MEME coin
-                    userMemeDepositWallet.address,
-                    1e9 // 1000 USDC
-                )
-
 
                 const previousUserMemeBalance = await getTokenBalance(provider.connection, userMemeDepositWallet.address)
-                assert.equal(previousUserMemeBalance, 1e9, "User should have 1e9 MEME before deposit")
                 const previousVaultMemeBalance = await getTokenBalance(provider.connection, vaultMemeDepositWallet.address)
-                assert.equal(previousVaultMemeBalance, 0, "Vault should have 0 MEME before deposit")
+                
                 await program.methods
                     .deposit({
                         accountId: Array.from(wallet.publicKey.toBytes()),
@@ -892,8 +988,7 @@ describe('messaging', function() {
                     ])
                     .rpc(confirmOptions)
         } catch(e) {
-
-           assert.equal(e.error.errorCode.code, "TokenNotAllowed")
+            assert.equal(e.error.errorCode.code, "TokenNotAllowed")
         }
         
         
