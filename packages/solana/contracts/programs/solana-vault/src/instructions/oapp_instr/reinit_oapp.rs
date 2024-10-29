@@ -18,7 +18,7 @@ pub struct ReinitOApp<'info> {
     pub oapp_config: Account<'info, OAppConfig>,
     #[account(
         seeds = [VAULT_AUTHORITY_SEED],
-        bump,
+        bump=vault_authority.bump,
         has_one = owner @ VaultError::InvalidVaultOwner
     )]
     pub vault_authority: Account<'info, VaultAuthority>,
