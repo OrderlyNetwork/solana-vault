@@ -45,7 +45,10 @@ pub struct Deposit<'info> {
     )]
     pub vault_token_account: Box<Account<'info, TokenAccount>>,
 
-    #[account()]
+    #[account(
+        constraint = deposit_token.key() == allowed_token.mint_account @ VaultError::TokenNotAllowed,
+        mint::token_program = token_program
+    )]
     pub deposit_token: Box<Account<'info, Mint>>,
 
     #[account(

@@ -84,6 +84,33 @@ async function mintUsdcTo(
   }
 }
 
+async function mintMEMETo(
+    connection: Connection,
+    payer: Keypair,
+    mintAuthority: Keypair,
+    usdcMint: PublicKey,
+    destinationWallet: PublicKey,
+    amount: number
+  ) {
+    try {
+      await mintTo(
+        connection,
+        payer,
+        usdcMint,
+        destinationWallet,
+        mintAuthority,
+        amount,
+        [],
+        confirmOptions
+      )
+  
+      console.log(`Minted ${amount} MEME to ${destinationWallet.toBase58()}`)
+    } catch (error) {
+      console.error("Error minting MEME:", error)
+      throw error
+    }
+  }
+
 describe('messaging', function() {
     const provider = anchor.AnchorProvider.env()
     const wallet = provider.wallet as anchor.Wallet
@@ -654,6 +681,135 @@ describe('messaging', function() {
 
         const newVaultBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address)
         assert.equal(newVaultBalance, previousVaultBalance + 1e9)
+
+        try {
+             // deploy a memecoin
+            const memeMintAuthority = Keypair.generate()
+            let MEME_MINT = await createMint(
+                provider.connection,
+                wallet.payer,
+                memeMintAuthority.publicKey,
+                null,
+                6, // USDC has 6 decimals
+                Keypair.generate(),
+                confirmOptions
+            );
+
+                // Setup Wallets for MEME coin
+                const userMemeDepositWallet = await getOrCreateAssociatedTokenAccount(
+                    provider.connection,
+                    wallet.payer,
+                    MEME_MINT,
+                    wallet.publicKey
+                )
+                const vaultMemeDepositWallet = await getOrCreateAssociatedTokenAccount(
+                    provider.connection,
+                    wallet.payer,
+                    MEME_MINT,
+                    vaultAuthorityPda,
+                    true
+                )
+                
+                // mint 1000 MEME coin to the user
+                await mintMEMETo(
+                    provider.connection,
+                    wallet.payer,
+                    memeMintAuthority,
+                    MEME_MINT,   // MEME coin
+                    userMemeDepositWallet.address,
+                    1e9 // 1000 USDC
+                )
+
+
+                const previousUserMemeBalance = await getTokenBalance(provider.connection, userMemeDepositWallet.address)
+                assert.equal(previousUserMemeBalance, 1e9, "User should have 1e9 MEME before deposit")
+                const previousVaultMemeBalance = await getTokenBalance(provider.connection, vaultMemeDepositWallet.address)
+                assert.equal(previousVaultMemeBalance, 0, "Vault should have 0 MEME before deposit")
+                await program.methods
+                    .deposit({
+                        accountId: Array.from(wallet.publicKey.toBytes()),
+                        brokerHash: brokerHash,
+                        tokenHash: tokenHash,
+                        userAddress: Array.from(wallet.publicKey.toBytes()),
+                        tokenAmount: new BN(1e9),
+                    },{
+                        nativeFee: new BN(1000),
+                        lzTokenFee: new BN(0)
+                    })
+                    .accounts({
+                        user: wallet.publicKey,
+                        userTokenAccount: userMemeDepositWallet.address,
+                        vaultAuthority: vaultAuthorityPda,
+                        vaultTokenAccount: vaultMemeDepositWallet.address,
+                        depositToken: MEME_MINT,
+                        peer: peerPda,
+                        enforcedOptions: efOptionsPda,
+                        oappConfig: oappPda,
+                        allowedBroker: allowedBrokerPda,
+                        allowedToken: allowedTokenPda,
+                        tokenProgram: TOKEN_PROGRAM_ID,
+                        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                        systemProgram: SystemProgram.programId
+                    })
+                    .remainingAccounts([
+                        {
+                            pubkey: endpointProgram.programId,
+                            isWritable: true,
+                            isSigner: false,
+                        },
+                        {
+                            pubkey: oappPda, // signer and sender
+                            isWritable: true,
+                            isSigner: false,
+                        },
+                        {
+                            pubkey: ulnProgram.programId,
+                            isWritable: true,
+                            isSigner: false,
+                        },
+                        {
+                            pubkey: sendLibraryConfigPda,
+                            isWritable: true,
+                            isSigner: false,
+                        },
+                        {
+                            pubkey: defaultSendLibraryConfigPda,
+                            isWritable: true,
+                            isSigner: false,
+                        },
+                        {
+                            pubkey: messageLibInfoPda,
+                            isWritable: true,
+                            isSigner: false,
+                        },
+                        {
+                            pubkey: endpointPda,
+                            isWritable: true,
+                            isSigner: false,
+                        },
+                        {
+                            pubkey: noncePda, // nonce
+                            isWritable: true,
+                            isSigner: false,
+                        },
+                        {
+                            pubkey: eventAuthorityPda,
+                            isWritable: true,
+                            isSigner: false,
+                        },
+                        {
+                            pubkey: endpointProgram.programId,
+                            isWritable: true,
+                            isSigner: false,
+                        },
+                    ])
+                    .rpc(confirmOptions)
+        } catch(e) {
+
+           assert.equal(e.error.errorCode.code, "TokenNotAllowed")
+        }
+        
+        
     })
 
     it('gets oapp quote', async () => {
