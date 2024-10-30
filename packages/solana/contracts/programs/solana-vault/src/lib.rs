@@ -15,8 +15,8 @@ declare_id!("EYJq9eU4GMRUriUJBgGoZ8YLQBXcWaciXuSsEXE7ieQS");
 pub mod solana_vault {
     use super::*;
 
-    pub fn init_vault(ctx: Context<InitVault>, params: InitVaultParams) -> Result<()> {
-        InitVault::apply(ctx, &params)
+    pub fn set_vault(ctx: Context<SetVault>, params: SetVaultParams) -> Result<()> {
+        SetVault::apply(ctx, &params)
     }
 
     pub fn deposit<'info>(
@@ -37,14 +37,6 @@ pub mod solana_vault {
 
     pub fn reinit_oapp(mut ctx: Context<ReinitOApp>, params: ReinitOAppParams) -> Result<()> {
         ReinitOApp::apply(&mut ctx, &params)
-    }
-
-    pub fn reset_vault(mut ctx: Context<ResetVault>) -> Result<()> {
-        ResetVault::apply(&mut ctx)
-    }
-
-    pub fn reinit_vault(mut ctx: Context<ReinitVault>, params: ReinitVaultParams) -> Result<()> {
-        ReinitVault::apply(&mut ctx, &params)
     }
 
     pub fn set_broker(mut ctx: Context<SetBroker>, params: SetBrokerParams) -> Result<()> {
