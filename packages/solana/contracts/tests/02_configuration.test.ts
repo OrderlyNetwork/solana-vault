@@ -46,6 +46,8 @@ describe('Test Solana-Vault configuration', function() {
     let oappConfigPda: PublicKey
     const vaultAuthorityPda = getVaultAuthorityPda(program.programId)
     const newVaultOwner = Keypair.generate();
+    const tokenHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
     before(async () => {
         
         USDC_MINT = await createMint(
@@ -289,81 +291,69 @@ describe('Test Solana-Vault configuration', function() {
         console.log("✅ Checked OAPP Config state")
     })
 
-    it('Reinitialize oapp', async () => {
-        const vaultAuthorityPda = getVaultAuthorityPda(program.programId)
-        vaultAuthority = await program.account.vaultAuthority.fetch(vaultAuthorityPda)
-        console.log(vaultAuthority.owner.toString())
-        const usdcHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    it('Reinitialize LzReceiveTypes', async () => {
 
-        console.log("🥷 Attacker trying to reset OAPP")
-        try {
+        const lzReceiveTypesPda = getLzReceiveTypesPda(program.programId, oappConfigPda)
+        const resetLzReceiveTypes = async (signer: Keypair) => {
             await program.methods
-            .resetOapp()
-            .accounts({
-                admin: attacker.publicKey,
-                oappConfig: oappConfigPda
-            })
-            .signers([attacker])
-            .rpc(confirmOptions)
+                .resetLzReceiveTypes()
+                .accounts({
+                    admin: signer.publicKey,
+                    oappConfig: oappConfigPda,
+                    lzReceiveTypes: lzReceiveTypesPda
+                })
+                .signers([signer])
+                .rpc(confirmOptions)
+        }
+
+        const tokenPda = getTokenPdaWithBuf(program.programId, tokenHash)
+        const reinitLzReceiveTypes = async (signer: Keypair) => {
+            await program.methods
+                .reinitLzReceiveTypes({
+                    oappConfig: oappConfigPda,
+                    allowedUsdc: tokenPda
+                })
+                .accounts({
+                    admin: signer.publicKey,
+                    oappConfig: oappConfigPda,
+                    lzReceiveTypes: lzReceiveTypesPda
+                })
+                .signers([signer])
+                .rpc(confirmOptions)
+        }
+
+        console.log("🥷 Attacker trying to reset LzReceiveTypes")
+        try {
+            await resetLzReceiveTypes(attacker)
+        } catch(e) {
+            // console.log(e)
+            assert.equal(e.error.errorCode.code, "Unauthorized")
+            console.log("🥷 Attacker failed to set Order Delivery")
+        }
+
+        await resetLzReceiveTypes(wallet.payer)
+        
+        let lzReceiveTypesPdaInfo = await provider.connection.getAccountInfo(lzReceiveTypesPda)
+        assert.equal(lzReceiveTypesPdaInfo.owner.toString(), SystemProgram.programId.toString())
+        console.log("✅ Reset LzReceiveTypes")
+
+        console.log("🥷 Attacker trying to reinitialize LzReceiveTypes")
+        try {
+            await reinitLzReceiveTypes(attacker)
         } catch(e) {
             assert.equal(e.error.errorCode.code, "Unauthorized")
-            console.log("🥷 Attacker failed to reset OAPP")
+            console.log("🥷 Attacker failed to reinitialize LzReceiveTypes")
         }
 
-        await program.methods
-            .resetOapp()
-            .accounts({
-                admin: wallet.publicKey,
-                oappConfig: oappConfigPda
-            })
-            .signers([wallet.payer])
-            .rpc(confirmOptions)
-        console.log("✅ Reset OAPP")
+        await reinitLzReceiveTypes(wallet.payer)
+        lzReceiveTypesPdaInfo = await provider.connection.getAccountInfo(lzReceiveTypesPda)
+        const lzReceiveTypesPdaData = await program.account.oAppLzReceiveTypesAccounts.fetch(lzReceiveTypesPda)
+        assert.equal(lzReceiveTypesPdaInfo.owner.toString(), program.programId.toString())
+        assert.equal(lzReceiveTypesPdaData.oappConfig.toString(), oappConfigPda.toString())
+        assert.equal(lzReceiveTypesPdaData.allowedUsdc.toString(), tokenPda.toString())
+        console.log("✅ Reinitialized LzReceiveTypes")
 
-        console.log("🥷 Attacker trying to reinitialize OAPP")
-        try {
-            await program.methods
-            .reinitOapp({
-                admin: wallet.publicKey,
-                endpointProgram: endpointProgram.programId,
-                usdcHash: usdcHash,
-                usdcMint: USDC_MINT
-            })
-            .accounts({
-                owner: attacker.publicKey,
-                oappConfig: oappConfigPda,
-                vaultAuthority: vaultAuthorityPda,
-                systemProgram: SystemProgram.programId
-            })
-            .signers([attacker])
-            .rpc(confirmOptions)
-        } catch(e) {
-            assert.equal(e.error.errorCode.code, "InvalidVaultOwner")
-            console.log("🥷 Attacker failed to reinitialize OAPP")
-        }
 
-        await program.methods
-            .reinitOapp({
-                admin: wallet.publicKey,
-                endpointProgram: endpointProgram.programId,
-                usdcHash: usdcHash,
-                usdcMint: USDC_MINT
-            })
-            .accounts({
-                owner: newVaultOwner.publicKey,
-                oappConfig: oappConfigPda,
-                vaultAuthority: vaultAuthorityPda,
-                systemProgram: SystemProgram.programId
-            })
-            .signers([newVaultOwner])
-            .rpc(confirmOptions)
-        
-        const oappConfig = await program.account.oAppConfig.fetch(oappConfigPda)
-        assert.equal(oappConfig.admin.toString(), wallet.publicKey.toString())
-        assert.equal(oappConfig.endpointProgram.toString(), endpointProgram.programId.toString())
-        assert.equal(oappConfig.usdcMint.toString(), USDC_MINT.toString())
-        assert.deepEqual(oappConfig.usdcHash, usdcHash)
-        console.log("✅ Reinitialized OAPP")
     })
 
     
@@ -405,7 +395,6 @@ describe('Test Solana-Vault configuration', function() {
     })
 
     it('Set token', async () => {
-        const tokenHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         const allowedTokenPda = getTokenPdaWithBuf(program.programId, tokenHash)
 
         const setToken = async(signer: Keypair) => {
@@ -510,7 +499,7 @@ describe('Test Solana-Vault configuration', function() {
         console.log("✅ Set Peer")
     })
 
-    it('sets rate limit', async () => {
+    it('Sets rate limit', async () => {
         const peerPda = getPeerPda(program.programId, oappConfigPda, DST_EID)
         
         const setRateLimit = async (signer: Keypair) => {

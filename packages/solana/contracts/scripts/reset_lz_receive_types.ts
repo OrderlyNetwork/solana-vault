@@ -16,17 +16,18 @@ const [provider, wallet, rpc] = utils.setAnchor();
 
 async function reset() {
 
-    const vaultAuthorityPda = utils.getVaultAuthorityPda(OAPP_PROGRAM_ID);
-   
-    const ixResetVault = await OAppProgram.methods.resetVault().accounts({
-        owner: wallet.publicKey,
-        vaultAuthority: vaultAuthorityPda,
+    const oappConfig = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
+    const lzReceiveTypesPda = utils.getLzReceiveTypesPda(OAPP_PROGRAM_ID, oappConfig);
+    const ixResetLzReceiveTypes = await OAppProgram.methods.resetLzReceiveTypes().accounts({
+        admin: wallet.publicKey,
+        oappConfig: oappConfig,
+        lzReceiveTypes: lzReceiveTypesPda,
     }).instruction();
 
-    const txResetVault = new Transaction().add(ixResetVault);
+    const txResetLzReceiveTypes = new Transaction().add(ixResetLzReceiveTypes);
 
-    const sigResetVault = await sendAndConfirmTransaction(provider.connection, txResetVault, [wallet.payer]);
-    console.log("sigresetVault", sigResetVault);
+    const sigResetLzReceiveTypes = await sendAndConfirmTransaction(provider.connection, txResetLzReceiveTypes, [wallet.payer]);
+    console.log("sigResetLzReceiveTypes", sigResetLzReceiveTypes);
 
 }
 
