@@ -46,4 +46,6 @@ impl OAppConfig {
 #[derive(InitSpace)]
 pub struct OAppLzReceiveTypesAccounts {
     pub oapp_config: Pubkey,
+    pub allowed_usdc: Pubkey,
+    // can add more allowed tokens here in the future
 }
