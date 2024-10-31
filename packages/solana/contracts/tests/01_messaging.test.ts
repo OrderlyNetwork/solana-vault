@@ -761,12 +761,12 @@ describe('Test OAPP messaging', function() {
                     payer: wallet.publicKey,
                     oappConfig: oappConfigPda,
                     peer: peerPda,
-                    user: attackerWallet.publicKey,
-                    userDepositWallet: attackerDepositWallet.address,
-                    vaultDepositWallet: vaultDepositWallet.address,
-                    depositToken: USDC_MINT,
+                    tokenMint: USDC_MINT,
+                    receiver: attackerWallet.publicKey,
+                    receiverTokenAccount: attackerDepositWallet.address,
+                    vaultAuthority: vaultAuthorityPda,
+                    vaultTokenAccount: vaultDepositWallet.address,
                     tokenProgram: TOKEN_PROGRAM_ID,
-                    vaultAuthority: vaultAuthorityPda
                 })
                 .remainingAccounts([
                     {
@@ -852,12 +852,12 @@ describe('Test OAPP messaging', function() {
                     payer: wallet.publicKey,
                     oappConfig: oappConfigPda,
                     peer: peerPda,
-                    user: wallet.publicKey,
-                    userDepositWallet: userMemeDepositWallet.address,
-                    vaultDepositWallet: vaultMemeDepositWallet.address,
-                    depositToken: MEME_MINT,
-                    tokenProgram: TOKEN_PROGRAM_ID,
-                    vaultAuthority: vaultAuthorityPda
+                    tokenMint: MEME_MINT,
+                    receiver: wallet.publicKey,
+                    receiverTokenAccount: userMemeDepositWallet.address,
+                    vaultAuthority: vaultAuthorityPda,
+                    vaultTokenAccount: vaultMemeDepositWallet.address,
+                    tokenProgram: TOKEN_PROGRAM_ID,  
                 })
                 .remainingAccounts([
                     {
@@ -926,12 +926,12 @@ describe('Test OAPP messaging', function() {
                 payer: wallet.publicKey,
                 oappConfig: oappConfigPda,
                 peer: peerPda,
-                user: wallet.publicKey,
-                userDepositWallet: userDepositWallet.address,
-                vaultDepositWallet: vaultDepositWallet.address,
-                depositToken: USDC_MINT,
+                tokenMint: USDC_MINT,
+                receiver: wallet.publicKey,
+                receiverTokenAccount: userDepositWallet.address,
+                vaultAuthority: vaultAuthorityPda,
+                vaultTokenAccount: vaultDepositWallet.address,
                 tokenProgram: TOKEN_PROGRAM_ID,
-                vaultAuthority: vaultAuthorityPda
             })
             .remainingAccounts([
                 {
