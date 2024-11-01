@@ -32,9 +32,6 @@ impl InitOApp<'_> {
         ctx.accounts.lz_receive_types.oapp_config = ctx.accounts.oapp_config.key();
 
         ctx.accounts.oapp_config.bump = ctx.bumps.oapp_config;
-        ctx.accounts.oapp_config.usdc_hash = params.usdc_hash;
-        ctx.accounts.oapp_config.usdc_mint = params.usdc_mint;
-
         let oapp_signer = ctx.accounts.oapp_config.key();
         ctx.accounts.oapp_config.init(
             params.endpoint_program,
@@ -49,6 +46,4 @@ impl InitOApp<'_> {
 pub struct InitOAppParams {
     pub admin: Pubkey,
     pub endpoint_program: Option<Pubkey>,
-    pub usdc_hash: [u8; 32],
-    pub usdc_mint: Pubkey,
 }

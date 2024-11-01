@@ -1,8 +1,10 @@
 use crate::errors::{OAppError, VaultError};
 use crate::events::VaultWithdrawn;
 use crate::instructions::{to_bytes32, OAppLzReceiveParams};
-use crate::instructions::{LzMessage, MsgType, OAPP_SEED, PEER_SEED, VAULT_AUTHORITY_SEED};
-use crate::state::{OAppConfig, Peer, VaultAuthority};
+use crate::instructions::{
+    LzMessage, MsgType, OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED,
+};
+use crate::state::{AllowedToken, OAppConfig, Peer, VaultAuthority};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 use oapp::endpoint::{cpi::accounts::Clear, instructions::ClearParams, ConstructCPIContext};
@@ -28,6 +30,13 @@ pub struct OAppLzReceive<'info> {
         bump = oapp_config.bump
     )]
     pub oapp_config: Account<'info, OAppConfig>,
+    /// CHECK
+    #[account(
+        // seeds = [TOKEN_SEED, deposit_params.token_hash.as_ref()],
+        // bump = allowed_token.bump,
+        // constraint = allowed_token.allowed == true @ VaultError::TokenNotAllowed
+    )]
+    pub allowed_token: Account<'info, AllowedToken>,
 
     /// CHECK
     #[account()]
@@ -116,9 +125,9 @@ impl<'info> OAppLzReceive<'info> {
                 withdraw_params.receiver == ctx.accounts.receiver.key.to_bytes(),
                 OAppError::InvalidReceiver
             );
-            if withdraw_params.token_hash == ctx.accounts.oapp_config.usdc_hash {
+            if withdraw_params.token_hash == ctx.accounts.allowed_token.token_hash {
                 require!(
-                    ctx.accounts.oapp_config.usdc_mint == ctx.accounts.token_mint.key(),
+                    ctx.accounts.allowed_token.mint_account == ctx.accounts.token_mint.key(),
                     VaultError::TokenNotAllowed
                 );
             } else {

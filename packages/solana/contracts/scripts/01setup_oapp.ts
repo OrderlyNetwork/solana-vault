@@ -1,13 +1,12 @@
 import * as anchor from "@coral-xyz/anchor";
-import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
+import { SystemProgram, Transaction } from "@solana/web3.js";
 import { OftTools } from "@layerzerolabs/lz-solana-sdk-v2";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import * as utils from "./utils";
 import * as constants from "./constants";
 
-const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram();  
-
 const [provider, wallet, rpc] = utils.setAnchor();
+const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram();  
 
 const ENV = utils.getEnv(OAPP_PROGRAM_ID);
 const DST_EID = utils.getDstEid(ENV);
@@ -34,14 +33,9 @@ async function setup() {
     console.log("Setting up OApp...");
     const tokenSymble = "USDC";
     const tokenHash = utils.getTokenHash(tokenSymble);
-    const codedTokenHash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'));
-    const mintAccount = await utils.getUSDCAddress(rpc);
-
     const ixInitOapp = await OAppProgram.methods.initOapp({
         admin: wallet.publicKey,
-        endpointProgram: constants.ENDPOINT_PROGRAM_ID,
-        usdcHash: codedTokenHash,
-        usdcMint: mintAccount,
+        endpointProgram: constants.ENDPOINT_PROGRAM_ID
     }).accounts({
         payer: wallet.publicKey,
         oappConfig: oappConfigPda,
