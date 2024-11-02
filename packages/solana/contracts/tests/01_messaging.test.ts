@@ -383,18 +383,29 @@ describe('Test OAPP messaging', function() {
         prevVaultUSDCBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address)
         prevUserUSDCBalance = await getTokenBalance(provider.connection, userDepositWallet.address)
 
-        await program.methods
-        .deposit({
+        const deposit = async (signer: Keypair, params, feeParams, accounts, remainingAccounts) => {
+            await program.methods
+            .deposit(params, feeParams)
+            .accounts(accounts)
+            .remainingAccounts(remainingAccounts)
+            .signers([signer])
+            .rpc(confirmOptions)
+        }
+
+        const params = {
             accountId: Array.from(wallet.publicKey.toBytes()),
             brokerHash: brokerHash,
             tokenHash: tokenHash,
             userAddress: Array.from(wallet.publicKey.toBytes()),
             tokenAmount: new BN(DEPOSIT_AMOUNT),
-        },{
+        }
+
+        const feeParams = {
             nativeFee: new BN(LZ_FEE),
             lzTokenFee: new BN(0)
-        })
-        .accounts({
+        }
+
+        const accounts = {
             user: wallet.publicKey,
             userTokenAccount: userDepositWallet.address,
             vaultAuthority: vaultAuthorityPda,
@@ -408,8 +419,9 @@ describe('Test OAPP messaging', function() {
             tokenProgram: TOKEN_PROGRAM_ID,
             associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
             systemProgram: SystemProgram.programId
-        })
-        .remainingAccounts([
+        }
+
+        const depositRemainingAccounts = [
             {
                 pubkey: endpointProgram.programId,
                 isWritable: true,
@@ -460,8 +472,10 @@ describe('Test OAPP messaging', function() {
                 isWritable: true,
                 isSigner: false,
             },
-        ])
-        .rpc(confirmOptions)
+        ]
+
+
+        await deposit(wallet.payer, params, feeParams, accounts, depositRemainingAccounts)
         console.log("✅ Executed deposit USDC")
 
 
@@ -484,85 +498,33 @@ describe('Test OAPP messaging', function() {
                 const previousUserMemeBalance = await getTokenBalance(provider.connection, userMemeDepositWallet.address)
                 const previousVaultMemeBalance = await getTokenBalance(provider.connection, vaultMemeDepositWallet.address)
                 
-                await program.methods
-                    .deposit({
-                        accountId: Array.from(wallet.publicKey.toBytes()),
-                        brokerHash: brokerHash,
-                        tokenHash: tokenHash,
-                        userAddress: Array.from(wallet.publicKey.toBytes()),
-                        tokenAmount: new BN(DEPOSIT_AMOUNT),
-                    },{
-                        nativeFee: new BN(LZ_FEE),
-                        lzTokenFee: new BN(0)
-                    })
-                    .accounts({
-                        user: wallet.publicKey,
-                        userTokenAccount: userMemeDepositWallet.address,
-                        vaultAuthority: vaultAuthorityPda,
-                        vaultTokenAccount: vaultMemeDepositWallet.address,
-                        depositToken: MEME_MINT,
-                        peer: peerPda,
-                        enforcedOptions: efOptionsPda,
-                        oappConfig: oappConfigPda,
-                        allowedBroker: allowedBrokerPda,
-                        allowedToken: allowedTokenPda,
-                        tokenProgram: TOKEN_PROGRAM_ID,
-                        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-                        systemProgram: SystemProgram.programId
-                    })
-                    .remainingAccounts([
-                        {
-                            pubkey: endpointProgram.programId,
-                            isWritable: true,
-                            isSigner: false,
-                        },
-                        {
-                            pubkey: oappConfigPda, // signer and sender
-                            isWritable: true,
-                            isSigner: false,
-                        },
-                        {
-                            pubkey: ulnProgram.programId,
-                            isWritable: true,
-                            isSigner: false,
-                        },
-                        {
-                            pubkey: sendLibraryConfigPda,
-                            isWritable: true,
-                            isSigner: false,
-                        },
-                        {
-                            pubkey: defaultSendLibraryConfigPda,
-                            isWritable: true,
-                            isSigner: false,
-                        },
-                        {
-                            pubkey: messageLibInfoPda,
-                            isWritable: true,
-                            isSigner: false,
-                        },
-                        {
-                            pubkey: endpointPda,
-                            isWritable: true,
-                            isSigner: false,
-                        },
-                        {
-                            pubkey: noncePda, // nonce
-                            isWritable: true,
-                            isSigner: false,
-                        },
-                        {
-                            pubkey: eventAuthorityPda,
-                            isWritable: true,
-                            isSigner: false,
-                        },
-                        {
-                            pubkey: endpointProgram.programId,
-                            isWritable: true,
-                            isSigner: false,
-                        },
-                    ])
-                    .rpc(confirmOptions)
+                const depositParams = {
+                    accountId: Array.from(wallet.publicKey.toBytes()),
+                    brokerHash: brokerHash,
+                    tokenHash: tokenHash,
+                    userAddress: Array.from(wallet.publicKey.toBytes()),
+                    tokenAmount: new BN(DEPOSIT_AMOUNT),
+                }
+                const feeParams = {
+                    nativeFee: new BN(LZ_FEE),
+                    lzTokenFee: new BN(0)
+                }
+                const account ={
+                    user: wallet.publicKey,
+                    userTokenAccount: userMemeDepositWallet.address,
+                    vaultAuthority: vaultAuthorityPda,
+                    vaultTokenAccount: vaultMemeDepositWallet.address,
+                    depositToken: MEME_MINT,
+                    peer: peerPda,
+                    enforcedOptions: efOptionsPda,
+                    oappConfig: oappConfigPda,
+                    allowedBroker: allowedBrokerPda,
+                    allowedToken: allowedTokenPda,
+                    tokenProgram: TOKEN_PROGRAM_ID,
+                    associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                    systemProgram: SystemProgram.programId
+                }
+                await deposit(wallet.payer, depositParams, feeParams, account, depositRemainingAccounts)
         } catch(e) {
             assert.equal(e.error.errorCode.code, "TokenNotAllowed")
             console.log("🥷 Attacker failed to deposit MEME coin")
@@ -727,17 +689,70 @@ describe('Test OAPP messaging', function() {
             .rpc(confirmOptions)
         console.log("✅ Commit verification for a withdraw message")
 
+        const lzReceive = async (signer: Keypair, params, accounts, remainingAccounts) => {
+            await program.methods
+                .lzReceive(params)
+                .accounts(accounts)
+                .remainingAccounts(remainingAccounts)
+                .signers([signer])
+                .rpc(confirmOptions)
+        }
+
+        const lzReceiveRemainingAccounts= [
+            {
+                pubkey: endpointProgram.programId,
+                isWritable: true,
+                isSigner: false,
+            },
+            {
+                pubkey: oappConfigPda, // signer and receiver
+                isWritable: true,
+                isSigner: false,
+            },
+            {
+                pubkey: oappRegistryPda,
+                isWritable: true,
+                isSigner: false,
+            },
+            {
+                pubkey: noncePda,
+                isWritable: true,
+                isSigner: false,
+            },
+            {
+                pubkey: payloadHashPda,
+                isWritable: true,
+                isSigner: false,
+            },
+            {
+                pubkey: endpointPda,
+                isWritable: true,
+                isSigner: false,
+            },
+            {
+                pubkey: eventAuthorityPda,
+                isWritable: true,
+                isSigner: false,
+            },
+            {
+                pubkey: endpointProgram.programId,
+                isWritable: true,
+                isSigner: false,
+            },
+        ]
+
         const peerPda = getPeerPda(program.programId, oappConfigPda, DST_EID)
 
         // get initial balance
         prevVaultUSDCBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address)
         prevUserUSDCBalance = await getTokenBalance(provider.connection, userDepositWallet.address)
-
+        const attackerWallet = Keypair.generate();
+        await provider.connection.requestAirdrop(attackerWallet.publicKey, 1e9)
         // try to frontrun to steal USDC
         try {
             console.log("🥷 Attacker frontruns to steal USDC")
-            const attackerWallet = Keypair.generate();
-            await provider.connection.requestAirdrop(attackerWallet.publicKey, 1e9)
+            // const attackerWallet = Keypair.generate();
+            // await provider.connection.requestAirdrop(attackerWallet.publicKey, 1e9)
 
             // create usdc account for attacker
             const attackerDepositWallet = await getOrCreateAssociatedTokenAccount(
@@ -749,75 +764,33 @@ describe('Test OAPP messaging', function() {
             )
             // wait for 1 second
             await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            await program.methods
-                .lzReceive({
-                    srcEid: ETHEREUM_EID,
-                    sender: Array.from(wallet.publicKey.toBytes()),
-                    nonce: new BN('1'),
-                    guid: guid,
-                    message: message,
-                    extraData: Buffer.from([])
-                })
-                .accounts({
-                    payer: wallet.publicKey,
-                    oappConfig: oappConfigPda,
-                    peer: peerPda,
-                    brokerPda: brokerPda,
-                    tokenPda: tokenPda,
-                    tokenMint: USDC_MINT,
-                    receiver: attackerWallet.publicKey,
-                    receiverTokenAccount: attackerDepositWallet.address,
-                    vaultAuthority: vaultAuthorityPda,
-                    vaultTokenAccount: vaultDepositWallet.address,
-                    tokenProgram: TOKEN_PROGRAM_ID,
-                })
-                .remainingAccounts([
-                    {
-                        pubkey: endpointProgram.programId,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: oappConfigPda, // signer and receiver
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: oappRegistryPda,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: noncePda,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: payloadHashPda,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: endpointPda,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: eventAuthorityPda,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: endpointProgram.programId,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                ])
-                .rpc(confirmOptions)
+
+            const params = {
+                srcEid: ETHEREUM_EID,
+                sender: Array.from(wallet.publicKey.toBytes()),
+                nonce: new BN('1'),
+                guid: guid,
+                message: message,
+                extraData: Buffer.from([])
+            }
+
+            const accounts = {
+                payer: attackerWallet.publicKey,
+                oappConfig: oappConfigPda,
+                peer: peerPda,
+                brokerPda: brokerPda,
+                tokenPda: tokenPda,
+                tokenMint: USDC_MINT,
+                receiver: attackerWallet.publicKey,
+                receiverTokenAccount: attackerDepositWallet.address,
+                vaultAuthority: vaultAuthorityPda,
+                vaultTokenAccount: vaultDepositWallet.address,
+                tokenProgram: TOKEN_PROGRAM_ID,
+            } 
+
+            await lzReceive(attackerWallet, params, accounts, lzReceiveRemainingAccounts)
  
         } catch(e) {
-            // console.log(e)
             assert.equal(e.error.errorCode.code, "InvalidReceiver")
             console.log("🥷 Attacker failed to steal USDC")
         }
@@ -825,8 +798,7 @@ describe('Test OAPP messaging', function() {
         // try to exectue the lzReceive with memecoin withdraw
         try {
             console.log("🥷 Attacker frontruns to execute withdrawal with memecoin")
-            const attackerWallet = Keypair.generate();
-            await provider.connection.requestAirdrop(attackerWallet.publicKey, 1e9)
+           
             prevVaultMEMEBalance = await getTokenBalance(provider.connection, vaultMemeDepositWallet.address)
 
             // mint 1000 MEME coin to the vault authority
@@ -843,73 +815,28 @@ describe('Test OAPP messaging', function() {
             assert.equal(currVaultMEMEBalance, prevVaultMEMEBalance + WITHDRAW_AMOUNT)
             console.log(`🥷 Attacker minted ${WITHDRAW_AMOUNT} MEME to vault authority`)
 
-            await program.methods
-                .lzReceive({
-                    srcEid: ETHEREUM_EID,
-                    sender: Array.from(wallet.publicKey.toBytes()),
-                    nonce: new BN('1'),
-                    guid: guid,
-                    message: message,
-                    extraData: Buffer.from([])
-                })
-                .accounts({
-                    payer: wallet.publicKey,
-                    oappConfig: oappConfigPda,
-                    peer: peerPda,
-                    brokerPda: brokerPda,
-                    tokenPda: tokenPda,
-                    tokenMint: MEME_MINT,
-                    receiver: wallet.publicKey,
-                    receiverTokenAccount: userMemeDepositWallet.address,
-                    vaultAuthority: vaultAuthorityPda,
-                    vaultTokenAccount: vaultMemeDepositWallet.address,
-                    tokenProgram: TOKEN_PROGRAM_ID,  
-                })
-                .remainingAccounts([
-                    {
-                        pubkey: endpointProgram.programId,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: oappConfigPda, // signer and receiver
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: oappRegistryPda,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: noncePda,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: payloadHashPda,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: endpointPda,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: eventAuthorityPda,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: endpointProgram.programId,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                ])
-                .rpc(confirmOptions)
-
-            
+            const params = {
+                srcEid: ETHEREUM_EID,
+                sender: Array.from(wallet.publicKey.toBytes()),
+                nonce: new BN('1'),
+                guid: guid,
+                message: message,
+                extraData: Buffer.from([])
+            }
+            const accounts = {
+                payer: attackerWallet.publicKey,
+                oappConfig: oappConfigPda,
+                peer: peerPda,
+                brokerPda: brokerPda,
+                tokenPda: tokenPda,
+                tokenMint: MEME_MINT,
+                receiver: wallet.publicKey,
+                receiverTokenAccount: userMemeDepositWallet.address,
+                vaultAuthority: vaultAuthorityPda,
+                vaultTokenAccount: vaultMemeDepositWallet.address,
+                tokenProgram: TOKEN_PROGRAM_ID,  
+            }
+            await lzReceive(attackerWallet, params, accounts, lzReceiveRemainingAccounts)       
         } catch(e) {
             assert.equal(e.error.errorCode.code, "TokenNotAllowed")
             console.log("🥷 Attacker failed to execute withdrawal with meme coin")
@@ -931,74 +858,31 @@ describe('Test OAPP messaging', function() {
             console.log("✅ Set Broker to not allowed")
 
             console.log("🥷 Attacker tries to execute withdrawal with not allowed broker")
-            await program.methods
-                .lzReceive({
-                    srcEid: ETHEREUM_EID,
-                    sender: Array.from(wallet.publicKey.toBytes()),
-                    nonce: new BN('1'),
-                    guid: guid,
-                    message: message,
-                    extraData: Buffer.from([])
-                })
-                .accounts({
-                    payer: wallet.publicKey,
-                    oappConfig: oappConfigPda,
-                    peer: peerPda,
-                    brokerPda: brokerPda,
-                    tokenPda: tokenPda,
-                    tokenMint: USDC_MINT,
-                    receiver: wallet.publicKey,
-                    receiverTokenAccount: userDepositWallet.address,
-                    vaultAuthority: vaultAuthorityPda,
-                    vaultTokenAccount: vaultDepositWallet.address,
-                    tokenProgram: TOKEN_PROGRAM_ID,  
-                })
-                .remainingAccounts([
-                    {
-                        pubkey: endpointProgram.programId,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: oappConfigPda, // signer and receiver
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: oappRegistryPda,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: noncePda,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: payloadHashPda,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: endpointPda,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: eventAuthorityPda,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                    {
-                        pubkey: endpointProgram.programId,
-                        isWritable: true,
-                        isSigner: false,
-                    },
-                ])
-                .rpc(confirmOptions)
+            const params = {
+                srcEid: ETHEREUM_EID,
+                sender: Array.from(wallet.publicKey.toBytes()),
+                nonce: new BN('1'),
+                guid: guid,
+                message: message,
+                extraData: Buffer.from([])
+            }
+            const accounts = {
+                payer: attackerWallet.publicKey,
+                oappConfig: oappConfigPda,
+                peer: peerPda,
+                brokerPda: brokerPda,
+                tokenPda: tokenPda,
+                tokenMint: USDC_MINT,
+                receiver: wallet.publicKey,
+                receiverTokenAccount: userDepositWallet.address,
+                vaultAuthority: vaultAuthorityPda,
+                vaultTokenAccount: vaultDepositWallet.address,
+                tokenProgram: TOKEN_PROGRAM_ID,  
+            }
+            await lzReceive(attackerWallet, params, accounts, lzReceiveRemainingAccounts)
         } catch(e)
         {   
-            console.log(e)
+            // console.log(e)
             assert.equal(e.error.errorCode.code, "BrokerNotAllowed")
             console.log("🥷 Attacker failed to execute withdrawal with not allowed broker")
         }
@@ -1019,71 +903,28 @@ describe('Test OAPP messaging', function() {
         prevVaultUSDCBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address)
         prevUserUSDCBalance = await getTokenBalance(provider.connection, userDepositWallet.address)
         // execute the lzReceive instruction successfully
-        await program.methods
-            .lzReceive({
-                srcEid: ETHEREUM_EID,
-                sender: Array.from(wallet.publicKey.toBytes()),
-                nonce: new BN('1'),
-                guid: guid,
-                message: message,
-                extraData: Buffer.from([])
-            })
-            .accounts({
-                payer: wallet.publicKey,
-                oappConfig: oappConfigPda,
-                peer: peerPda,
-                brokerPda: brokerPda,
-                tokenPda: tokenPda,
-                tokenMint: USDC_MINT,
-                receiver: wallet.publicKey,
-                receiverTokenAccount: userDepositWallet.address,
-                vaultAuthority: vaultAuthorityPda,
-                vaultTokenAccount: vaultDepositWallet.address,
-                tokenProgram: TOKEN_PROGRAM_ID,
-            })
-            .remainingAccounts([
-                {
-                    pubkey: endpointProgram.programId,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: oappConfigPda, // signer and receiver
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: oappRegistryPda,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: noncePda,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: payloadHashPda,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: endpointPda,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: eventAuthorityPda,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: endpointProgram.programId,
-                    isWritable: true,
-                    isSigner: false,
-                },
-            ])
-            .rpc(confirmOptions)
+        const params = {
+            srcEid: ETHEREUM_EID,
+            sender: Array.from(wallet.publicKey.toBytes()),
+            nonce: new BN('1'),
+            guid: guid,
+            message: message,
+            extraData: Buffer.from([])
+        }
+        const accounts = {
+            payer: wallet.publicKey,
+            oappConfig: oappConfigPda,
+            peer: peerPda,
+            brokerPda: brokerPda,
+            tokenPda: tokenPda,
+            tokenMint: USDC_MINT,
+            receiver: wallet.publicKey,
+            receiverTokenAccount: userDepositWallet.address,
+            vaultAuthority: vaultAuthorityPda,
+            vaultTokenAccount: vaultDepositWallet.address,
+            tokenProgram: TOKEN_PROGRAM_ID,
+        }
+        await lzReceive(wallet.payer, params, accounts, lzReceiveRemainingAccounts)
 
         // Check balance after lzReceive
         currVaultUSDCBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address)
