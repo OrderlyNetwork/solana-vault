@@ -34,7 +34,7 @@ async function setup() {
         solChainId: new anchor.BN(SOL_CHAIN_ID)
     }
 
-    const ixInitVault = await OAppProgram.methods.setVault(setVaultParams).accounts({
+    const ixSetVault = await OAppProgram.methods.setVault(setVaultParams).accounts({
         admin: wallet.publicKey,
         vaultAuthority: vaultAuthorityPda,
         oappConfig: utils.getOAppConfigPda(OAPP_PROGRAM_ID),
@@ -43,7 +43,7 @@ async function setup() {
 
     console.log("Set Vault:");
     try {
-        await utils.createAndSendV0Tx([ixInitVault], provider, wallet);
+        await utils.createAndSendV0Tx([ixSetVault], provider, wallet);
     } catch (e) {
         console.log("Vault already initialized");
     }
