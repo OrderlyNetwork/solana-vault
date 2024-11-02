@@ -31,15 +31,11 @@ pub mod solana_vault {
         InitOApp::apply(&mut ctx, &params)
     }
 
-    pub fn reset_lz_receive_types(mut ctx: Context<ResetLzReceiveTypes>) -> Result<()> {
-        ResetLzReceiveTypes::apply(&mut ctx)
-    }
-
-    pub fn reinit_lz_receive_types(
-        mut ctx: Context<ReinitLzReceiveTypes>,
-        params: ReinitLzReceiveTypesParams,
+    pub fn set_account_list(
+        mut ctx: Context<SetAccountList>,
+        params: SetAccountListParams,
     ) -> Result<()> {
-        ReinitLzReceiveTypes::apply(&mut ctx, &params)
+        SetAccountList::apply(&mut ctx, &params)
     }
 
     pub fn set_broker(mut ctx: Context<SetBroker>, params: SetBrokerParams) -> Result<()> {

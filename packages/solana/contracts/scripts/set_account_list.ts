@@ -1,0 +1,51 @@
+import * as anchor from "@coral-xyz/anchor";
+import { PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
+import { OftTools } from "@layerzerolabs/lz-solana-sdk-v2";
+import { Options } from "@layerzerolabs/lz-v2-utilities";
+import * as utils from "./utils";
+import * as constants from "./constants";
+import OAppIdl from "../target/idl/solana_vault.json";
+import { SolanaVault } from "../target/types/solana_vault";
+const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
+const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
+
+const [provider, wallet, rpc] = utils.setAnchor();
+
+async function setAccountList() {
+    const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
+    const lzReceiveTypesAccountsPda = utils.getLzReceiveTypesPda(OAPP_PROGRAM_ID, oappConfigPda);
+    const accountListPda = utils.getAccountListPda(OAPP_PROGRAM_ID, oappConfigPda);
+    const tokenSymble = "USDC";
+    const tokenHash = utils.getTokenHash(tokenSymble);
+    const tokenPda = utils.getTokenPda(OAPP_PROGRAM_ID, tokenHash);
+    const brokerId = "woofi_pro";
+    const brokerHash = utils.getBrokerHash(brokerId);
+    const brokerPda = utils.getBrokerPda(OAPP_PROGRAM_ID, brokerHash);
+    const params = {
+        accountList: accountListPda,
+        usdcPda: tokenPda,
+        usdcMint: utils.getUSDCAddress(rpc),
+        woofiProPda: brokerPda,
+    }
+    const ixSetAccountList = await OAppProgram.methods.setAccountList(params).accounts({
+        admin: wallet.publicKey,
+        oappConfig: oappConfigPda,
+        lzReceiveTypes: lzReceiveTypesAccountsPda,
+        accountsList: accountListPda,
+    }).instruction();
+
+    const txSetAccountList = new Transaction().add(ixSetAccountList);
+
+    const sigSetAccountList = await sendAndConfirmTransaction(
+        provider.connection,
+        txSetAccountList ,
+        [wallet.payer],
+        {
+            commitment: "confirmed",
+            preflightCommitment: "confirmed"
+        }
+    )
+    console.log("sigSetAccountList ", sigSetAccountList );
+    
+}
+setAccountList();

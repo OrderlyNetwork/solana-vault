@@ -121,6 +121,8 @@ describe('Test OAPP messaging', function() {
     let currUserMemeBalance
     let prevUserMemeBalance   
     const memeMintAuthority = Keypair.generate()
+    const tokenHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    const brokerHash = tokenHash
  
     before("Preparing for tests", async () => {
 
@@ -329,7 +331,6 @@ describe('Test OAPP messaging', function() {
 
     it('Deposit tests', async() => {
         console.log("🚀 Starting deposit tests")
-        const tokenHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         const allowedTokenPda = getTokenPdaWithBuf(program.programId, tokenHash)
         const peerPda = getPeerPda(program.programId, oappConfigPda, DST_EID)
         const efOptionsPda = getEnforcedOptionsPda(program.programId, oappConfigPda, DST_EID)
@@ -349,7 +350,7 @@ describe('Test OAPP messaging', function() {
             .rpc(confirmOptions)
         console.log("✅ Set USDC Token")
 
-        const brokerHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        // const brokerHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         const allowedBrokerPda = getBrokerPdaWithBuf(program.programId, brokerHash)
         
         await program.methods
@@ -645,14 +646,15 @@ describe('Test OAPP messaging', function() {
 
         const withdrawNonceBuffer = Buffer.alloc(8)
         withdrawNonceBuffer.writeBigUInt64BE(BigInt('2'))
-        const tokenHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-
+        const brokerHash = tokenHash
+        const tokenPda = getTokenPdaWithBuf(program.programId, tokenHash)
+        const brokerPda = getBrokerPdaWithBuf(program.programId, brokerHash)
         const payload = Buffer.concat([
             wallet.publicKey.toBuffer(),  // placeholder for account_id
             wallet.publicKey.toBuffer(),  // sender     
             wallet.publicKey.toBuffer(),  // receiver
             Buffer.from(tokenHash), // placeholder for broker hash
-            Buffer.from(tokenHash), // placeholder for token hash
+            Buffer.from(brokerHash), // placeholder for token hash
             tokenAmountBuffer,
             feeBuffer,
             chainIdBuffer,
@@ -761,6 +763,8 @@ describe('Test OAPP messaging', function() {
                     payer: wallet.publicKey,
                     oappConfig: oappConfigPda,
                     peer: peerPda,
+                    brokerPda: brokerPda,
+                    tokenPda: tokenPda,
                     tokenMint: USDC_MINT,
                     receiver: attackerWallet.publicKey,
                     receiverTokenAccount: attackerDepositWallet.address,
@@ -852,6 +856,8 @@ describe('Test OAPP messaging', function() {
                     payer: wallet.publicKey,
                     oappConfig: oappConfigPda,
                     peer: peerPda,
+                    brokerPda: brokerPda,
+                    tokenPda: tokenPda,
                     tokenMint: MEME_MINT,
                     receiver: wallet.publicKey,
                     receiverTokenAccount: userMemeDepositWallet.address,
@@ -909,7 +915,107 @@ describe('Test OAPP messaging', function() {
             console.log("🥷 Attacker failed to execute withdrawal with meme coin")
         }
 
-        
+        // try to execute the lzReceive USDC with not allowed broker
+        try {
+            await program.methods
+            .setBroker({
+                brokerHash: brokerHash,
+                allowed: false
+            })
+            .accounts({
+                admin: wallet.publicKey,
+                allowedBroker: brokerPda,
+                oappConfig: oappConfigPda,
+            }).signers([endpointAdmin]).rpc(confirmOptions);
+    
+            console.log("✅ Set Broker to not allowed")
+
+            console.log("🥷 Attacker tries to execute withdrawal with not allowed broker")
+            await program.methods
+                .lzReceive({
+                    srcEid: ETHEREUM_EID,
+                    sender: Array.from(wallet.publicKey.toBytes()),
+                    nonce: new BN('1'),
+                    guid: guid,
+                    message: message,
+                    extraData: Buffer.from([])
+                })
+                .accounts({
+                    payer: wallet.publicKey,
+                    oappConfig: oappConfigPda,
+                    peer: peerPda,
+                    brokerPda: brokerPda,
+                    tokenPda: tokenPda,
+                    tokenMint: USDC_MINT,
+                    receiver: wallet.publicKey,
+                    receiverTokenAccount: userDepositWallet.address,
+                    vaultAuthority: vaultAuthorityPda,
+                    vaultTokenAccount: vaultDepositWallet.address,
+                    tokenProgram: TOKEN_PROGRAM_ID,  
+                })
+                .remainingAccounts([
+                    {
+                        pubkey: endpointProgram.programId,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: oappConfigPda, // signer and receiver
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: oappRegistryPda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: noncePda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: payloadHashPda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: endpointPda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: eventAuthorityPda,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                    {
+                        pubkey: endpointProgram.programId,
+                        isWritable: true,
+                        isSigner: false,
+                    },
+                ])
+                .rpc(confirmOptions)
+        } catch(e)
+        {   
+            console.log(e)
+            assert.equal(e.error.errorCode.code, "BrokerNotAllowed")
+            console.log("🥷 Attacker failed to execute withdrawal with not allowed broker")
+        }
+
+        await program.methods
+        .setBroker({
+            brokerHash: brokerHash,
+            allowed: true
+        })
+        .accounts({
+            admin: wallet.publicKey,
+            allowedBroker: brokerPda,
+            oappConfig: oappConfigPda,
+        }).signers([endpointAdmin]).rpc(confirmOptions);
+
+        console.log("✅ Set Broker allowed")
+       
         prevVaultUSDCBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address)
         prevUserUSDCBalance = await getTokenBalance(provider.connection, userDepositWallet.address)
         // execute the lzReceive instruction successfully
@@ -926,6 +1032,8 @@ describe('Test OAPP messaging', function() {
                 payer: wallet.publicKey,
                 oappConfig: oappConfigPda,
                 peer: peerPda,
+                brokerPda: brokerPda,
+                tokenPda: tokenPda,
                 tokenMint: USDC_MINT,
                 receiver: wallet.publicKey,
                 receiverTokenAccount: userDepositWallet.address,
@@ -1005,7 +1113,7 @@ describe('Test OAPP messaging', function() {
         const pendingInboundNoncePda = getPendingInboundNoncePda(oappConfigPda, DST_EID, wallet.publicKey.toBuffer())
 
         const peerPda = getPeerPda(program.programId, oappConfigPda, DST_EID)
-        const tokenHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+        // const tokenHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
         const brokerHash = tokenHash;
         const {lzTokenFee, nativeFee} = await program.methods
             .oappQuote({

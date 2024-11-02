@@ -7,23 +7,25 @@ use oapp::endpoint_cpi::LzAccount;
 
 use crate::instructions::AccountWithdrawSol;
 use crate::instructions::{
-    LzMessage, MsgType, OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED,
+    LzMessage, MsgType, ACCOUNT_LIST_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED,
 };
-use crate::state::{AllowedToken, OAppConfig};
+use crate::state::{AccountList, OAppConfig};
+use crate::BROKER_SEED;
 
 // Return accounts list for lz_receive instruction based on the message type
-// Msg.Type: Withdraw
-// 0: signer
+// Msg.Type: Withdraw  (at most 13 accounts, otherwise tx oversize)
+// 0: signer = lz executor
 // 1: peer
 // 2: oapp_config
-// 3: allowed_token
-// 4: token_mint
-// 5: receiver
-// 6: receiver_token_account
-// 7: vault_authority
-// 8: vault_token_account
-// 9: token_program_id
-// 10: system_program_id
+// 3: broker_pda
+// 4: token_pda
+// 5: token_mint
+// 6: receiver
+// 7: receiver_token_account
+// 8: vault_authority
+// 9: vault_token_account
+// 10: token_program_id
+// 11: system_program_id   (deleted)
 // 11: event_authority_account
 // 12: program_id
 // 13..n: accounts for clear
@@ -35,8 +37,11 @@ pub struct OAppLzReceiveTypes<'info> {
         bump = oapp_config.bump
     )]
     pub oapp_config: Account<'info, OAppConfig>,
-    #[account()]
-    pub allowed_token: Account<'info, AllowedToken>, // should be usdc
+    #[account(
+        seeds = [ACCOUNT_LIST_SEED, &oapp_config.key().as_ref()],
+        bump = account_list.bump
+    )]
+    pub account_list: Account<'info, AccountList>,
 }
 
 impl OAppLzReceiveTypes<'_> {
@@ -82,90 +87,100 @@ impl OAppLzReceiveTypes<'_> {
             let withdraw_params = AccountWithdrawSol::decode_packed(&lz_message.payload).unwrap();
 
             // account 3
-            let (withdraw_token_account, _) = Pubkey::find_program_address(
-                &[TOKEN_SEED, withdraw_params.token_hash.as_ref()],
+
+            let (broker_pda, _) = Pubkey::find_program_address(
+                &[BROKER_SEED, withdraw_params.broker_hash.as_ref()],
                 ctx.program_id,
             );
 
             // account 4
+            let (token_pda, _) = Pubkey::find_program_address(
+                &[TOKEN_SEED, withdraw_params.token_hash.as_ref()],
+                ctx.program_id,
+            );
+
+            // account 5
             let token_mint;
-            if withdraw_token_account.key() == ctx.accounts.allowed_token.key()
-                && ctx.accounts.allowed_token.allowed
-            {
-                token_mint = ctx.accounts.allowed_token.mint_account;
+            if token_pda == ctx.accounts.account_list.usdc_pda {
+                token_mint = ctx.accounts.account_list.usdc_mint;
             } else {
                 token_mint = Pubkey::from_str("0x0000").unwrap();
             }
 
-            // account 5
+            // account 6
             let receiver = Pubkey::new_from_array(withdraw_params.receiver);
 
-            // account 6
+            // account 7
             let receiver_token_account: Pubkey =
                 associated_token::get_associated_token_address(&receiver, &token_mint);
 
-            // account 7
+            // account 8
             let (vault_authority, _) =
                 Pubkey::find_program_address(&[VAULT_AUTHORITY_SEED], ctx.program_id);
 
-            // account 8
+            // account 9
             let vault_token_account =
                 associated_token::get_associated_token_address(&vault_authority, &token_mint);
 
-            // account 9
+            // account 10
             let token_program_id =
                 Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap();
 
-            // account 10
-            let system_program_id = solana_program::system_program::ID;
             // account 11
+            let system_program_id = solana_program::system_program::ID;
+            // account 12
             let (event_authority_account, _) =
                 Pubkey::find_program_address(&[oapp::endpoint_cpi::EVENT_SEED], &ctx.program_id);
-            // account 12
+            // account 13
             let program_id = ctx.program_id.key();
 
-            // add accounts 3..12
+            // add accounts 3..13
             accounts.extend_from_slice(&[
                 LzAccount {
-                    pubkey: ctx.accounts.allowed_token.key(),
+                    pubkey: broker_pda,
                     is_signer: false,
                     is_writable: false,
                 }, // 3
                 LzAccount {
-                    pubkey: token_mint,
+                    pubkey: token_pda,
                     is_signer: false,
                     is_writable: false,
                 }, // 4
                 LzAccount {
-                    pubkey: receiver,
+                    pubkey: token_mint,
                     is_signer: false,
                     is_writable: false,
                 }, // 5
                 LzAccount {
-                    pubkey: receiver_token_account,
+                    pubkey: receiver,
                     is_signer: false,
-                    is_writable: true,
+                    is_writable: false,
                 }, // 6
                 LzAccount {
-                    pubkey: vault_authority,
+                    pubkey: receiver_token_account,
                     is_signer: false,
                     is_writable: true,
                 }, // 7
                 LzAccount {
-                    pubkey: vault_token_account,
+                    pubkey: vault_authority,
                     is_signer: false,
                     is_writable: true,
                 }, // 8
                 LzAccount {
+                    pubkey: vault_token_account,
+                    is_signer: false,
+                    is_writable: true,
+                }, // 9
+                LzAccount {
                     pubkey: token_program_id,
                     is_signer: false,
                     is_writable: false,
-                }, // 9
-                LzAccount {
-                    pubkey: system_program_id,
-                    is_signer: false,
-                    is_writable: false,
                 }, // 10
+                // LzAccount {
+                //     pubkey: system_program_id,
+                //     is_signer: false,
+                //     is_writable: false,
+                // }, // 11
                 LzAccount {
                     pubkey: event_authority_account,
                     is_signer: false,

@@ -17,6 +17,8 @@ console.log("OApp Config PDA:", oappConfigPda.toBase58());
 const lzReceiveTypesPda = utils.getLzReceiveTypesPda(OAPP_PROGRAM_ID, oappConfigPda);
 console.log("LZ Receive Types PDA:", lzReceiveTypesPda.toBase58());
 
+const accountListPda = utils.getAccountListPda(OAPP_PROGRAM_ID, oappConfigPda);
+
 const peerPda = utils.getPeerPda(OAPP_PROGRAM_ID, oappConfigPda, DST_EID);
 console.log("Peer PDA:", peerPda.toBase58());
 
@@ -35,11 +37,13 @@ async function setup() {
     const tokenHash = utils.getTokenHash(tokenSymble);
     const ixInitOapp = await OAppProgram.methods.initOapp({
         admin: wallet.publicKey,
-        endpointProgram: constants.ENDPOINT_PROGRAM_ID
+        accountList: accountListPda,
+        endpointProgram: constants.ENDPOINT_PROGRAM_ID,
     }).accounts({
         payer: wallet.publicKey,
         oappConfig: oappConfigPda,
         lzReceiveTypes: lzReceiveTypesPda,
+        accountList: accountListPda,
         systemProgram: SystemProgram.programId
     }).remainingAccounts(
         [

@@ -2,9 +2,9 @@ use crate::errors::{OAppError, VaultError};
 use crate::events::VaultWithdrawn;
 use crate::instructions::{to_bytes32, OAppLzReceiveParams};
 use crate::instructions::{
-    LzMessage, MsgType, OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED,
+    LzMessage, MsgType, BROKER_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED,
 };
-use crate::state::{AllowedToken, OAppConfig, Peer, VaultAuthority};
+use crate::state::{AllowedBroker, AllowedToken, OAppConfig, Peer, VaultAuthority};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 use oapp::endpoint::{cpi::accounts::Clear, instructions::ClearParams, ConstructCPIContext};
@@ -30,13 +30,13 @@ pub struct OAppLzReceive<'info> {
         bump = oapp_config.bump
     )]
     pub oapp_config: Account<'info, OAppConfig>,
+
     /// CHECK
-    #[account(
-        // seeds = [TOKEN_SEED, deposit_params.token_hash.as_ref()],
-        // bump = allowed_token.bump,
-        // constraint = allowed_token.allowed == true @ VaultError::TokenNotAllowed
-    )]
-    pub allowed_token: Account<'info, AllowedToken>,
+    #[account()]
+    pub broker_pda: Account<'info, AllowedBroker>,
+    /// CHECK
+    #[account()]
+    pub token_pda: Account<'info, AllowedToken>,
 
     /// CHECK
     #[account()]
@@ -69,8 +69,7 @@ pub struct OAppLzReceive<'info> {
     pub vault_token_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
-
-    pub system_program: Program<'info, System>,
+    // pub system_program: Program<'info, System>,
 }
 
 impl<'info> OAppLzReceive<'info> {
@@ -112,11 +111,6 @@ impl<'info> OAppLzReceive<'info> {
 
         ctx.accounts.vault_authority.inbound_nonce = params.nonce;
 
-        // msg!(
-        //     "nonce received: {:?}",
-        //     ctx.accounts.vault_authority.inbound_nonce
-        // );
-
         let lz_message = LzMessage::decode(&params.message).unwrap();
         msg!("msg_type: {:?}", lz_message.msg_type);
         if lz_message.msg_type == MsgType::Withdraw as u8 {
@@ -125,18 +119,38 @@ impl<'info> OAppLzReceive<'info> {
                 withdraw_params.receiver == ctx.accounts.receiver.key.to_bytes(),
                 OAppError::InvalidReceiver
             );
-            if withdraw_params.token_hash == ctx.accounts.allowed_token.token_hash {
+
+            // check if the token is allowed and the mint is correct
+            let (allowed_token, _) = Pubkey::find_program_address(
+                &[TOKEN_SEED, &withdraw_params.token_hash.as_ref()],
+                ctx.program_id,
+            );
+            if allowed_token.key() != ctx.accounts.token_pda.key()
+                || !ctx.accounts.token_pda.allowed
+            {
+                return Err(VaultError::TokenNotAllowed.into());
+            }
+            if withdraw_params.token_hash == ctx.accounts.token_pda.token_hash {
                 require!(
-                    ctx.accounts.allowed_token.mint_account == ctx.accounts.token_mint.key(),
+                    ctx.accounts.token_pda.mint_account.key() == ctx.accounts.token_mint.key(),
                     VaultError::TokenNotAllowed
                 );
             } else {
                 return Err(VaultError::TokenNotAllowed.into());
             }
+
+            // check if the broker is allowed
+            let (allowed_broker, _) = Pubkey::find_program_address(
+                &[BROKER_SEED, &withdraw_params.broker_hash],
+                ctx.program_id,
+            );
+
+            if allowed_broker != ctx.accounts.broker_pda.key() || !ctx.accounts.broker_pda.allowed {
+                return Err(VaultError::BrokerNotAllowed.into());
+            }
             let vault_authority_seeds =
                 &[VAULT_AUTHORITY_SEED, &[ctx.accounts.vault_authority.bump]];
 
-            // msg!("Withdraw amount = {}", withdraw_params.token_amount);
             let amount_to_transfer = withdraw_params.token_amount - withdraw_params.fee;
             transfer(
                 ctx.accounts

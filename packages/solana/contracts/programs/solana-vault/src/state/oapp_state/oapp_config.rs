@@ -43,6 +43,15 @@ impl OAppConfig {
 #[derive(InitSpace)]
 pub struct OAppLzReceiveTypesAccounts {
     pub oapp_config: Pubkey,
-    pub allowed_usdc: Pubkey,
-    // can add more allowed tokens here in the future
+    pub account_list: Pubkey, // point to the AccountList pda, should be updated if a new AccountList applied
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct AccountList {
+    pub bump: u8,
+    pub usdc_pda: Pubkey,
+    pub usdc_mint: Pubkey,
+    pub woofi_pro_pda: Pubkey,
+    // can add more pda accounts here in the future with different seeds
 }

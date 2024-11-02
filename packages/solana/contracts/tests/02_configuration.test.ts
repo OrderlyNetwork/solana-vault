@@ -19,10 +19,12 @@ import {
     getOAppRegistryPda,
     getPeerPda,
     getTokenPdaWithBuf,
-    getVaultAuthorityPda 
+    getVaultAuthorityPda,
+    getAccountListPda
 } from '../scripts/utils'
 import { MainnetV2EndpointId } from '@layerzerolabs/lz-definitions'
 import { initOapp, setVault, confirmOptions } from './setup'
+import { token } from '@coral-xyz/anchor/dist/cjs/utils'
 
 let USDC_MINT: PublicKey
 const LAYERZERO_ENDPOINT_PROGRAM_ID = new PublicKey('76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6')
@@ -47,6 +49,7 @@ describe('Test Solana-Vault configuration', function() {
     const vaultAuthorityPda = getVaultAuthorityPda(program.programId)
     const newVaultOwner = Keypair.generate();
     const tokenHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    const brokerHash = tokenHash
 
     before(async () => {
         
@@ -145,6 +148,7 @@ describe('Test Solana-Vault configuration', function() {
         const lzReceiveTypesPda = getLzReceiveTypesPda(program.programId, oappConfigPda)
         const oappRegistryPda = getOAppRegistryPda(oappConfigPda)
         const eventAuthorityPda = getEventAuthorityPda()
+        const accountListPda = getAccountListPda(program.programId, oappConfigPda)
         const usdcHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
         try {
@@ -152,8 +156,7 @@ describe('Test Solana-Vault configuration', function() {
                     .initOapp({
                     admin: wallet.publicKey,
                     endpointProgram: endpointProgram.programId,
-                    usdcHash: usdcHash,
-                    usdcMint: USDC_MINT
+                    accountList: accountListPda
                 })
                 .accounts({
                     payer: wallet.publicKey,
@@ -283,78 +286,120 @@ describe('Test Solana-Vault configuration', function() {
         const oappRegistry = await endpointProgram.account.oAppRegistry.fetch(oappRegistryPda)
 
         assert.equal(lzReceiveTypes.oappConfig.toString(), oappConfigPda.toString())
-        assert.deepEqual(oappConfig.usdcHash, usdcHash)
-        // assert.equal(oappConfig.usdcMint.toString(), USDC_MINT.toString())           // USDC is set on 01_message.test.ts process
         assert.equal(oappConfig.endpointProgram.toString(), endpointProgram.programId.toString())
         assert.equal(oappConfig.admin.toString(), wallet.publicKey.toString())
         assert.equal(oappRegistry.delegate.toString(), wallet.publicKey.toString())
         console.log("✅ Checked OAPP Config state")
     })
 
-    it('Reinitialize LzReceiveTypes', async () => {
+    // it('Reinitialize LzReceiveTypes', async () => {
+
+    //     const lzReceiveTypesPda = getLzReceiveTypesPda(program.programId, oappConfigPda)
+    //     const resetLzReceiveTypes = async (signer: Keypair) => {
+    //         await program.methods
+    //             .resetLzReceiveTypes()
+    //             .accounts({
+    //                 admin: signer.publicKey,
+    //                 oappConfig: oappConfigPda,
+    //                 lzReceiveTypes: lzReceiveTypesPda
+    //             })
+    //             .signers([signer])
+    //             .rpc(confirmOptions)
+    //     }
+
+    //     const tokenPda = getTokenPdaWithBuf(program.programId, tokenHash)
+    //     const reinitLzReceiveTypes = async (signer: Keypair) => {
+    //         await program.methods
+    //             .reinitLzReceiveTypes({
+    //                 oappConfig: oappConfigPda,
+    //                 allowedUsdc: tokenPda
+    //             })
+    //             .accounts({
+    //                 admin: signer.publicKey,
+    //                 oappConfig: oappConfigPda,
+    //                 lzReceiveTypes: lzReceiveTypesPda
+    //             })
+    //             .signers([signer])
+    //             .rpc(confirmOptions)
+    //     }
+
+    //     console.log("🥷 Attacker trying to reset LzReceiveTypes")
+    //     try {
+    //         await resetLzReceiveTypes(attacker)
+    //     } catch(e) {
+    //         // console.log(e)
+    //         assert.equal(e.error.errorCode.code, "Unauthorized")
+    //         console.log("🥷 Attacker failed to set Order Delivery")
+    //     }
+
+    //     await resetLzReceiveTypes(wallet.payer)
+        
+    //     let lzReceiveTypesPdaInfo = await provider.connection.getAccountInfo(lzReceiveTypesPda)
+    //     assert.equal(lzReceiveTypesPdaInfo.owner.toString(), SystemProgram.programId.toString())
+    //     console.log("✅ Reset LzReceiveTypes")
+
+    //     console.log("🥷 Attacker trying to reinitialize LzReceiveTypes")
+    //     try {
+    //         await reinitLzReceiveTypes(attacker)
+    //     } catch(e) {
+    //         assert.equal(e.error.errorCode.code, "Unauthorized")
+    //         console.log("🥷 Attacker failed to reinitialize LzReceiveTypes")
+    //     }
+
+    //     await reinitLzReceiveTypes(wallet.payer)
+    //     lzReceiveTypesPdaInfo = await provider.connection.getAccountInfo(lzReceiveTypesPda)
+    //     const lzReceiveTypesPdaData = await program.account.oAppLzReceiveTypesAccounts.fetch(lzReceiveTypesPda)
+    //     assert.equal(lzReceiveTypesPdaInfo.owner.toString(), program.programId.toString())
+    //     assert.equal(lzReceiveTypesPdaData.oappConfig.toString(), oappConfigPda.toString())
+    //     assert.equal(lzReceiveTypesPdaData.allowedUsdc.toString(), tokenPda.toString())
+    //     console.log("✅ Reinitialized LzReceiveTypes")
+
+
+    // })
+
+    it('Set account list', async () => {
 
         const lzReceiveTypesPda = getLzReceiveTypesPda(program.programId, oappConfigPda)
-        const resetLzReceiveTypes = async (signer: Keypair) => {
-            await program.methods
-                .resetLzReceiveTypes()
-                .accounts({
-                    admin: signer.publicKey,
-                    oappConfig: oappConfigPda,
-                    lzReceiveTypes: lzReceiveTypesPda
-                })
-                .signers([signer])
-                .rpc(confirmOptions)
-        }
-
+        const accountListPda = getAccountListPda(program.programId, oappConfigPda)
         const tokenPda = getTokenPdaWithBuf(program.programId, tokenHash)
-        const reinitLzReceiveTypes = async (signer: Keypair) => {
+        const brokerPda = getBrokerPdaWithBuf(program.programId, brokerHash)
+
+        console.log("🥷 Attacker trying to set AccountList")
+        const seAccountList = async (signer: Keypair) => {
             await program.methods
-                .reinitLzReceiveTypes({
-                    oappConfig: oappConfigPda,
-                    allowedUsdc: tokenPda
+                .setAccountList({
+                    accountList: accountListPda,
+                    usdcPda: tokenPda,
+                    usdcMint: USDC_MINT,
+                    woofiProPda: brokerPda
                 })
                 .accounts({
                     admin: signer.publicKey,
                     oappConfig: oappConfigPda,
-                    lzReceiveTypes: lzReceiveTypesPda
+                    lzReceiveTypes: lzReceiveTypesPda,
+                    accountsList: accountListPda,
+                    systemProgram: SystemProgram.programId
                 })
                 .signers([signer])
                 .rpc(confirmOptions)
         }
 
-        console.log("🥷 Attacker trying to reset LzReceiveTypes")
         try {
-            await resetLzReceiveTypes(attacker)
+            await seAccountList(attacker)
         } catch(e) {
+            assert.equal(e.error.errorCode.code, "Unauthorized")
+            console.log("🥷 Attacker failed to set AccountList")
             // console.log(e)
-            assert.equal(e.error.errorCode.code, "Unauthorized")
-            console.log("🥷 Attacker failed to set Order Delivery")
         }
 
-        await resetLzReceiveTypes(wallet.payer)
-        
-        let lzReceiveTypesPdaInfo = await provider.connection.getAccountInfo(lzReceiveTypesPda)
-        assert.equal(lzReceiveTypesPdaInfo.owner.toString(), SystemProgram.programId.toString())
-        console.log("✅ Reset LzReceiveTypes")
-
-        console.log("🥷 Attacker trying to reinitialize LzReceiveTypes")
-        try {
-            await reinitLzReceiveTypes(attacker)
-        } catch(e) {
-            assert.equal(e.error.errorCode.code, "Unauthorized")
-            console.log("🥷 Attacker failed to reinitialize LzReceiveTypes")
-        }
-
-        await reinitLzReceiveTypes(wallet.payer)
-        lzReceiveTypesPdaInfo = await provider.connection.getAccountInfo(lzReceiveTypesPda)
-        const lzReceiveTypesPdaData = await program.account.oAppLzReceiveTypesAccounts.fetch(lzReceiveTypesPda)
-        assert.equal(lzReceiveTypesPdaInfo.owner.toString(), program.programId.toString())
-        assert.equal(lzReceiveTypesPdaData.oappConfig.toString(), oappConfigPda.toString())
-        assert.equal(lzReceiveTypesPdaData.allowedUsdc.toString(), tokenPda.toString())
-        console.log("✅ Reinitialized LzReceiveTypes")
-
-
+        await seAccountList(wallet.payer)
+        const accountListData = await program.account.accountList.fetch(accountListPda)
+        assert.equal(accountListData.usdcPda.toString(), tokenPda.toString())
+        assert.equal(accountListData.usdcMint.toString(), USDC_MINT.toString())
+        assert.equal(accountListData.woofiProPda.toString(), brokerPda.toString())
+        console.log("✅ Set AccountList")
     })
+
 
     
     it('Set broker', async () => {
@@ -458,7 +503,8 @@ describe('Test Solana-Vault configuration', function() {
         await setOrderDelivery(newVaultOwner)
         vaultAuthority = await program.account.vaultAuthority.fetch(vaultAuthorityPda)
         assert.isTrue(vaultAuthority.orderDelivery)
-        assert.isTrue(vaultAuthority.inboundNonce.eq(new BN('1')))        
+        assert.isTrue(vaultAuthority.inboundNonce.eq(new BN('1')))   
+        console.log("✅ Set Order Delivery")     
     })
 
     it('Set peer', async () => {
