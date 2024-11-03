@@ -14,11 +14,11 @@ pub fn bytes32_to_hex(bytes: &[u8; 32]) -> String {
     broker_hash_hex
 }
 
-pub fn vec_to_hex(vec: &Vec<u8>) -> String {
-    let hex_string = vec.iter().map(|byte| format!("{:02x}", byte)).collect();
-    hex_string
-}
+// pub fn vec_to_hex(vec: &Vec<u8>) -> String {
+//     let hex_string = vec.iter().map(|byte| format!("{:02x}", byte)).collect();
+//     hex_string
+// }
 
-pub fn hex_to_vec(hex: &str) -> Vec<u8> {
-    hex.as_bytes().to_vec()
-}
+// pub fn hex_to_vec(hex: &str) -> Vec<u8> {
+//     hex.as_bytes().to_vec()
+// }
