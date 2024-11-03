@@ -1,5 +1,5 @@
 use crate::errors::{OAppError, VaultError};
-use crate::events::VaultWithdrawn;
+use crate::events::{VaultWithdrawn, FrozenWithdrawn};
 use crate::instructions::{to_bytes32, OAppLzReceiveParams};
 use crate::instructions::{
     LzMessage, MsgType, BROKER_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED,
@@ -158,15 +158,20 @@ impl<'info> OAppLzReceive<'info> {
                 &[VAULT_AUTHORITY_SEED, &[ctx.accounts.vault_authority.bump]];
 
             let amount_to_transfer = withdraw_params.token_amount - withdraw_params.fee;
-            transfer(
-                ctx.accounts
-                    .transfer_token_ctx()
-                    .with_signer(&[&vault_authority_seeds[..]]),
-                amount_to_transfer as u128,         //  should be u64 here
-            )?;
-
             let vault_withdraw_params: VaultWithdrawParams = withdraw_params.into();
-            emit!(Into::<VaultWithdrawn>::into(vault_withdraw_params.clone()));
+
+            if ctx.accounts.receiver_token_account.is_frozen() {
+                
+                emit!(Into::<FrozenWithdrawn>::into(vault_withdraw_params.clone()));
+            } else {
+                transfer(
+                    ctx.accounts
+                        .transfer_token_ctx()
+                        .with_signer(&[&vault_authority_seeds[..]]),
+                    amount_to_transfer as u128,         //  should be u64 here
+                )?;         
+                emit!(Into::<VaultWithdrawn>::into(vault_withdraw_params.clone()));
+            }
         } else {
             msg!("Invalid message type: {:?}", lz_message.msg_type);
         }

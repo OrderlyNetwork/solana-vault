@@ -10,7 +10,8 @@ import {
   mintTo,
   getAccount,
   Account,
-  ASSOCIATED_TOKEN_PROGRAM_ID
+  ASSOCIATED_TOKEN_PROGRAM_ID, 
+  freezeAccount
 } from '@solana/spl-token'
 import { Connection, Keypair, PublicKey, SystemProgram, Transaction } from '@solana/web3.js'
 import { assert } from 'chai'
@@ -131,7 +132,7 @@ describe('Test OAPP messaging', function() {
             provider.connection,
             wallet.payer,
             usdcMintAuthority.publicKey,
-            null,
+            usdcMintAuthority.publicKey,
             6,  // USDC has 6 decimals
             Keypair.generate(),
             confirmOptions
@@ -541,6 +542,7 @@ describe('Test OAPP messaging', function() {
         const oappRegistryPda = getOAppRegistryPda(oappConfigPda)
         const eventAuthorityPda = getEventAuthorityPda()
         const payloadHashPda = getPayloadHashPda(oappConfigPda, ETHEREUM_EID, wallet.publicKey, BigInt('1'))
+        const payloadHashPdaSecond = getPayloadHashPda(oappConfigPda, ETHEREUM_EID, wallet.publicKey, BigInt('2'))
         const endpointPda = getEndpointSettingPda(endpointProgram.programId)
         const receiveLibraryConfigPda = getReceiveLibConfigPda(oappConfigPda, ETHEREUM_EID)
         const defaultReceiveLibraryConfigPda = getDefaultReceiveLibConfigPda(ETHEREUM_EID)
@@ -933,6 +935,167 @@ describe('Test OAPP messaging', function() {
         currUserUSDCBalance = await getTokenBalance(provider.connection, userDepositWallet.address)
         assert.equal(currUserUSDCBalance - prevUserUSDCBalance, WITHDRAW_AMOUNT - WITHDRAW_FEE)
         console.log("✅ Executed lzReceive instruction to withdraw USDC successfully")
+
+        await endpointProgram.methods
+        .initVerify({
+            srcEid: ETHEREUM_EID,
+            sender: Array.from(wallet.publicKey.toBytes()),
+            receiver: oappConfigPda,
+            nonce: new BN('2')
+        })
+        .accounts({
+            payer: wallet.publicKey,
+            nonce: noncePda,
+            payloadHash: payloadHashPdaSecond,
+            systemProgram: SystemProgram.programId
+        })
+        .signers([endpointAdmin])
+        .rpc(confirmOptions)
+    console.log("✅ Initialized Verify for second payload")
+
+    await ulnProgram.methods
+        .commitVerification({
+            nonce: new BN('2'),         // lz msg nonce from orderly chain to solana
+            srcEid: ETHEREUM_EID,
+            sender: wallet.publicKey,
+            dstEid: SOLANA_EID,
+            receiver: Array.from(oappConfigPda.toBytes()),
+            guid: guid,
+            message: message,
+        })
+        .accounts({
+            uln: messageLibPda
+        })
+        .remainingAccounts([
+            {
+                pubkey: endpointProgram.programId,
+                isWritable: true,
+                isSigner: false,
+            },
+            {
+                pubkey: messageLibPda, // receiver library
+                isWritable: true,
+                isSigner: false,
+            },
+            {
+                pubkey: receiveLibraryConfigPda, // receive library config
+                isWritable: true,
+                isSigner: false,
+            },
+            {
+                pubkey: defaultReceiveLibraryConfigPda, // default receive libary config
+                isWritable: true,
+                isSigner: false,
+            },
+            {
+                pubkey: noncePda, // nonce
+                isWritable: true,
+                isSigner: false,
+            },
+            {
+                pubkey: pendingInboundNoncePda, // pending inbound nonce
+                isWritable: true,
+                isSigner: false,
+            },
+            {
+                pubkey: payloadHashPdaSecond, // payload hash
+                isWritable: true,
+                isSigner: false,
+            },
+            {
+                pubkey: eventAuthorityPda,
+                isWritable: true,
+                isSigner: false,
+            },
+            {
+                pubkey: endpointProgram.programId,
+                isWritable: true,
+                isSigner: false,
+            },
+        ])
+        .rpc(confirmOptions)
+    console.log("✅ Commit verification for second withdraw message")
+
+    await freezeAccount(
+        provider.connection,
+        wallet.payer,
+        userDepositWallet.address,
+        USDC_MINT,
+        usdcMintAuthority,
+    )
+    
+    console.log("✅ Froze user account")
+
+    const paramsSecond = {
+        srcEid: ETHEREUM_EID,
+        sender: Array.from(wallet.publicKey.toBytes()),
+        nonce: new BN('2'),
+        guid: guid,
+        message: message,
+        extraData: Buffer.from([])
+    }
+    const accountsSecond = {
+        payer: wallet.publicKey,
+        oappConfig: oappConfigPda,
+        peer: peerPda,
+        brokerPda: brokerPda,
+        tokenPda: tokenPda,
+        tokenMint: USDC_MINT,
+        receiver: wallet.publicKey,
+        receiverTokenAccount: userDepositWallet.address,
+        vaultAuthority: vaultAuthorityPda,
+        vaultTokenAccount: vaultDepositWallet.address,
+        tokenProgram: TOKEN_PROGRAM_ID,
+    }
+
+    const lzReceiveRemainingAccountsSecond= [
+        {
+            pubkey: endpointProgram.programId,
+            isWritable: true,
+            isSigner: false,
+        },
+        {
+            pubkey: oappConfigPda, // signer and receiver
+            isWritable: true,
+            isSigner: false,
+        },
+        {
+            pubkey: oappRegistryPda,
+            isWritable: true,
+            isSigner: false,
+        },
+        {
+            pubkey: noncePda,
+            isWritable: true,
+            isSigner: false,
+        },
+        {
+            pubkey: payloadHashPdaSecond,
+            isWritable: true,
+            isSigner: false,
+        },
+        {
+            pubkey: endpointPda,
+            isWritable: true,
+            isSigner: false,
+        },
+        {
+            pubkey: eventAuthorityPda,
+            isWritable: true,
+            isSigner: false,
+        },
+        {
+            pubkey: endpointProgram.programId,
+            isWritable: true,
+            isSigner: false,
+        },
+    ]
+    await lzReceive(wallet.payer, paramsSecond, accountsSecond, lzReceiveRemainingAccountsSecond)
+    console.log("✅ Executed lzReceive instruction to withdraw USDC successfully with frozen ATA")
+    // try to execute the lzReceive instruction with frozen account
+
+
+
     })
 
 
