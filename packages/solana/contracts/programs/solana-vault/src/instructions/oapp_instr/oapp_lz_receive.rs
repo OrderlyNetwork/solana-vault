@@ -6,6 +6,7 @@ use crate::instructions::{
 };
 use crate::state::{AllowedBroker, AllowedToken, OAppConfig, Peer, VaultAuthority};
 use anchor_lang::prelude::*;
+use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 use oapp::endpoint::{cpi::accounts::Clear, instructions::ClearParams, ConstructCPIContext};
 
@@ -39,7 +40,9 @@ pub struct OAppLzReceive<'info> {
     pub token_pda: Account<'info, AllowedToken>,
 
     /// CHECK
-    #[account()]
+    #[account(
+        // mint::token_program = token_program
+    )]
     pub token_mint: Account<'info, Mint>,
 
     /// CHECK
@@ -47,10 +50,12 @@ pub struct OAppLzReceive<'info> {
     pub receiver: AccountInfo<'info>,
 
     #[account(
-        mut,
-        // init_if_needed,
+        mut,    
+        // init_if_needed,          // should apply this after message shrink
+        // payer = payer,           
         associated_token::mint = token_mint,
-        associated_token::authority = receiver
+        associated_token::authority = receiver,
+        associated_token::token_program = token_program
     )]
     pub receiver_token_account: Account<'info, TokenAccount>,
 
@@ -69,6 +74,7 @@ pub struct OAppLzReceive<'info> {
     pub vault_token_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
+    // pub associated_token_program: Program<'info, AssociatedToken>,  // should apply this after message shrink
     // pub system_program: Program<'info, System>,
 }
 

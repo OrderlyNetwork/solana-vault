@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program;
-use anchor_spl::associated_token;
+use anchor_spl::associated_token::{get_associated_token_address, ID as ASSOCIATED_TOKEN_ID};
 use oapp::endpoint_cpi::LzAccount;
 
 use crate::instructions::AccountWithdrawSol;
@@ -13,7 +13,7 @@ use crate::state::{AccountList, OAppConfig};
 use crate::BROKER_SEED;
 
 // Return accounts list for lz_receive instruction based on the message type
-// Msg.Type: Withdraw  (at most 13 accounts, otherwise tx oversize)
+// Msg.Type: Withdraw  (currently at most 13 accounts, otherwise tx oversize; fix approach: shrink message payload(remove sender, accountId fields))
 // 0: signer = lz executor
 // 1: peer
 // 2: oapp_config
@@ -25,10 +25,11 @@ use crate::BROKER_SEED;
 // 8: vault_authority
 // 9: vault_token_account
 // 10: token_program_id
-// 11: system_program_id   (deleted)
-// 11: event_authority_account
-// 12: program_id
-// 13..n: accounts for clear
+// 11: associated_token_id  (should be added after payload shrink)
+// 12: system_program_id    (should be added after payload shrink)
+// 13: event_authority_account
+// 14: program_id
+// 14..n: accounts for clear
 #[derive(Accounts)]
 #[instruction(params: OAppLzReceiveParams)]
 pub struct OAppLzReceiveTypes<'info> {
@@ -87,7 +88,6 @@ impl OAppLzReceiveTypes<'_> {
             let withdraw_params = AccountWithdrawSol::decode_packed(&lz_message.payload).unwrap();
 
             // account 3
-
             let (broker_pda, _) = Pubkey::find_program_address(
                 &[BROKER_SEED, withdraw_params.broker_hash.as_ref()],
                 ctx.program_id,
@@ -112,15 +112,14 @@ impl OAppLzReceiveTypes<'_> {
 
             // account 7
             let receiver_token_account: Pubkey =
-                associated_token::get_associated_token_address(&receiver, &token_mint);
+                get_associated_token_address(&receiver, &token_mint);
 
             // account 8
             let (vault_authority, _) =
                 Pubkey::find_program_address(&[VAULT_AUTHORITY_SEED], ctx.program_id);
 
             // account 9
-            let vault_token_account =
-                associated_token::get_associated_token_address(&vault_authority, &token_mint);
+            let vault_token_account = get_associated_token_address(&vault_authority, &token_mint);
 
             // account 10
             let token_program_id =
@@ -177,6 +176,11 @@ impl OAppLzReceiveTypes<'_> {
                     is_writable: false,
                 }, // 10
                 // LzAccount {
+                //     pubkey: ASSOCIATED_TOKEN_ID,
+                //     is_signer: false,
+                //     is_writable: false,
+                // },
+                // LzAccount {
                 //     pubkey: system_program_id,
                 //     is_signer: false,
                 //     is_writable: false,
@@ -218,15 +222,14 @@ fn get_accounts_for_send_oapp(user: Pubkey) -> Vec<LzAccount> {
     let token_program_id = Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap();
 
     let (user_info, _) = Pubkey::find_program_address(&[&user.to_bytes()], &vault_program_id);
-    let user_token_account = associated_token::get_associated_token_address(&user, &token_mint);
+    let user_token_account = get_associated_token_address(&user, &token_mint);
 
     let (vault_deposit_auth, _) = Pubkey::find_program_address(
         &[VAULT_AUTHORITY_SEED, &token_mint.to_bytes()],
         &vault_program_id,
     );
 
-    let vault_token_account =
-        associated_token::get_associated_token_address(&vault_deposit_auth, &token_mint);
+    let vault_token_account = get_associated_token_address(&vault_deposit_auth, &token_mint);
 
     vec![
         LzAccount {
