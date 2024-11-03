@@ -45,7 +45,10 @@ pub struct Deposit<'info> {
     )]
     pub vault_token_account: Box<Account<'info, TokenAccount>>,
 
-    #[account()]
+    #[account(
+        constraint = deposit_token.key() == allowed_token.mint_account @ VaultError::TokenNotAllowed,
+        mint::token_program = token_program
+    )]
     pub deposit_token: Box<Account<'info, Mint>>,
 
     #[account(
@@ -111,7 +114,7 @@ impl<'info> Deposit<'info> {
     ) -> Result<MessagingReceipt> {
         transfer(
             ctx.accounts.transfer_token_ctx(),
-            deposit_params.token_amount as u128,
+            deposit_params.token_amount as u128, // should be u64 here
         )?;
 
         msg!("User deposited : {}", deposit_params.token_amount);

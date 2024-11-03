@@ -2,39 +2,58 @@ use std::str::FromStr;
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program;
-use anchor_spl::associated_token;
+use anchor_spl::associated_token::{get_associated_token_address, ID as ASSOCIATED_TOKEN_ID};
 use oapp::endpoint_cpi::LzAccount;
 
 use crate::instructions::AccountWithdrawSol;
-use crate::instructions::{LzMessage, OAPP_SEED, PEER_SEED, VAULT_AUTHORITY_SEED};
-use crate::state::OAppConfig;
+use crate::instructions::{
+    LzMessage, MsgType, ACCOUNT_LIST_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED,
+};
+use crate::state::{AccountList, OAppConfig};
+use crate::BROKER_SEED;
 
+// Return accounts list for lz_receive instruction based on the message type
+// Msg.Type: Withdraw  (currently at most 13 accounts, otherwise tx oversize; fix approach: shrink message payload(remove sender, accountId fields))
+// 0: signer = lz executor
+// 1: peer
+// 2: oapp_config
+// 3: broker_pda
+// 4: token_pda
+// 5: token_mint
+// 6: receiver
+// 7: receiver_token_account
+// 8: vault_authority
+// 9: vault_token_account
+// 10: token_program_id
+// 11: associated_token_id  (should be added after payload shrink)
+// 12: system_program_id    (should be added after payload shrink)
+// 13: event_authority_account
+// 14: program_id
+// 14..n: accounts for clear
 #[derive(Accounts)]
+#[instruction(params: OAppLzReceiveParams)]
 pub struct OAppLzReceiveTypes<'info> {
     #[account(
         seeds = [OAPP_SEED],
         bump = oapp_config.bump
     )]
     pub oapp_config: Account<'info, OAppConfig>,
+    #[account(
+        seeds = [ACCOUNT_LIST_SEED, &oapp_config.key().as_ref()],
+        bump = account_list.bump
+    )]
+    pub account_list: Account<'info, AccountList>,
 }
 
-// account structure
-// account 0 - payer (executor)
-// account 1 - peer
-// account 2 - oapp config
-// account 3 - system program
-// account 4 - event authority
-// account 5 - this program
-// account remaining accounts
-//  0..9 - accounts for clear
-//  9..16 - accounts for withdraw
 impl OAppLzReceiveTypes<'_> {
     pub fn apply(
         ctx: &Context<OAppLzReceiveTypes>,
         params: &OAppLzReceiveParams,
     ) -> Result<Vec<LzAccount>> {
+        // account 1
         let oapp_config = &ctx.accounts.oapp_config;
 
+        // account 2
         let (peer, _) = Pubkey::find_program_address(
             &[
                 PEER_SEED,
@@ -44,122 +63,151 @@ impl OAppLzReceiveTypes<'_> {
             ctx.program_id,
         );
 
-        // account 0..1
+        // account 0..2
         let mut accounts = vec![
             LzAccount {
                 pubkey: Pubkey::default(),
                 is_signer: true,
                 is_writable: true,
-            }, // 0
+            }, // 0: signer
             LzAccount {
                 pubkey: peer,
                 is_signer: false,
                 is_writable: false,
-            }, // 1
-        ];
-
-        // account 2
-        accounts.extend_from_slice(&[
+            }, // 1: peer
             LzAccount {
                 pubkey: oapp_config.key(),
                 is_signer: false,
                 is_writable: false,
-            }, // 2
-        ]);
+            }, // 2: oapp_config
+        ];
+
         let lz_message = LzMessage::decode(&params.message).unwrap();
-        let withdraw_params = AccountWithdrawSol::decode_packed(&lz_message.payload).unwrap();
-        // account 3
-        let user = Pubkey::new_from_array(withdraw_params.receiver);
 
-        // account 8
-        let token_mint: Pubkey;
-        if oapp_config.usdc_hash == withdraw_params.token_hash {
-            token_mint = oapp_config.usdc_mint;
-        } else {
-            token_mint = Pubkey::from_str("0x0000").unwrap();
+        if lz_message.msg_type == MsgType::Withdraw as u8 {
+            let withdraw_params = AccountWithdrawSol::decode_packed(&lz_message.payload).unwrap();
+
+            // account 3
+            let (broker_pda, _) = Pubkey::find_program_address(
+                &[BROKER_SEED, withdraw_params.broker_hash.as_ref()],
+                ctx.program_id,
+            );
+
+            // account 4
+            let (token_pda, _) = Pubkey::find_program_address(
+                &[TOKEN_SEED, withdraw_params.token_hash.as_ref()],
+                ctx.program_id,
+            );
+
+            // account 5
+            let token_mint;
+            if token_pda == ctx.accounts.account_list.usdc_pda {
+                token_mint = ctx.accounts.account_list.usdc_mint;
+            } else {
+                token_mint = Pubkey::from_str("0x0000").unwrap();
+            }
+
+            // account 6
+            let receiver = Pubkey::new_from_array(withdraw_params.receiver);
+
+            // account 7
+            let receiver_token_account: Pubkey =
+                get_associated_token_address(&receiver, &token_mint);
+
+            // account 8
+            let (vault_authority, _) =
+                Pubkey::find_program_address(&[VAULT_AUTHORITY_SEED], ctx.program_id);
+
+            // account 9
+            let vault_token_account = get_associated_token_address(&vault_authority, &token_mint);
+
+            // account 10
+            let token_program_id =
+                Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap();
+
+            // account 11
+            let system_program_id = solana_program::system_program::ID;
+            // account 12
+            let (event_authority_account, _) =
+                Pubkey::find_program_address(&[oapp::endpoint_cpi::EVENT_SEED], &ctx.program_id);
+            // account 13
+            let program_id = ctx.program_id.key();
+
+            // add accounts 3..13
+            accounts.extend_from_slice(&[
+                LzAccount {
+                    pubkey: broker_pda,
+                    is_signer: false,
+                    is_writable: false,
+                }, // 3
+                LzAccount {
+                    pubkey: token_pda,
+                    is_signer: false,
+                    is_writable: false,
+                }, // 4
+                LzAccount {
+                    pubkey: token_mint,
+                    is_signer: false,
+                    is_writable: false,
+                }, // 5
+                LzAccount {
+                    pubkey: receiver,
+                    is_signer: false,
+                    is_writable: false,
+                }, // 6
+                LzAccount {
+                    pubkey: receiver_token_account,
+                    is_signer: false,
+                    is_writable: true,
+                }, // 7
+                LzAccount {
+                    pubkey: vault_authority,
+                    is_signer: false,
+                    is_writable: true,
+                }, // 8
+                LzAccount {
+                    pubkey: vault_token_account,
+                    is_signer: false,
+                    is_writable: true,
+                }, // 9
+                LzAccount {
+                    pubkey: token_program_id,
+                    is_signer: false,
+                    is_writable: false,
+                }, // 10
+                // LzAccount {
+                //     pubkey: ASSOCIATED_TOKEN_ID,
+                //     is_signer: false,
+                //     is_writable: false,
+                // },
+                // LzAccount {
+                //     pubkey: system_program_id,
+                //     is_signer: false,
+                //     is_writable: false,
+                // }, // 11
+                LzAccount {
+                    pubkey: event_authority_account,
+                    is_signer: false,
+                    is_writable: false,
+                }, // 11
+                LzAccount {
+                    pubkey: program_id,
+                    is_signer: false,
+                    is_writable: false,
+                }, // 12
+            ]);
+
+            let endpoint_program = ctx.accounts.oapp_config.endpoint_program;
+            // accounts for clear
+            let accounts_for_clear = oapp::endpoint_cpi::get_accounts_for_clear(
+                endpoint_program,
+                &oapp_config.key(),
+                params.src_eid,
+                &params.sender,
+                params.nonce,
+            );
+            accounts.extend(accounts_for_clear);
         }
-
-        // account 9
-        let token_program_id =
-            Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap();
-        // account 5
-        let user_deposit_wallet =
-            associated_token::get_associated_token_address(&user, &token_mint);
-
-        // account 6
-        let (vault_authority, _) =
-            Pubkey::find_program_address(&[VAULT_AUTHORITY_SEED], ctx.program_id);
-        // account 7
-        let vault_deposit_wallet =
-            associated_token::get_associated_token_address(&vault_authority, &token_mint);
-
-        // add accounts 3..9
-        accounts.extend_from_slice(&[
-            LzAccount {
-                pubkey: user,
-                is_signer: false,
-                is_writable: false,
-            }, // 3
-            LzAccount {
-                pubkey: user_deposit_wallet,
-                is_signer: false,
-                is_writable: true,
-            }, // 5
-            LzAccount {
-                pubkey: vault_authority,
-                is_signer: false,
-                is_writable: true,
-            }, // 6
-            LzAccount {
-                pubkey: vault_deposit_wallet,
-                is_signer: false,
-                is_writable: true,
-            }, // 7
-            LzAccount {
-                pubkey: token_mint,
-                is_signer: false,
-                is_writable: false,
-            }, // 8
-            LzAccount {
-                pubkey: token_program_id,
-                is_signer: false,
-                is_writable: false,
-            }, // 9
-        ]);
-
-        // account 11
-        let (event_authority_account, _) =
-            Pubkey::find_program_address(&[oapp::endpoint_cpi::EVENT_SEED], &ctx.program_id);
-
-        // add accounts 10..12
-        accounts.extend_from_slice(&[
-            LzAccount {
-                pubkey: solana_program::system_program::ID,
-                is_signer: false,
-                is_writable: false,
-            }, // 10
-            LzAccount {
-                pubkey: event_authority_account,
-                is_signer: false,
-                is_writable: false,
-            }, // 11
-            LzAccount {
-                pubkey: ctx.program_id.key(),
-                is_signer: false,
-                is_writable: false,
-            }, // 12
-        ]);
-
-        let endpoint_program = ctx.accounts.oapp_config.endpoint_program;
-        // accounts 13..20
-        let accounts_for_clear = oapp::endpoint_cpi::get_accounts_for_clear(
-            endpoint_program,
-            &oapp_config.key(),
-            params.src_eid,
-            &params.sender,
-            params.nonce,
-        );
-        accounts.extend(accounts_for_clear);
 
         Ok(accounts)
     }
@@ -174,15 +222,14 @@ fn get_accounts_for_send_oapp(user: Pubkey) -> Vec<LzAccount> {
     let token_program_id = Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap();
 
     let (user_info, _) = Pubkey::find_program_address(&[&user.to_bytes()], &vault_program_id);
-    let user_token_account = associated_token::get_associated_token_address(&user, &token_mint);
+    let user_token_account = get_associated_token_address(&user, &token_mint);
 
     let (vault_deposit_auth, _) = Pubkey::find_program_address(
         &[VAULT_AUTHORITY_SEED, &token_mint.to_bytes()],
         &vault_program_id,
     );
 
-    let vault_token_account =
-        associated_token::get_associated_token_address(&vault_deposit_auth, &token_mint);
+    let vault_token_account = get_associated_token_address(&vault_deposit_auth, &token_mint);
 
     vec![
         LzAccount {

@@ -1,9 +1,12 @@
-use crate::errors::OAppError;
-use crate::events::VaultWithdrawn;
+use crate::errors::{OAppError, VaultError};
+use crate::events::{VaultWithdrawn, FrozenWithdrawn};
 use crate::instructions::{to_bytes32, OAppLzReceiveParams};
-use crate::instructions::{LzMessage, MsgType, OAPP_SEED, PEER_SEED, VAULT_AUTHORITY_SEED};
-use crate::state::{OAppConfig, Peer, VaultAuthority};
+use crate::instructions::{
+    LzMessage, MsgType, BROKER_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED,
+};
+use crate::state::{AllowedBroker, AllowedToken, OAppConfig, Peer, VaultAuthority};
 use anchor_lang::prelude::*;
+use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 use oapp::endpoint::{cpi::accounts::Clear, instructions::ClearParams, ConstructCPIContext};
 
@@ -28,16 +31,33 @@ pub struct OAppLzReceive<'info> {
         bump = oapp_config.bump
     )]
     pub oapp_config: Account<'info, OAppConfig>,
+
     /// CHECK
     #[account()]
-    pub user: AccountInfo<'info>,
+    pub broker_pda: Account<'info, AllowedBroker>,
+    /// CHECK
+    #[account()]
+    pub token_pda: Account<'info, AllowedToken>,
+
+    /// CHECK
+    #[account(
+        // mint::token_program = token_program
+    )]
+    pub token_mint: Account<'info, Mint>,
+
+    /// CHECK
+    #[account()]
+    pub receiver: AccountInfo<'info>,
 
     #[account(
-        mut,
-        associated_token::mint = deposit_token,
-        associated_token::authority = user
+        mut,    
+        // init_if_needed,          // should apply this after message shrink
+        // payer = payer,           
+        associated_token::mint = token_mint,
+        associated_token::authority = receiver,
+        associated_token::token_program = token_program
     )]
-    pub user_deposit_wallet: Account<'info, TokenAccount>,
+    pub receiver_token_account: Account<'info, TokenAccount>,
 
     #[account(
         mut,
@@ -48,24 +68,21 @@ pub struct OAppLzReceive<'info> {
 
     #[account(
         mut,
-        associated_token::mint = deposit_token,
+        associated_token::mint = token_mint,
         associated_token::authority = vault_authority
     )]
-    pub vault_deposit_wallet: Account<'info, TokenAccount>,
-
-    #[account()]
-    pub deposit_token: Account<'info, Mint>,
+    pub vault_token_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
-
-    pub system_program: Program<'info, System>,
+    // pub associated_token_program: Program<'info, AssociatedToken>,  // should apply this after message shrink
+    // pub system_program: Program<'info, System>,
 }
 
 impl<'info> OAppLzReceive<'info> {
     fn transfer_token_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
         let cpi_accounts = Transfer {
-            from: self.vault_deposit_wallet.to_account_info(),
-            to: self.user_deposit_wallet.to_account_info(),
+            from: self.vault_token_account.to_account_info(),
+            to: self.receiver_token_account.to_account_info(),
             authority: self.vault_authority.to_account_info(),
         };
         let cpi_program = self.token_program.to_account_info();
@@ -100,30 +117,61 @@ impl<'info> OAppLzReceive<'info> {
 
         ctx.accounts.vault_authority.inbound_nonce = params.nonce;
 
-        // msg!(
-        //     "nonce received: {:?}",
-        //     ctx.accounts.vault_authority.inbound_nonce
-        // );
-
         let lz_message = LzMessage::decode(&params.message).unwrap();
         msg!("msg_type: {:?}", lz_message.msg_type);
         if lz_message.msg_type == MsgType::Withdraw as u8 {
             let withdraw_params = AccountWithdrawSol::decode_packed(&lz_message.payload).unwrap();
+            require!(
+                withdraw_params.receiver == ctx.accounts.receiver.key.to_bytes(),
+                OAppError::InvalidReceiver
+            );
 
+            // check if the token is allowed and the mint is correct
+            let (allowed_token, _) = Pubkey::find_program_address(
+                &[TOKEN_SEED, &withdraw_params.token_hash.as_ref()],
+                ctx.program_id,
+            );
+            if allowed_token.key() != ctx.accounts.token_pda.key()
+                || !ctx.accounts.token_pda.allowed
+            {
+                return Err(VaultError::TokenNotAllowed.into());
+            }
+            if withdraw_params.token_hash == ctx.accounts.token_pda.token_hash {
+                require!(
+                    ctx.accounts.token_pda.mint_account.key() == ctx.accounts.token_mint.key(),
+                    VaultError::TokenNotAllowed
+                );
+            } else {
+                return Err(VaultError::TokenNotAllowed.into());
+            }
+
+            // check if the broker is allowed
+            let (allowed_broker, _) = Pubkey::find_program_address(
+                &[BROKER_SEED, &withdraw_params.broker_hash],
+                ctx.program_id,
+            );
+
+            if allowed_broker != ctx.accounts.broker_pda.key() || !ctx.accounts.broker_pda.allowed {
+                return Err(VaultError::BrokerNotAllowed.into());
+            }
             let vault_authority_seeds =
                 &[VAULT_AUTHORITY_SEED, &[ctx.accounts.vault_authority.bump]];
 
-            // msg!("Withdraw amount = {}", withdraw_params.token_amount);
             let amount_to_transfer = withdraw_params.token_amount - withdraw_params.fee;
-            transfer(
-                ctx.accounts
-                    .transfer_token_ctx()
-                    .with_signer(&[&vault_authority_seeds[..]]),
-                amount_to_transfer as u128,
-            )?;
-
             let vault_withdraw_params: VaultWithdrawParams = withdraw_params.into();
-            emit!(Into::<VaultWithdrawn>::into(vault_withdraw_params.clone()));
+
+            if ctx.accounts.receiver_token_account.is_frozen() {
+                
+                emit!(Into::<FrozenWithdrawn>::into(vault_withdraw_params.clone()));
+            } else {
+                transfer(
+                    ctx.accounts
+                        .transfer_token_ctx()
+                        .with_signer(&[&vault_authority_seeds[..]]),
+                    amount_to_transfer as u128,         //  should be u64 here
+                )?;         
+                emit!(Into::<VaultWithdrawn>::into(vault_withdraw_params.clone()));
+            }
         } else {
             msg!("Invalid message type: {:?}", lz_message.msg_type);
         }
@@ -159,6 +207,28 @@ impl AccountWithdrawSol {
         encoded.extend_from_slice(&to_bytes32(&self.chain_id.to_be_bytes()));
         encoded.extend_from_slice(&to_bytes32(&self.withdraw_nonce.to_be_bytes()));
         encoded
+    }
+
+    pub fn get_receiver_address(encoded: &[u8]) -> Result<Pubkey> {
+        // Decode the LzMessage to get the payload
+        let message = LzMessage::decode(encoded)?;
+
+        // Decode the payload
+        let withdraw_params = AccountWithdrawSol::decode_packed(&message.payload)?;
+
+        // Return the receiver address as a Pubkey
+        Ok(Pubkey::new_from_array(withdraw_params.receiver))
+    }
+
+    pub fn get_token_hash(encoded: &[u8]) -> Result<[u8; 32]> {
+        // Decode the LzMessage to get the payload
+        let message = LzMessage::decode(encoded)?;
+
+        // Decode the payload
+        let withdraw_params = AccountWithdrawSol::decode_packed(&message.payload)?;
+
+        // Return the receiver address as a Pubkey
+        Ok(withdraw_params.token_hash)
     }
 
     pub fn encode_packed(&self) -> Vec<u8> {

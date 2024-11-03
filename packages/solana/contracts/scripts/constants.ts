@@ -39,6 +39,7 @@ export const VAULT_AUTHORITY_SEED = "VaultAuthority";
 export const BROKER_SEED = "Broker";
 export const TOKEN_SEED = "Token";
 export const OWNER_SEED = "Owner";
+export const ACCOUNT_LIST_SEED = "AccountList";
 
 export const ENV = "dev";
 export const MOCK_OAPP_PROGRAM_ID = new PublicKey("EFLrsQmcfYTSvVrUiP4qruDhbYBtjbQNAhC6tkLJbBtQ");
@@ -50,6 +51,6 @@ export const MAIN_OAPP_PRORAM_ID = STAGING_OAPP_PROGRAM_ID;   // placeholder
 export const DEV_LOOKUP_TABLE_ADDRESS = new PublicKey("BWp8HaYYhiNHekt3zgQhqoCrRftneGxxfgKmCZ6svHN");
 export const QA_LOOKUP_TABLE_ADDRESS = new PublicKey("BswrQQoPKAFojTuJutZcBMtigAgTghEH4M8ofn3EG2X2");
 export const STAGING_LOOKUP_TABLE_ADDRESS = new PublicKey("BbGKfxuPwDmu58BjPpd7PMG69TqnZjSpKaLDMgf9E9Dr");
-export const MAIN_LOOKUP_TABLE_ADDRESS = STAGING_LOOKUP_TABLE_ADDRESS;
+export const MAIN_LOOKUP_TABLE_ADDRESS = STAGING_LOOKUP_TABLE_ADDRESS;  // placeholder
 
 

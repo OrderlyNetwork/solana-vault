@@ -15,10 +15,9 @@ import { EndpointProgram, EventPDADeriver, SimpleMessageLibProgram, UlnProgram }
 import OAppIdl from "../target/idl/solana_vault.json";
 import { SolanaVault } from "../target/types/solana_vault";
 import { utf8 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
+const [provider, wallet, rpc] = utils.setAnchor();
 const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
 const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
-
-const [provider, wallet, rpc] = utils.setAnchor();
 const ENV = utils.getEnv(OAPP_PROGRAM_ID);
 
 
@@ -90,7 +89,7 @@ async function deposit() {
     console.log("Native Fee:", nativeFee.toString());
 
     const sendParam = {
-        nativeFee: nativeFee,
+        nativeFee: new anchor.BN(nativeFee),
         lzTokenFee: new anchor.BN(0),
     }
     const depositRemainingAccounts = utils.getDepositRemainingAccounts(OAPP_PROGRAM_ID, ENV, wallet);
@@ -106,7 +105,6 @@ async function deposit() {
         allowedBroker: allowedBrokerPda,
         allowedToken: allowedTokenPda
     }).remainingAccounts(depositRemainingAccounts).instruction();
-
     const ixAddComputeBudget = ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 });
 
     console.log("Deposit Entry:");

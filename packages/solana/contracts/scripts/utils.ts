@@ -1,5 +1,5 @@
 import { ENFORCED_OPTIONS_SEED, EVENT_SEED, LZ_RECEIVE_TYPES_SEED, OAPP_SEED, PEER_SEED, MESSAGE_LIB_SEED, SEND_LIBRARY_CONFIG_SEED, ENDPOINT_SEED, NONCE_SEED, ULN_SEED, SEND_CONFIG_SEED, EXECUTOR_CONFIG_SEED, PRICE_FEED_SEED, DVN_CONFIG_SEED, OFT_SEED, RECEIVE_CONFIG_SEED, PENDING_NONCE_SEED, PAYLOAD_HASH_SEED, RECEIVE_LIBRARY_CONFIG_SEED } from "@layerzerolabs/lz-solana-sdk-v2";
-import { PublicKey, TransactionInstruction, VersionedTransaction, TransactionMessage, AddressLookupTableProgram, SystemProgram } from "@solana/web3.js";
+import { PublicKey, TransactionInstruction, VersionedTransaction, TransactionMessage, AddressLookupTableProgram, SystemProgram, Keypair } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
 import {
     createMint,
@@ -13,7 +13,6 @@ import { keccak256, AbiCoder, solidityPackedKeccak256 } from "ethers"
 
 import OAppIdl from "../target/idl/solana_vault.json";
 import { SolanaVault } from "../target/types/solana_vault";
-import { publicKey } from "@coral-xyz/anchor/dist/cjs/utils";
 
 
 
@@ -34,6 +33,13 @@ export function getVaultOwnerPda(OAPP_PROGRAM_ID: PublicKey): PublicKey {
 export function getLzReceiveTypesPda(OAPP_PROGRAM_ID: PublicKey, oappConfigPda: PublicKey): PublicKey {
     return PublicKey.findProgramAddressSync(
         [Buffer.from(LZ_RECEIVE_TYPES_SEED, "utf8"), oappConfigPda.toBuffer()],
+        OAPP_PROGRAM_ID
+    )[0];
+}
+
+export function getAccountListPda(OAPP_PROGRAM_ID: PublicKey, oappConfigPda: PublicKey): PublicKey {
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from(constants.ACCOUNT_LIST_SEED, "utf8"), oappConfigPda.toBuffer()],
         OAPP_PROGRAM_ID
     )[0];
 }
@@ -525,8 +531,8 @@ export function printPda(OAPP_PROGRAM_ID: PublicKey, wallet: anchor.Wallet, rpc:
     const oappRegistryPda = getOAppRegistryPda(oappConfigPda);
     console.log("🔑 OApp Registry PDA:", oappRegistryPda.toBase58());
 
-    const enforceOptioinsPda = getEnforcedOptionsPda(OAPP_PROGRAM_ID, oappConfigPda, DST_EID);
-    console.log("🔑 Enforced Options PDA:", enforceOptioinsPda.toBase58());
+    const enforceOptionsPda = getEnforcedOptionsPda(OAPP_PROGRAM_ID, oappConfigPda, DST_EID);
+    console.log("🔑 Enforced Options PDA:", enforceOptionsPda.toBase58());
 
     const sendLibPda = getSendLibPda();
     console.log("🔑 Send Library PDA:", sendLibPda.toBase58());
@@ -596,7 +602,7 @@ export function printPda(OAPP_PROGRAM_ID: PublicKey, wallet: anchor.Wallet, rpc:
         peerPda,                    // 2
         eventAuthorityPda,          // 3
         oappRegistryPda,            // 4
-        enforceOptioinsPda,         // 5
+        enforceOptionsPda,         // 5
         sendLibPda,                 // 6
         sendLibConfigPda,           // 7
         sendLibInfoPda,             // 8
@@ -613,9 +619,9 @@ export function printPda(OAPP_PROGRAM_ID: PublicKey, wallet: anchor.Wallet, rpc:
         messageLibPda,              // 19
         vaultAuthorityPda           // 20
     ];
-
     return lookupTableList;
 }
+
 
 export function getQuoteRemainingAccounts(PROGRAM_ID: PublicKey, ENV: String) {
     const DST_EID = getDstEid(ENV);
@@ -858,17 +864,17 @@ export function getDepositRemainingAccounts(PROGRAM_ID: PublicKey, ENV: String, 
     return remainingAccounts;
 }
 
-export function getEnv(OAPP_PROGRAM_ID: PublicKey): String {
-    if (OAPP_PROGRAM_ID.toBase58() === constants.DEV_OAPP_PROGRAM_ID.toBase58()) {
+export function getEnv(PROGRAM_ID: PublicKey): String {
+    if (PROGRAM_ID.toBase58() === constants.DEV_OAPP_PROGRAM_ID.toBase58()) {
         console.log("Running on DEV");
         return "DEV";
-    } else if (OAPP_PROGRAM_ID.toBase58() === constants.QA_OAPP_PROGRAM_ID.toBase58()) {
+    } else if (PROGRAM_ID.toBase58() === constants.QA_OAPP_PROGRAM_ID.toBase58()) {
         console.log("Running on QA");
         return "QA";
-    } else if (OAPP_PROGRAM_ID.toBase58() === constants.STAGING_OAPP_PROGRAM_ID.toBase58()) {
+    } else if (PROGRAM_ID.toBase58() === constants.STAGING_OAPP_PROGRAM_ID.toBase58()) {
         console.log("Running on STAGING");
         return "STAGING";
-    } else if (OAPP_PROGRAM_ID.toBase58() === constants.MAIN_OAPP_PRORAM_ID.toBase58()) {
+    } else if (PROGRAM_ID.toBase58() === constants.MAIN_OAPP_PRORAM_ID.toBase58()) {
         console.log("Running on MAIN");
         return "MAIN";
     } else {
@@ -911,4 +917,3 @@ export function getSolChainId(ENV: String): number {
         throw new Error("Invalid Environment");
     }
 }
-
