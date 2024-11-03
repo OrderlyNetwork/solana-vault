@@ -79,10 +79,22 @@ anchor run set_broker
 anchor run set_token
 ```
 
+To set AccountList pda for lz_receive_types instruction, please run:
+
+```bash
+anchor run set_account_list
+```
+
 After running the above commands, you will get the OApp and Vault PDA accounts, to print them out, please run:
 
 ```bash
 anchor run print_pda
+```
+
+To print config, please run:
+
+```bash
+anchor run print_config
 ```
 
 ## Deposit

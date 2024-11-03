@@ -38,6 +38,7 @@ import {
 } from '../scripts/utils'
 import { MainnetV2EndpointId } from '@layerzerolabs/lz-definitions'
 import { initOapp, setVault, confirmOptions } from './setup'
+import * as utils from '../scripts/utils'
 
 const LAYERZERO_ENDPOINT_PROGRAM_ID = new PublicKey('76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6')
 const ETHEREUM_EID = MainnetV2EndpointId.ETHEREUM_V2_MAINNET
@@ -122,8 +123,10 @@ describe('Test OAPP messaging', function() {
     let currUserMemeBalance
     let prevUserMemeBalance   
     const memeMintAuthority = Keypair.generate()
-    const tokenHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-    const brokerHash = tokenHash
+    const tokenSymbol = "USDC"
+    const brokerId = "woofi_pro"
+    const tokenHash = Array.from(Buffer.from(utils.getTokenHash(tokenSymbol).slice(2), 'hex'))
+    const brokerHash = Array.from(Buffer.from(utils.getBrokerHash(brokerId).slice(2), 'hex'))
  
     before("Preparing for tests", async () => {
 
@@ -351,7 +354,6 @@ describe('Test OAPP messaging', function() {
             .rpc(confirmOptions)
         console.log("✅ Set USDC Token")
 
-        // const brokerHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         const allowedBrokerPda = getBrokerPdaWithBuf(program.programId, brokerHash)
         
         await program.methods
@@ -392,9 +394,10 @@ describe('Test OAPP messaging', function() {
             .signers([signer])
             .rpc(confirmOptions)
         }
+        const solAccountId = Array.from(Buffer.from(utils.getSolAccountId(wallet.publicKey, brokerId).slice(2), 'hex'));
 
         const params = {
-            accountId: Array.from(wallet.publicKey.toBytes()),
+            accountId: solAccountId,
             brokerHash: brokerHash,
             tokenHash: tokenHash,
             userAddress: Array.from(wallet.publicKey.toBytes()),
@@ -479,6 +482,22 @@ describe('Test OAPP messaging', function() {
         await deposit(wallet.payer, params, feeParams, accounts, depositRemainingAccounts)
         console.log("✅ Executed deposit USDC")
 
+        try {
+            console.log("🥷 Attacker tries to deposit with wrong broker")
+            const params2 = {
+                accountId: [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                brokerHash: brokerHash,
+                tokenHash: tokenHash,
+                userAddress: Array.from(wallet.publicKey.toBytes()),
+                tokenAmount: new BN(DEPOSIT_AMOUNT),
+            }
+            await deposit(wallet.payer, params2, feeParams, accounts, depositRemainingAccounts)
+
+        } catch(e) {
+            // console.log(e)
+            assert.equal(e.error.errorCode.code, "InvalidAccountId")
+            console.log("🥷 Attacker failed to deposit with wrong broker")
+        }
 
         const nonce = await endpointProgram.account.nonce.fetch(noncePda)
         assert.ok(nonce.outboundNonce.eq(new BN(1)))
@@ -610,15 +629,14 @@ describe('Test OAPP messaging', function() {
 
         const withdrawNonceBuffer = Buffer.alloc(8)
         withdrawNonceBuffer.writeBigUInt64BE(BigInt('2'))
-        const brokerHash = tokenHash
         const tokenPda = getTokenPdaWithBuf(program.programId, tokenHash)
         const brokerPda = getBrokerPdaWithBuf(program.programId, brokerHash)
         const payload = Buffer.concat([
             wallet.publicKey.toBuffer(),  // placeholder for account_id
             wallet.publicKey.toBuffer(),  // sender     
             wallet.publicKey.toBuffer(),  // receiver
-            Buffer.from(tokenHash), // placeholder for broker hash
-            Buffer.from(brokerHash), // placeholder for token hash
+            Buffer.from(brokerHash), // placeholder for broker hash
+            Buffer.from(tokenHash), // placeholder for token hash
             tokenAmountBuffer,
             feeBuffer,
             chainIdBuffer,
@@ -793,6 +811,7 @@ describe('Test OAPP messaging', function() {
             await lzReceive(attackerWallet, params, accounts, lzReceiveRemainingAccounts)
  
         } catch(e) {
+            // console.log(e)
             assert.equal(e.error.errorCode.code, "InvalidReceiver")
             console.log("🥷 Attacker failed to steal USDC")
         }
