@@ -6,18 +6,28 @@ import * as utils from "./utils";
 import * as constants from "./constants";
 import OAppIdl from "../target/idl/solana_vault.json";
 import { SolanaVault } from "../target/types/solana_vault";
-const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
-const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
 
 const [provider, wallet, rpc] = utils.setAnchor();
+const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram();  
+
+const ENV = utils.getEnv(OAPP_PROGRAM_ID);
+const DST_EID = utils.getDstEid(ENV);
 
 async function setOrderDelivery() {
-    const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
-    const vaultOwnerPda = utils.getVaultOwnerPda(OAPP_PROGRAM_ID);
     const vaultAuthorityPda = utils.getVaultAuthorityPda(OAPP_PROGRAM_ID);
+
+    const vaultAuthorityPdaData = await OAppProgram.account.vaultAuthority.fetch(vaultAuthorityPda);
+
+    console.log("Vault Authority PDA: ", vaultAuthorityPda.toBase58());
+    console.log("   - vault owner: ", new PublicKey(vaultAuthorityPdaData.owner).toBase58());
+    console.log("   - sol chain id: ", Number(vaultAuthorityPdaData.solChainId));
+    console.log("   - dst eid: ", Number(vaultAuthorityPdaData.dstEid));
+    console.log("   - deposit nonce: ", Number(vaultAuthorityPdaData.depositNonce));
+    console.log("   - order delivery: ", vaultAuthorityPdaData.orderDelivery);
+    console.log("   - inbound nonce: ", Number(vaultAuthorityPdaData.inboundNonce));
     const setOrderDeliveryParams = {
         orderDelivery: false,
-        nonce: new anchor.BN(0), // need to fetch from lz-endpoint
+        nonce: vaultAuthorityPdaData.inboundNonce, // need to fetch from lz-endpoint
     }
     const ixSetOrderDelivery = await OAppProgram.methods.setOrderDelivery(setOrderDeliveryParams).accounts({
         owner: wallet.publicKey,
