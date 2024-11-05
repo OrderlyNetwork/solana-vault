@@ -168,7 +168,7 @@ impl<'info> OAppLzReceive<'info> {
                     ctx.accounts
                         .transfer_token_ctx()
                         .with_signer(&[&vault_authority_seeds[..]]),
-                    amount_to_transfer as u128,         //  should be u64 here
+                    amount_to_transfer,         //  should be u64 here
                 )?;         
                 emit!(Into::<VaultWithdrawn>::into(vault_withdraw_params.clone()));
             }
