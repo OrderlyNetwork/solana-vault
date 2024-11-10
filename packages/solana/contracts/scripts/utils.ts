@@ -917,3 +917,17 @@ export function getSolChainId(ENV: String): number {
         throw new Error("Invalid Environment");
     }
 }
+
+export function getBrokerList(ENV: String): string[] {
+    if (ENV === "DEV") {
+        return constants.DEV_BROKERS;
+    } else if (ENV === "QA") {
+        return constants.QA_BROKERS;
+    } else if (ENV === "STAGING") {
+        return constants.STAGING_BROKERS;
+    } else if (ENV === "MAIN") {
+        return constants.MAIN_BROKERS;
+    } else {
+        throw new Error("Invalid Environment");
+    }
+}
