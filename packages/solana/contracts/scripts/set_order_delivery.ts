@@ -4,12 +4,9 @@ import { OftTools } from "@layerzerolabs/lz-solana-sdk-v2";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import * as utils from "./utils";
 import * as constants from "./constants";
-import OAppIdl from "../target/idl/solana_vault.json";
-import { SolanaVault } from "../target/types/solana_vault";
-
+import { util } from "chai";
 const [provider, wallet, rpc] = utils.setAnchor();
-const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram();  
-
+const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(); 
 const ENV = utils.getEnv(OAPP_PROGRAM_ID);
 const DST_EID = utils.getDstEid(ENV);
 
@@ -29,23 +26,35 @@ async function setOrderDelivery() {
         orderDelivery: false,
         nonce: vaultAuthorityPdaData.inboundNonce, // need to fetch from lz-endpoint
     }
-    const ixSetOrderDelivery = await OAppProgram.methods.setOrderDelivery(setOrderDeliveryParams).accounts({
-        owner: wallet.publicKey,
+    console.log("Set Order Delivery Params:", setOrderDeliveryParams);
+    const vaultOwner = new PublicKey("5vy297GEvFQDJaKBqg3hqWZhwHr6hzFTLZdPoNTzevdN");
+    const setOrderDeliveryAccounts = {
+        owner: vaultOwner,
         vaultAuthority: vaultAuthorityPda,
-    }).instruction();
-
+    }
+    
+    const ixSetOrderDelivery = await OAppProgram.methods.setOrderDelivery(setOrderDeliveryParams).accounts(setOrderDeliveryAccounts).instruction();
+    console.log("ixSetOrderDelivery", ixSetOrderDelivery);
     const txSetOrderDelivery = new Transaction().add(ixSetOrderDelivery);
+    
+    const txBase58 = await utils.getBase58Tx(provider, wallet.publicKey, txSetOrderDelivery);
+    
+    console.log("txBase58", txBase58);
+    try {
+        const sigSetOrderDelivery = await sendAndConfirmTransaction(
+            provider.connection,
+            txSetOrderDelivery,
+            [wallet.payer],
+            {
+                commitment: "confirmed",
+                preflightCommitment: "confirmed"
+            }
+        )
+        console.log("sigSetToken", sigSetOrderDelivery);
+    } catch (e) {
+        console.log("Error:", e);
+    }
 
-    const sigSetOrderDelivery = await sendAndConfirmTransaction(
-        provider.connection,
-        txSetOrderDelivery,
-        [wallet.payer],
-        {
-            commitment: "confirmed",
-            preflightCommitment: "confirmed"
-        }
-    )
-    console.log("sigSetToken", sigSetOrderDelivery);
     
 }
 setOrderDelivery();
