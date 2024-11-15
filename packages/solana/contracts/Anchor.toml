@@ -11,7 +11,7 @@ solana-oft = "5X3zucEv9LCpVYFr9ezHBXpFFy4w8Wr83nHCQK9tkvVe"
 
 [programs.localnet]
 solana-vault = "9shwxWDUNhtwkHocsUAmrNAQfBH2DHh4njdAEdHZZkF2"
-uln = "CduQbgrsyGupNemhnwQhtQjqBkawJk4pFx3axQLGg4bL"
+uln = "H29REYdFVCCsvPADZH2Cc6wt17ee1jctUqRHcDYicCaW"
 
 [registry]
 url = "https://api.apr.dev"
@@ -35,8 +35,9 @@ set_token = "yarn run ts-node scripts/set_token.ts"
 setconfig_oapp = "yarn run ts-node scripts/03setconfig_oapp.ts"
 setup_oapp = "yarn run ts-node scripts/01setup_oapp.ts"
 setup_vault = "yarn run ts-node scripts/04setup_vault.ts"
-transfer_admin= "yarn run ts-node scripts/transfer_admin.ts"
 test = "yarn run ts-mocha -b -p ./tsconfig.json -t 1000000 tests/**/*.test.ts"
+transfer_admin = "yarn run ts-node scripts/transfer_admin.ts"
+lz_receive = "yarn run ts-node scripts/call_lzreceive.ts"
 
 [test]
 startup_wait = 5000
