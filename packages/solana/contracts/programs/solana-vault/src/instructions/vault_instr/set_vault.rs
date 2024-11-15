@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::errors::VaultError;
+use crate::errors::OAppError;
 use crate::instructions::{OAPP_SEED, VAULT_AUTHORITY_SEED};
 use crate::state::{OAppConfig, VaultAuthority};
 
@@ -22,7 +22,7 @@ pub struct SetVault<'info> {
     #[account(
         seeds = [OAPP_SEED],
         bump = oapp_config.bump,
-        has_one = admin @ VaultError::InvalidVaultOwner,
+        has_one = admin @ OAppError::Unauthorized,
     )]
     pub oapp_config: Account<'info, OAppConfig>,
 

@@ -8,16 +8,9 @@ import * as utils from "./utils";
 import * as constants from "./constants";
 import { PacketPath } from '@layerzerolabs/lz-v2-utilities'
 import { EndpointProgram, EventPDADeriver, SimpleMessageLibProgram, UlnProgram } from '@layerzerolabs/lz-solana-sdk-v2'
-
-
-
-
-import OAppIdl from "../target/idl/solana_vault.json";
-import { SolanaVault } from "../target/types/solana_vault";
 import { utf8 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
 const [provider, wallet, rpc] = utils.setAnchor();
-const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
-const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
+const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(); 
 const ENV = utils.getEnv(OAPP_PROGRAM_ID);
 
 
@@ -26,9 +19,12 @@ async function deposit() {
     console.log("Setting up Vault...");
     const lookupTableList = utils.printPda(OAPP_PROGRAM_ID, wallet, rpc, ENV);
     const senderAddress = wallet.publicKey;
-    // const receiverAddress = new PublicKey("9aFZUMoeVRvUnaE34RsHxpcJXvFMPPSWrG3QDNm6Sskf");
+    // flag: 9TJTNxsieXTSWebMRb5KbMiDDwfLJAeWa76NcPjbao42, 
+    // tony: 9aFZUMoeVRvUnaE34RsHxpcJXvFMPPSWrG3QDNm6Sskf,
+    // eric: 4NQEN28HJgWSRKeXB6Apcz6Fn9GHEH1f4Qjhpf4Vwy6B, 7aabN75pTupDnFRWmMQwrgprn1uLVdAr7tzP61yKbGwD
+    const receiverAddress = new PublicKey("2kgwRP2VexGBHLmh97AoqDLSe1D9oms4ovEdbvM66Jn9");  
 
-    const receiverAddress = senderAddress;
+    // const receiverAddress = senderAddress;
     const usdc = utils.getUSDCAddress(rpc);
     const userUSDCAccount = utils.getUSDCAccount(usdc, senderAddress);
     console.log("💶 User USDCAccount", userUSDCAccount.toBase58());

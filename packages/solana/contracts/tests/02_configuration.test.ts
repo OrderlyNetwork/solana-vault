@@ -247,7 +247,7 @@ describe('Test Solana-Vault configuration', function() {
                 .signers([attacker])
                 .rpc(confirmOptions)
         } catch(e) {
-            assert.equal(e.error.errorCode.code, "InvalidVaultOwner")
+            assert.equal(e.error.errorCode.code, "Unauthorized")
             console.log("🥷 Attacker failed to set Vault Authority")
         }
         

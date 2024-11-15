@@ -43,7 +43,7 @@ export const ACCOUNT_LIST_SEED = "AccountList";
 
 export const ENV = "dev";
 export const MOCK_OAPP_PROGRAM_ID = new PublicKey("EFLrsQmcfYTSvVrUiP4qruDhbYBtjbQNAhC6tkLJbBtQ");
-export const DEV_OAPP_PROGRAM_ID = new PublicKey("EYJq9eU4GMRUriUJBgGoZ8YLQBXcWaciXuSsEXE7ieQS");
+export const DEV_OAPP_PROGRAM_ID = new PublicKey("7Ak2uJBdpuQbaJxbY3H56gXu2K9xUbpDXR4uYoAwd59w");
 export const QA_OAPP_PROGRAM_ID = new PublicKey("5zBjLor7vEraAt4zp2H82sy9MSqFoDnNa1Lx6EYKTYRZ");
 export const STAGING_OAPP_PROGRAM_ID = new PublicKey("9shwxWDUNhtwkHocsUAmrNAQfBH2DHh4njdAEdHZZkF2");
 export const MAIN_OAPP_PRORAM_ID = STAGING_OAPP_PROGRAM_ID;   // placeholder
@@ -52,5 +52,69 @@ export const DEV_LOOKUP_TABLE_ADDRESS = new PublicKey("BWp8HaYYhiNHekt3zgQhqoCrR
 export const QA_LOOKUP_TABLE_ADDRESS = new PublicKey("BswrQQoPKAFojTuJutZcBMtigAgTghEH4M8ofn3EG2X2");
 export const STAGING_LOOKUP_TABLE_ADDRESS = new PublicKey("BbGKfxuPwDmu58BjPpd7PMG69TqnZjSpKaLDMgf9E9Dr");
 export const MAIN_LOOKUP_TABLE_ADDRESS = STAGING_LOOKUP_TABLE_ADDRESS;  // placeholder
+
+export const DEV_BROKERS = ["woofi_pro", "vooi"];
+export const QA_BROKERS = ["woofi_pro", "vooi"];
+export const STAGING_BROKERS = [
+    "root",
+    "orderly",
+    "woofi_pro",
+    "woofi_dex",
+    "busywhale",
+    "0xfin",
+    "emdx_dex",
+    "logx",
+    "rkqa_dex",
+    "prime_protocol",
+    "bitoro_network",
+    "coolwallet",
+    "quick_perps",
+    "empyreal",
+    "galar_fin",
+    "what_exchange",
+    "ibx",
+    "unibot",
+    "ascendex",
+    "sharpe_ai",
+    "panda_terminal",
+    "vooi",
+    "fusionx_pro",
+    "elixir",
+    "xade_finance",
+    "kai",
+    "sable",
+    "dfyn",
+    "ask_jimmy",
+    "alphanaut",
+    "rage_trade",
+    "ox_markets",
+    "zk_automate",
+    "flash_x",
+    "pinde",
+    "ape_terminal",
+    "funl_ai",
+    "crust_finance",
+    "btse_dex",
+    "orderoo",
+    "boodex_com",
+    "tcmp",
+    "tealstreet",
+    "vls",
+    "veeno_dex",
+    "dvx",
+    "book_x",
+    "zotto", 
+    "atlas",
+    "primex",
+    "demo",
+    "eisen",
+    "blazpay",
+    "if_exchange",
+    "one_bow",
+    "filament",
+    "raydium",
+    "bun_dex",
+    ];
+export const MAIN_BROKERS = STAGING_BROKERS;  // placeholder
 
 
