@@ -121,7 +121,7 @@ impl<'info> Deposit<'info> {
         }
         transfer(
             ctx.accounts.transfer_token_ctx(),
-            deposit_params.token_amount as u128, // should be u64 here
+            deposit_params.token_amount,
         )?;
 
         msg!("User deposited : {}", deposit_params.token_amount);

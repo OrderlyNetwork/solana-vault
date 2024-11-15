@@ -1,6 +1,7 @@
 import { ENFORCED_OPTIONS_SEED, EVENT_SEED, LZ_RECEIVE_TYPES_SEED, OAPP_SEED, PEER_SEED, MESSAGE_LIB_SEED, SEND_LIBRARY_CONFIG_SEED, ENDPOINT_SEED, NONCE_SEED, ULN_SEED, SEND_CONFIG_SEED, EXECUTOR_CONFIG_SEED, PRICE_FEED_SEED, DVN_CONFIG_SEED, OFT_SEED, RECEIVE_CONFIG_SEED, PENDING_NONCE_SEED, PAYLOAD_HASH_SEED, RECEIVE_LIBRARY_CONFIG_SEED } from "@layerzerolabs/lz-solana-sdk-v2";
-import { PublicKey, TransactionInstruction, VersionedTransaction, TransactionMessage, AddressLookupTableProgram, SystemProgram, Keypair } from "@solana/web3.js";
+import { PublicKey, TransactionInstruction, VersionedTransaction, TransactionMessage, AddressLookupTableProgram, SystemProgram, Keypair, Transaction } from "@solana/web3.js";
 import * as anchor from "@coral-xyz/anchor";
+import * as bs from "bs58";
 import {
     createMint,
     getOrCreateAssociatedTokenAccount,
@@ -916,4 +917,24 @@ export function getSolChainId(ENV: String): number {
     else {
         throw new Error("Invalid Environment");
     }
+}
+
+export function getBrokerList(ENV: String): string[] {
+    if (ENV === "DEV") {
+        return constants.DEV_BROKERS;
+    } else if (ENV === "QA") {
+        return constants.QA_BROKERS;
+    } else if (ENV === "STAGING") {
+        return constants.STAGING_BROKERS;
+    } else if (ENV === "MAIN") {
+        return constants.MAIN_BROKERS;
+    } else {
+        throw new Error("Invalid Environment");
+    }
+}
+
+export async function getBase58Tx(provider: anchor.AnchorProvider, payer: PublicKey, tx: Transaction) {
+   tx.recentBlockhash = (await provider.connection.getLatestBlockhash()).blockhash;
+   tx.feePayer = payer;
+   return bs.encode(tx.serializeMessage())
 }

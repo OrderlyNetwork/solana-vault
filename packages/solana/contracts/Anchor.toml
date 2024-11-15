@@ -11,7 +11,7 @@ solana-oft = "5X3zucEv9LCpVYFr9ezHBXpFFy4w8Wr83nHCQK9tkvVe"
 
 [programs.localnet]
 solana-vault = "9shwxWDUNhtwkHocsUAmrNAQfBH2DHh4njdAEdHZZkF2"
-uln = "CduQbgrsyGupNemhnwQhtQjqBkawJk4pFx3axQLGg4bL"
+uln = "H29REYdFVCCsvPADZH2Cc6wt17ee1jctUqRHcDYicCaW"
 
 [registry]
 url = "https://api.apr.dev"
@@ -25,20 +25,19 @@ deposit_vault = "yarn run ts-node scripts/05deposit_vault.ts"
 init_oapp = "yarn run ts-node scripts/02init_oapp.ts"
 oft = "yarn run ts-node scripts/oft.ts"
 order_delivery = "yarn run ts-node scripts/set_order_delivery.ts"
+print_config = "yarn run ts-node scripts/print_config.ts"
 print_pda = "yarn run ts-node scripts/00print_pda.ts"
 quote_deposit = "yarn run ts-node scripts/quote_oapp.ts"
-
 send_oapp = "yarn run ts-node scripts/send.ts"
+set_account_list = "yarn run ts-node scripts/set_account_list.ts"
 set_broker = "yarn run ts-node scripts/set_broker.ts"
 set_token = "yarn run ts-node scripts/set_token.ts"
-set_account_list = "yarn run ts-node scripts/set_account_list.ts"
 setconfig_oapp = "yarn run ts-node scripts/03setconfig_oapp.ts"
 setup_oapp = "yarn run ts-node scripts/01setup_oapp.ts"
 setup_vault = "yarn run ts-node scripts/04setup_vault.ts"
-reset_lz_types = "yarn run ts-node scripts/reset_lz_receive_types.ts"
-reinit_lz_types = "yarn run ts-node scripts/reinit_lz_receive_types.ts"
-print_config = "yarn run ts-node scripts/print_config.ts"
 test = "yarn run ts-mocha -b -p ./tsconfig.json -t 1000000 tests/**/*.test.ts"
+transfer_admin = "yarn run ts-node scripts/transfer_admin.ts"
+lz_receive = "yarn run ts-node scripts/call_lzreceive.ts"
 
 [test]
 startup_wait = 5000

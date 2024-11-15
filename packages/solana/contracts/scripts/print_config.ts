@@ -20,6 +20,7 @@ async function printConfig() {
     console.log("OApp Config PDA: ",  oappConfigPda.toBase58());
     console.log("   - endpoint: ", new PublicKey(oappConfigPdaData.endpointProgram).toBase58());
     console.log("   - oapp admin: ", new PublicKey(oappConfigPdaData.admin).toBase58());
+    console.log("   - bump: ", oappConfigPdaData.bump);
 
     const vaultAuthorityPdaData = await OAppProgram.account.vaultAuthority.fetch(vaultAuthorityPda);
 
@@ -30,10 +31,12 @@ async function printConfig() {
     console.log("   - deposit nonce: ", Number(vaultAuthorityPdaData.depositNonce));
     console.log("   - order delivery: ", vaultAuthorityPdaData.orderDelivery);
     console.log("   - inbound nonce: ", Number(vaultAuthorityPdaData.inboundNonce));
+    console.log("   - bump: ", vaultAuthorityPdaData.bump);
     
     const peerPdaData = await OAppProgram.account.peer.fetch(peerPda);
     console.log("Peer PDA: ", peerPda.toBase58());
     console.log("   - peer address: ", bytes32ToEthAddress(Buffer.from(peerPdaData.address as Uint8Array)));
+    console.log("   - bump: ", peerPdaData.bump);
 
     const lzReceiveTypesAccountsPdaData = await OAppProgram.account.oAppLzReceiveTypesAccounts.fetch(lzReceiveTypesAccountsPda);
     console.log("LZ Receive Types PDA: ", lzReceiveTypesAccountsPda.toBase58());

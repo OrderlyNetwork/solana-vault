@@ -3,6 +3,7 @@ use std::str::FromStr;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program;
 use anchor_spl::associated_token::{get_associated_token_address, ID as ASSOCIATED_TOKEN_ID};
+use anchor_spl::token::ID as TOKEN_PROGRAM_ID;
 use oapp::endpoint_cpi::LzAccount;
 
 use crate::instructions::AccountWithdrawSol;
@@ -122,8 +123,7 @@ impl OAppLzReceiveTypes<'_> {
             let vault_token_account = get_associated_token_address(&vault_authority, &token_mint);
 
             // account 10
-            let token_program_id =
-                Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap();
+            let token_program_id = TOKEN_PROGRAM_ID;
 
             // account 11
             let system_program_id = solana_program::system_program::ID;
