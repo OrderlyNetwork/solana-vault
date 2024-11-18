@@ -4,6 +4,7 @@ import { OftTools } from "@layerzerolabs/lz-solana-sdk-v2";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import * as utils from "./utils";
 import * as constants from "./constants";
+import { oft } from "@layerzerolabs/oft-v2-solana-sdk";
 const [provider, wallet, rpc] = utils.setAnchor();
 const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(); 
 const ENV = utils.getEnv(OAPP_PROGRAM_ID);
@@ -11,6 +12,15 @@ const ENV = utils.getEnv(OAPP_PROGRAM_ID);
 async function transferAdmin() {
     const multisig = utils.getMultisig(ENV);
     const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
+
+    const ixSetDelegate = await OftTools.createSetDelegateIx(
+        wallet.publicKey,
+        oappConfigPda,
+        multisig,
+        OAPP_PROGRAM_ID,
+        constants.ENDPOINT_PROGRAM_ID
+    )
+    
     const transferAdminParams = {
         admin: multisig,
     };
@@ -18,11 +28,11 @@ async function transferAdmin() {
         admin: wallet.publicKey,
         oappConfig: oappConfigPda,
     }).instruction();
-
-    const txTransferAdmin = new Transaction().add(ixTransferAdmin);
+    const txSetDelegateAndAdmin = new Transaction().add(ixSetDelegate).add(ixTransferAdmin);
+ 
     const sigTransferAdmin = await sendAndConfirmTransaction(
         provider.connection,
-        txTransferAdmin,
+        txSetDelegateAndAdmin,
         [wallet.payer],
         {
             commitment: "confirmed",

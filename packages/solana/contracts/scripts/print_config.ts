@@ -2,6 +2,7 @@ import { bytes32ToEthAddress } from "@layerzerolabs/lz-v2-utilities";
 import { PublicKey } from "@solana/web3.js";
 import * as utils from "./utils";
 import { hexlify } from "ethers";
+import { OftTools } from "@layerzerolabs/lz-solana-sdk-v2";
 
 const [provider, wallet, rpc] = utils.setAnchor();
 const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram();  
@@ -14,6 +15,10 @@ async function printConfig() {
     const vaultAuthorityPda = utils.getVaultAuthorityPda(OAPP_PROGRAM_ID);
     const peerPda = utils.getPeerPda(OAPP_PROGRAM_ID, oappConfigPda, DST_EID);
     const lzReceiveTypesAccountsPda = utils.getLzReceiveTypesPda(OAPP_PROGRAM_ID, oappConfigPda);
+
+    console.log(`====================== Print Delegate on ${ENV} ======================`);
+    const delegatePda = await OftTools.getDelegate(provider.connection, oappConfigPda);
+    console.log("Delegate Role: ", delegatePda.toBase58());
     console.log(`====================== Print PDA Status on ${ENV} ======================`);
 
     const oappConfigPdaData = await OAppProgram.account.oAppConfig.fetch(oappConfigPda);

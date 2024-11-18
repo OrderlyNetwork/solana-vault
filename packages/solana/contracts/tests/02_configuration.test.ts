@@ -4,7 +4,7 @@ import { SolanaVault } from '../target/types/solana_vault'
 import { Uln } from '../target/types/uln'
 import { Endpoint } from './types/endpoint'
 import { createMint } from '@solana/spl-token'
-import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js'
+import { Keypair, PublicKey, SystemProgram, sendAndConfirmTransaction } from '@solana/web3.js'
 import { assert } from 'chai'
 import endpointIdl from './idl/endpoint.json'
 import {
@@ -25,6 +25,8 @@ import {
 import { MainnetV2EndpointId } from '@layerzerolabs/lz-definitions'
 import { initOapp, setVault, confirmOptions } from './setup'
 import { token } from '@coral-xyz/anchor/dist/cjs/utils'
+import { OftTools } from '@layerzerolabs/lz-solana-sdk-v2'
+import { ENDPOINT_PROGRAM_ID } from '../scripts/constants'
 
 let USDC_MINT: PublicKey
 const LAYERZERO_ENDPOINT_PROGRAM_ID = new PublicKey('76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6')
@@ -639,7 +641,26 @@ describe('Test Solana-Vault configuration', function() {
             console.log("🥷 Attacker failed to transfer Admin")
         }
 
-        await transferAdmin(wallet.payer)
+        const ixSetDelegate = await OftTools.createSetDelegateIx(
+            wallet.publicKey,
+            oappConfigPda,
+            newAdmin.publicKey,
+            program.programId,
+            ENDPOINT_PROGRAM_ID
+        )
+
+        const ixTransferAdmin = await program.methods.transferAdmin({admin: newAdmin.publicKey}).accounts({admin: wallet.publicKey,oappConfig: oappConfigPda}).instruction();
+
+        const txSetDelegateAndAdmin = new anchor.web3.Transaction().add(ixSetDelegate).add(ixTransferAdmin)
+
+        const sigSetDelegate = await sendAndConfirmTransaction(provider.connection, txSetDelegateAndAdmin, [wallet.payer])
+        
+        const delegateOnchain = await OftTools.getDelegate(provider.connection, oappConfigPda, ENDPOINT_PROGRAM_ID)
+
+        assert.equal(delegateOnchain.toString(), newAdmin.publicKey.toString())
+        console.log("✅ Delegate set")
+
+        // await transferAdmin(wallet.payer)
         const oappConfig = await program.account.oAppConfig.fetch(oappConfigPda)
         assert.equal(oappConfig.admin.toString(), newAdmin.publicKey.toString())
         console.log("✅ Transfer Admin")
