@@ -48,6 +48,11 @@ export const QA_OAPP_PROGRAM_ID = new PublicKey("5zBjLor7vEraAt4zp2H82sy9MSqFoDn
 export const STAGING_OAPP_PROGRAM_ID = new PublicKey("9shwxWDUNhtwkHocsUAmrNAQfBH2DHh4njdAEdHZZkF2");
 export const MAIN_OAPP_PRORAM_ID = STAGING_OAPP_PROGRAM_ID;   // placeholder
 
+export const DEV_MULTISIG = new PublicKey("AbQgW1N8JAZxQFdh3VTx3ukGdGCN1vQYADktp3d2HDYw");
+export const QA_MULTISIG = new PublicKey("2WG7UG81NsutAzKDpJp6ZepEisMKrXS9XvMVPhsfqtuB");
+export const STAGING_MULTISIG = new PublicKey("48usEusxMDBxpjLkyrarHupqodAfxXyoaLDVNDJFvkME");
+export const MAIN_MULTISIG = STAGING_MULTISIG;  // placeholder
+
 export const DEV_LOOKUP_TABLE_ADDRESS = new PublicKey("BWp8HaYYhiNHekt3zgQhqoCrRftneGxxfgKmCZ6svHN");
 export const QA_LOOKUP_TABLE_ADDRESS = new PublicKey("BswrQQoPKAFojTuJutZcBMtigAgTghEH4M8ofn3EG2X2");
 export const STAGING_LOOKUP_TABLE_ADDRESS = new PublicKey("BbGKfxuPwDmu58BjPpd7PMG69TqnZjSpKaLDMgf9E9Dr");

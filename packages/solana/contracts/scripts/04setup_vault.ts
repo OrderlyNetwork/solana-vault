@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, Transaction } from "@solana/web3.js";
 
 import * as utils from "./utils";
 import * as constants from "./constants";
@@ -13,6 +13,8 @@ const DST_EID = utils.getDstEid(ENV);
 const SOL_CHAIN_ID = utils.getSolChainId(ENV);
 
 async function setup() {
+    const multisig = utils.getMultisig(ENV);
+    const useMultisig = true;
     console.log("Setting up Vault...");
     const usdc = await utils.getUSDCAddress(rpc);
     const userUSDCAccount = await utils.getUSDCAccount(usdc, wallet.publicKey);
@@ -22,29 +24,58 @@ async function setup() {
 
     const vaultUSDCAccount = await utils.getUSDCAccount(usdc, vaultAuthorityPda);
     console.log("Vault USDCAccount", vaultUSDCAccount.toBase58());
-    const multisig = new PublicKey("D6p6KbGEWEJDk1Svp9McHKDW4Umjux7swk4PBx6YE4e1");
-    const setVaultParams = {
-        owner: multisig,   // wallet.publicKey
-        depositNonce: new anchor.BN(0),
-        orderDelivery: true,
-        inboundNonce: new anchor.BN(0),
-        dstEid: DST_EID,
-        solChainId: new anchor.BN(SOL_CHAIN_ID)
+    
+    let vaultAuthorityPdaData, setVaultParams
+    try {
+        vaultAuthorityPdaData = await OAppProgram.account.vaultAuthority.fetch(vaultAuthorityPda);
+
+        console.log("Vault Authority PDA: ", vaultAuthorityPda.toBase58());
+        console.log("   - vault owner: ", new PublicKey(vaultAuthorityPdaData.owner).toBase58());
+        console.log("   - sol chain id: ", Number(vaultAuthorityPdaData.solChainId));
+        console.log("   - dst eid: ", Number(vaultAuthorityPdaData.dstEid));
+        console.log("   - deposit nonce: ", Number(vaultAuthorityPdaData.depositNonce));
+        console.log("   - order delivery: ", vaultAuthorityPdaData.orderDelivery);
+        console.log("   - inbound nonce: ", Number(vaultAuthorityPdaData.inboundNonce));
+        console.log("   - bump: ", vaultAuthorityPdaData.bump);
+
+       setVaultParams = {
+            owner: useMultisig? multisig : wallet.publicKey,   // wallet.publicKey
+            depositNonce: Number(vaultAuthorityPdaData.depositNonce),
+            orderDelivery: true,
+            inboundNonce: Number(vaultAuthorityPdaData.inboundNonce),
+            dstEid: DST_EID,
+            solChainId: new anchor.BN(SOL_CHAIN_ID)
+        }
+        
+    }catch(e) {
+        console.log("Vault Authority PDA not found and should initialize it");
+        setVaultParams = {
+            owner: wallet.publicKey,
+            depositNonce: new anchor.BN(0),
+            orderDelivery: true,
+            inboundNonce: new anchor.BN(0),
+            dstEid: DST_EID,
+            solChainId: new anchor.BN(SOL_CHAIN_ID)
+        }
     }
-    console.log("Set Vault Params:", setVaultParams);
+    
     const setVaultAccounts = {
-        admin: wallet.publicKey,
+        admin: useMultisig ? multisig : wallet.publicKey,
         vaultAuthority: vaultAuthorityPda,
         oappConfig: utils.getOAppConfigPda(OAPP_PROGRAM_ID),
     }
-    console.log("Set Vault Accounts:", setVaultAccounts);
+    // console.log("Set Vault Accounts:", setVaultAccounts);
     const ixSetVault = await OAppProgram.methods.setVault(setVaultParams).accounts(setVaultAccounts).instruction();
+    const txSetVault = new Transaction().add(ixSetVault);
 
-    console.log("Set Vault:");
-    try {
-        await utils.createAndSendV0Tx([ixSetVault], provider, wallet);
-    } catch (e) {
-        console.log("Vault already initialized");
+    if (useMultisig) {
+        const txBase58 = await utils.getBase58Tx(provider, wallet.publicKey, txSetVault);
+        console.log("txBase58 for set vault:\n", txBase58);
+    } else {
+        console.log("Set Vault:");
+        const sigSetVault = await utils.createAndSendV0Tx([ixSetVault], provider, wallet);
+        console.log("sigSetVault", sigSetVault);
+       
     }
 }
 

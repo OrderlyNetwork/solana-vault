@@ -938,3 +938,15 @@ export async function getBase58Tx(provider: anchor.AnchorProvider, payer: Public
    tx.feePayer = payer;
    return bs.encode(tx.serializeMessage())
 }
+
+export function getMultisig(ENV: String) {
+    if (ENV === "DEV") {
+        return constants.DEV_MULTISIG;
+    } else if (ENV === "QA") {
+        return constants.QA_MULTISIG;
+    } else if (ENV === "STAGING") {
+        return constants.STAGING_MULTISIG;
+    } else if (ENV === "MAIN") {
+        return constants.MAIN_MULTISIG;
+    }
+}

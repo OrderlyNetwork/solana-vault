@@ -10,8 +10,9 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram();
 const ENV = utils.getEnv(OAPP_PROGRAM_ID);
 
 async function setBroker() {
+    const multisig = utils.getMultisig(ENV);
+    const useMultisig = true;
     const allowedBrokerList = utils.getBrokerList(ENV);
-    console.log("Allowed Broker List:", allowedBrokerList);
     console.log("Setting up Brokers...");
 
     for (const brokerId of allowedBrokerList) {
@@ -40,22 +41,30 @@ async function setBroker() {
             allowed: allowed,
         };
         const ixSetBroker = await OAppProgram.methods.setBroker(setBrokerParams).accounts({
-            admin: wallet.publicKey,
+            admin: useMultisig? multisig : wallet.publicKey,
             allowedBroker: brokerPda,
             oappConfig: oappConfigPda,
         }).instruction();
 
         const txSetBroker = new Transaction().add(ixSetBroker);
-        const sigSetBroker = await sendAndConfirmTransaction(
-            provider.connection,
-            txSetBroker,
-            [wallet.payer],
-            {
-                commitment: "confirmed",
-                preflightCommitment: "confirmed"
-            }
-        )
-        console.log("sigSetBroker", sigSetBroker);
+
+        if (useMultisig) {
+            const txBase58 = await utils.getBase58Tx(provider, wallet.publicKey, txSetBroker);
+            console.log("txBase58 for set broker:\n", txBase58);
+        } else {
+            console.log(`Setting up Broker ${brokerId} ...`);
+            const sigSetBroker = await sendAndConfirmTransaction(
+                provider.connection,
+                txSetBroker,
+                [wallet.payer],
+                {
+                    commitment: "confirmed",
+                    preflightCommitment: "confirmed"
+                }
+            )
+            console.log("sigSetBroker", sigSetBroker);
+        }
+        
     }
 }
 setBroker();

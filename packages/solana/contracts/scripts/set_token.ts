@@ -12,6 +12,8 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram();
 const ENV = utils.getEnv(OAPP_PROGRAM_ID);
 
 async function setBroker() {
+    const multisig = utils.getMultisig(ENV);
+    const useMultisig = true;
     const tokenSymble = "USDC";
     const tokenHash = utils.getTokenHash(tokenSymble);
     console.log("Token Hash:", tokenHash);
@@ -30,10 +32,8 @@ async function setBroker() {
         allowed: allowed,
     };
     console.log("Set Token Params:", setTokenParams);
-    const admin = wallet.publicKey;
-    const multisig = new PublicKey("D6p6KbGEWEJDk1Svp9McHKDW4Umjux7swk4PBx6YE4e1");
     const setTokenAccounts = {
-        admin: multisig,
+        admin: useMultisig ? multisig : wallet.publicKey,
         allowedToken: tokenPda,
         oappConfig: oappConfigPda,
         mintAccount: mintAccount,
@@ -41,28 +41,14 @@ async function setBroker() {
     console.log("Set Token Accounts:", setTokenAccounts);
     const ixSetToken = await OAppProgram.methods.setToken(setTokenParams).accounts(setTokenAccounts).instruction();
 
-    // print ixSetToken.data as hex string
-    // data type is Buffer
-    console.log("ixSetToken", ixSetToken.data.toString('hex'));
-
-
-    console.log("ixSetToken", ixSetToken.data);
+    
 
     const txSetToken = new Transaction().add(ixSetToken);
 
-    // txSetToken.recentBlockhash = (await provider.connection.getLatestBlockhash()).blockhash;
-    // txSetToken.feePayer = wallet.publicKey;
-    // console.log(txSetToken)
-    // // console.log(txSetOrderDelivery.serializeMessage().toString('hex'))
-    
-    // console.log("txSetToken", txSetToken.serializeMessage().toString('hex'));
-    // console.log("base58 encoded tx: ", bs.encode(txSetToken.serializeMessage()));
-
-    const txBase58 = await utils.getBase58Tx(provider, wallet.publicKey, txSetToken);
-
-    console.log("txBase58", txBase58);
-
-    try {
+    if (useMultisig) {
+        const txBase58 = await utils.getBase58Tx(provider, wallet.publicKey, txSetToken);
+        console.log("txBase58 for set token:\n", txBase58);
+     } else {
         const sigSetToken = await sendAndConfirmTransaction(
             provider.connection,
             txSetToken,
@@ -73,10 +59,15 @@ async function setBroker() {
             }
         )
         console.log("sigSetToken", sigSetToken);
-        
-    } catch (err) {
-        console.log("Error: ", err);
-    }
+     }
+
+    // txSetToken.recentBlockhash = (await provider.connection.getLatestBlockhash()).blockhash;
+    // txSetToken.feePayer = wallet.publicKey;
+    // console.log(txSetToken)
+    // // console.log(txSetOrderDelivery.serializeMessage().toString('hex'))
+    
+    // console.log("txSetToken", txSetToken.serializeMessage().toString('hex'));
+    // console.log("base58 encoded tx: ", bs.encode(txSetToken.serializeMessage()));
 }
 setBroker();
 

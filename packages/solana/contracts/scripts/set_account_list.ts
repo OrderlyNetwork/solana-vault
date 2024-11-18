@@ -9,6 +9,8 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram();
 const ENV = utils.getEnv(OAPP_PROGRAM_ID);
 
 async function setAccountList() {
+    const multisig = utils.getMultisig(ENV);
+    const useMultisig = true;
     const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
     const lzReceiveTypesAccountsPda = utils.getLzReceiveTypesPda(OAPP_PROGRAM_ID, oappConfigPda);
     const accountListPda = utils.getAccountListPda(OAPP_PROGRAM_ID, oappConfigPda);
@@ -25,7 +27,7 @@ async function setAccountList() {
         woofiProPda: brokerPda,
     }
     const ixSetAccountList = await OAppProgram.methods.setAccountList(params).accounts({
-        admin: wallet.publicKey,
+        admin: useMultisig ? multisig : wallet.publicKey,
         oappConfig: oappConfigPda,
         lzReceiveTypes: lzReceiveTypesAccountsPda,
         accountsList: accountListPda,
@@ -33,16 +35,25 @@ async function setAccountList() {
 
     const txSetAccountList = new Transaction().add(ixSetAccountList);
 
-    const sigSetAccountList = await sendAndConfirmTransaction(
-        provider.connection,
-        txSetAccountList ,
-        [wallet.payer],
-        {
-            commitment: "confirmed",
-            preflightCommitment: "confirmed"
-        }
-    )
-    console.log("sigSetAccountList ", sigSetAccountList );
+    if (useMultisig) {
+        const txBase58 = await utils.getBase58Tx(provider, wallet.publicKey, txSetAccountList);
+        console.log("txBase58 for set account list:\n", txBase58);
+
+    } else {
+        console.log("Setting up Account List...");
+        const sigSetAccountList = await sendAndConfirmTransaction(
+            provider.connection,
+            txSetAccountList ,
+            [wallet.payer],
+            {
+                commitment: "confirmed",
+                preflightCommitment: "confirmed"
+            }
+        )
+        console.log("sigSetAccountList ", sigSetAccountList );
+    }
+
+    
     
 }
 setAccountList();

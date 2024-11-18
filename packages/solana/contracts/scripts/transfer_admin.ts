@@ -9,7 +9,7 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram();
 const ENV = utils.getEnv(OAPP_PROGRAM_ID);
 
 async function transferAdmin() {
-    const multisig = new PublicKey("D6p6KbGEWEJDk1Svp9McHKDW4Umjux7swk4PBx6YE4e1");
+    const multisig = utils.getMultisig(ENV);
     const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
     const transferAdminParams = {
         admin: multisig,

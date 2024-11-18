@@ -11,6 +11,8 @@ const ENV = utils.getEnv(OAPP_PROGRAM_ID);
 const DST_EID = utils.getDstEid(ENV);
 
 async function setOrderDelivery() {
+    const multisig = utils.getMultisig(ENV);
+    const useMultisig = true;
     const vaultAuthorityPda = utils.getVaultAuthorityPda(OAPP_PROGRAM_ID);
 
     const vaultAuthorityPdaData = await OAppProgram.account.vaultAuthority.fetch(vaultAuthorityPda);
@@ -27,20 +29,19 @@ async function setOrderDelivery() {
         nonce: vaultAuthorityPdaData.inboundNonce, // need to fetch from lz-endpoint
     }
     console.log("Set Order Delivery Params:", setOrderDeliveryParams);
-    const vaultOwner = new PublicKey("5vy297GEvFQDJaKBqg3hqWZhwHr6hzFTLZdPoNTzevdN");
+    
     const setOrderDeliveryAccounts = {
-        owner: vaultOwner,
+        owner: useMultisig? multisig : wallet.publicKey,
         vaultAuthority: vaultAuthorityPda,
     }
     
     const ixSetOrderDelivery = await OAppProgram.methods.setOrderDelivery(setOrderDeliveryParams).accounts(setOrderDeliveryAccounts).instruction();
-    console.log("ixSetOrderDelivery", ixSetOrderDelivery);
     const txSetOrderDelivery = new Transaction().add(ixSetOrderDelivery);
-    
-    const txBase58 = await utils.getBase58Tx(provider, wallet.publicKey, txSetOrderDelivery);
-    
-    console.log("txBase58", txBase58);
-    try {
+
+    if (useMultisig) {
+        const txBase58 = await utils.getBase58Tx(provider, wallet.publicKey, txSetOrderDelivery);
+        console.log("txBase58 for order delivery", txBase58);
+     } else {
         const sigSetOrderDelivery = await sendAndConfirmTransaction(
             provider.connection,
             txSetOrderDelivery,
@@ -51,10 +52,6 @@ async function setOrderDelivery() {
             }
         )
         console.log("sigSetToken", sigSetOrderDelivery);
-    } catch (e) {
-        console.log("Error:", e);
-    }
-
-    
+     }    
 }
 setOrderDelivery();
