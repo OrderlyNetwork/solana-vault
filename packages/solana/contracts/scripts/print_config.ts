@@ -54,7 +54,7 @@ async function printConfig() {
     console.log("Account List PDA: ", accountListPda.toBase58());
     console.log("   - usdc pda: ", new PublicKey(accountListPdaData.usdcPda).toBase58());
     console.log("   - usdc mint: ", new PublicKey(accountListPdaData.usdcMint).toBase58());
-    console.log("   - woofi_rp pda: ", new PublicKey(accountListPdaData.woofiProPda).toBase58());
+    console.log("   - woofi_pro pda: ", new PublicKey(accountListPdaData.woofiProPda).toBase58());
     console.log("   - bump: ", accountListPdaData.bump);
 
     const tokenSymbol = "USDC";
@@ -73,8 +73,42 @@ async function printConfig() {
     console.log("Allowed Broker PDA: ", allowedBrokerPda.toBase58());
     console.log("   - broker hash: ", hexlify(Buffer.from(allowedBrokerPdaData.brokerHash as Uint8Array)));
     console.log("   - allowed status: ", allowedBrokerPdaData.allowed);
+    
+    console.log(`====================== Print OAPP Config on ${ENV} ======================`);
 
+    const peer = await OftTools.getPeerAddress(provider.connection, oappConfigPda, DST_EID, OAPP_PROGRAM_ID);
+    console.log("Peer Address: ", peer);
+    const peerOptions = await OftTools.getEnforcedOptions(provider.connection, oappConfigPda, DST_EID, OAPP_PROGRAM_ID);
+    // console.log("Peer Options: ", peerOptions);
+    console.log(`Enforced options onchain for send: `, Buffer.from(peerOptions.send).toString('hex'))
+    console.log(`Enforced options onchain for sendAndCall: `, Buffer.from(peerOptions.sendAndCall).toString('hex'))
 
+    const endpointConfig = await OftTools.getEndpointConfig(provider.connection, oappConfigPda, DST_EID);
+    console.log(`Endpoint config - send lib config: `) // , endpointConfig.sendLibraryConfig
+    console.log(`    - messageLib: `, endpointConfig.sendLibraryConfig.messageLib.toString())
+    console.log(`    - uln sendConfig: `);
+    console.log(`        - uln: `)
+    console.log(`           - confirmation: `, endpointConfig.sendLibraryConfig.ulnSendConfig?.uln.confirmations.toString());
+    console.log(`           - requiredDvns:: `, endpointConfig.sendLibraryConfig.ulnSendConfig?.uln.requiredDvns.toString());
+    console.log(`           - requiredDvnCount: `, endpointConfig.sendLibraryConfig.ulnSendConfig?.uln.requiredDvnCount);
+    console.log(`           - optionalDvns: `, endpointConfig.sendLibraryConfig.ulnSendConfig?.uln.optionalDvns.toLocaleString());
+    console.log(`           - optionalDvnCount: `, endpointConfig.sendLibraryConfig.ulnSendConfig?.uln.optionalDvnCount);
+    console.log(`           - optionalDvnThreshold: `, endpointConfig.sendLibraryConfig.ulnSendConfig?.uln.optionalDvnThreshold);
+    console.log(`        - executor: `)
+    console.log(`           - maxMessageSize: `, endpointConfig.sendLibraryConfig.ulnSendConfig?.executor.maxMessageSize)
+    console.log(`           - executor: `, endpointConfig.sendLibraryConfig.ulnSendConfig?.executor.executor.toString())
+
+    console.log(`Endpoint config - receive lib config: `) // , endpointConfig.receiveLibraryConfig
+    console.log(`    - messageLib: `, endpointConfig.receiveLibraryConfig.messageLib.toString())
+    console.log(`    - timeout: `, endpointConfig.receiveLibraryConfig.timeout)
+    console.log(`    - uln receiveConfig: `);
+    console.log(`        - uln: `)
+    console.log(`           - confirmation: `, endpointConfig.receiveLibraryConfig.ulnReceiveConfig?.uln.confirmations.toString());
+    console.log(`           - requiredDvns:: `, endpointConfig.receiveLibraryConfig.ulnReceiveConfig?.uln.requiredDvns.toString());
+    console.log(`           - requiredDvnCount: `, endpointConfig.receiveLibraryConfig.ulnReceiveConfig?.uln.requiredDvnCount);
+    console.log(`           - optionalDvns: `, endpointConfig.receiveLibraryConfig.ulnReceiveConfig?.uln.optionalDvns.toLocaleString());
+    console.log(`           - optionalDvnCount: `, endpointConfig.receiveLibraryConfig.ulnReceiveConfig?.uln.optionalDvnCount);
+    console.log(`           - optionalDvnThreshold: `, endpointConfig.receiveLibraryConfig.ulnReceiveConfig?.uln.optionalDvnThreshold);
 }
 
 printConfig();
