@@ -41,9 +41,9 @@ export const TOKEN_SEED = "Token";
 export const OWNER_SEED = "Owner";
 export const ACCOUNT_LIST_SEED = "AccountList";
 
-export const ENV = "dev";
+// export const ENV = "dev";
 export const MOCK_OAPP_PROGRAM_ID = new PublicKey("EFLrsQmcfYTSvVrUiP4qruDhbYBtjbQNAhC6tkLJbBtQ");
-export const DEV_OAPP_PROGRAM_ID = new PublicKey("7Ak2uJBdpuQbaJxbY3H56gXu2K9xUbpDXR4uYoAwd59w");
+export const DEV_OAPP_PROGRAM_ID = new PublicKey("EYJq9eU4GMRUriUJBgGoZ8YLQBXcWaciXuSsEXE7ieQS");
 export const QA_OAPP_PROGRAM_ID = new PublicKey("5zBjLor7vEraAt4zp2H82sy9MSqFoDnNa1Lx6EYKTYRZ");
 export const STAGING_OAPP_PROGRAM_ID = new PublicKey("9shwxWDUNhtwkHocsUAmrNAQfBH2DHh4njdAEdHZZkF2");
 export const MAIN_OAPP_PRORAM_ID = STAGING_OAPP_PROGRAM_ID;   // placeholder
@@ -119,6 +119,7 @@ export const STAGING_BROKERS = [
     "filament",
     "raydium",
     "bun_dex",
+    "linear_finance"
     ];
 export const MAIN_BROKERS = STAGING_BROKERS;  // placeholder
 

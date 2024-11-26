@@ -12,10 +12,22 @@ import {
 import * as constants from "./constants";
 import { keccak256, AbiCoder, solidityPackedKeccak256 } from "ethers"
 
-import OAppIdl from "../target/idl/solana_vault.json";
+import OAppIdl from '../target/idl/solana_vault.json';
 import { SolanaVault } from "../target/types/solana_vault";
 
 
+const INTERACT_ENV: "QA" | "DEV" | "STAGING" | "MAIN" = "STAGING";
+import devOAppIdl from '../interface/dev/idl/solana_vault.json';
+import {SolanaVault as devSolanaVault} from "../interface/dev/types/solana_vault";
+
+import qaOAppIdl from '../interface/qa/idl/solana_vault.json';
+import {SolanaVault as qaSolanaVault} from "../interface/qa/types/solana_vault";
+
+import stagingOAppIdl from '../interface/staging/idl/solana_vault.json';
+import {SolanaVault as stagingSolanaVault} from "../interface/qa/types/solana_vault";
+
+import mainOAppIdl from '../interface/mainnet/idl/solana_vault.json';
+import {SolanaVault as mainSolanaVault} from "../interface/mainnet/types/solana_vault";
 
 export function getOAppConfigPda(OAPP_PROGRAM_ID: PublicKey): PublicKey {
     return PublicKey.findProgramAddressSync(
@@ -276,8 +288,24 @@ export function setAnchor(): [anchor.AnchorProvider, anchor.Wallet, string] {
 }
 
 export function getDeployedProgram(): [PublicKey, anchor.Program] {
-    const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
-    const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
+    let OAPP_PROGRAM_ID, OAppProgram
+    if (INTERACT_ENV === "DEV") {
+        OAPP_PROGRAM_ID = new PublicKey(devOAppIdl.metadata.address);
+        OAppProgram = anchor.workspace.SolanaVault as anchor.Program<devSolanaVault>;
+    } else if (INTERACT_ENV === "QA") {
+        OAPP_PROGRAM_ID = new PublicKey(qaOAppIdl.metadata.address);
+        OAppProgram = anchor.workspace.SolanaVault as anchor.Program<qaSolanaVault>;
+    } else if (INTERACT_ENV === "STAGING") {
+        OAPP_PROGRAM_ID = new PublicKey(stagingOAppIdl.metadata.address);
+        OAppProgram = anchor.workspace.SolanaVault as anchor.Program<stagingSolanaVault>;
+    } else if (INTERACT_ENV === "MAIN") {
+        OAPP_PROGRAM_ID = new PublicKey(mainOAppIdl.metadata.address);
+        OAppProgram = anchor.workspace.SolanaVault as anchor.Program<mainSolanaVault>
+    } else {
+        throw new Error("Invalid Environment");
+    }
+    // const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
+    // const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
     return [OAPP_PROGRAM_ID, OAppProgram];
 }
 
