@@ -3,11 +3,10 @@ import { OftTools, SetConfigType } from "@layerzerolabs/lz-solana-sdk-v2";
 import * as utils from "./utils";
 import * as constants from "./constants";
 import OAppIdl from "../target/idl/solana_vault.json";
-const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
-
 
 const [provider, wallet, rpc] = utils.setAnchor();
-const ENV = utils.getEnv(OAPP_PROGRAM_ID);
+const ENV = utils.getEnv();
+const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider);
 const DST_EID = utils.getDstEid(ENV);
 
 
@@ -51,6 +50,8 @@ async function setSendConfig() {
         );
     
         console.log("Init Send Library transaction confirmed:", sigInitSendLib);
+        //sleep for 5 seconds to allow the send library to be initialized
+        await new Promise((resolve) => setTimeout(resolve, 5000));
     } catch (e) {
         console.log("Send Library already initialized");
     }
@@ -73,6 +74,8 @@ async function setSendConfig() {
         );
     
         console.log("Set Send Library transaction confirmed:", sigSetSendLib);
+        // sleep for 5 seconds to allow the send library to be set
+        await new Promise((resolve) => setTimeout(resolve, 5000));
     } catch (e) {
         console.log("Send Library already set");
     }
@@ -101,6 +104,8 @@ async function setReceiveConfig() {
         );
     
         console.log("Init Receive Library transaction confirmed:", sigInitReceiveLib);
+        // sleep for 5 seconds to allow the receive library to be initialized
+        await new Promise((resolve) => setTimeout(resolve, 5000));
     } catch (e) {
         console.log("Receive Library already initialized");
     }
@@ -128,6 +133,8 @@ async function setReceiveConfig() {
         );
     
         console.log("Set Receive Library transaction confirmed:", sigSetReceiveLib);
+        // sleep for 5 seconds to allow the receive library to be set
+        await new Promise((resolve) => setTimeout(resolve, 5000));
     } catch (e) {
         console.log("Receive Library already set");
     }
@@ -169,7 +176,7 @@ async function setULN() {
                 DST_EID,
                 SetConfigType.SEND_ULN,
                 {
-                    confirmations: 10, // should be consistent with the target chain
+                    confirmations: ENV === "MAIN" ? 32 : 10, // should be consistent with the target chain
                     requiredDvnCount: 1,
                     optionalDvnCount: 0,
                     optionalDvnThreshold: 0,
@@ -197,7 +204,7 @@ async function setULN() {
                 DST_EID,
                 SetConfigType.RECEIVE_ULN,
                 {
-                    confirmations: 1, // should be consistent with the target chain
+                    confirmations: ENV === "MAIN" ? 5 : 1, // should be consistent with the target chain
                     requiredDvnCount: 1,
                     optionalDvnCount: 0,
                     optionalDvnThreshold: 0,

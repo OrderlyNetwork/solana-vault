@@ -6,9 +6,10 @@ import * as utils from "./utils";
 import * as constants from "./constants";
 
 const [provider, wallet, rpc] = utils.setAnchor();
-const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram();  
+const ENV = utils.getEnv();
+const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider);  
 
-const ENV = utils.getEnv(OAPP_PROGRAM_ID);
+
 const DST_EID = utils.getDstEid(ENV);
 
 const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
@@ -33,8 +34,7 @@ console.log("Owner PDA:", vaultOwnerPda.toBase58());
 
 async function setup() {
     console.log("Setting up OApp...");
-    const tokenSymble = "USDC";
-    const tokenHash = utils.getTokenHash(tokenSymble);
+
     const ixInitOapp = await OAppProgram.methods.initOapp({
         admin: wallet.publicKey,
         accountList: accountListPda,
@@ -85,9 +85,15 @@ async function setup() {
         ]
     ).instruction();
     
-    const txInitOapp = new Transaction().add(ixInitOapp);
-    const sigInitOapp = await provider.sendAndConfirm(txInitOapp, [wallet.payer]);
-    console.log("Init OApp transaction confirmed:", sigInitOapp);
+    try {
+        const txInitOapp = new Transaction().add(ixInitOapp);
+        const sigInitOapp = await provider.sendAndConfirm(txInitOapp, [wallet.payer]);
+        console.log("Init OApp transaction confirmed:", sigInitOapp);
+        // sleep for 5 seconds to make sure the OApp is initialized
+        await new Promise(resolve => setTimeout(resolve, 5000));
+    } catch (e) {
+        console.log("OApp already initialized");
+    }
 
     const peerAddress = utils.getPeerAddress(ENV);
     const ixSetPeer = await OAppProgram.methods.setPeer({
@@ -104,6 +110,8 @@ async function setup() {
     const txSetPeer = new Transaction().add(ixSetPeer);
     const sigSetPeer = await provider.sendAndConfirm(txSetPeer, [wallet.payer]);
     console.log("Set Peer transaction confirmed:", sigSetPeer);
+    // sleep for 5 seconds to make sure the peer is set
+    await new Promise(resolve => setTimeout(resolve, 5000));
 
     const ixSetOption = await OftTools.createSetEnforcedOptionsIx(
         wallet.publicKey,
@@ -116,6 +124,7 @@ async function setup() {
 
     const txSetOption = await provider.sendAndConfirm(new anchor.web3.Transaction().add(ixSetOption), [wallet.payer]);
     console.log("Transaction to set options:", txSetOption);
+    // sleep for 5 seconds to make sure the options are set
 }
 
 

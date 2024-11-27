@@ -6,12 +6,13 @@ import * as utils from "./utils";
 import * as constants from "./constants";
 
 const [provider, wallet, rpc] = utils.setAnchor();
-const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(); 
-const ENV = utils.getEnv(OAPP_PROGRAM_ID);
+const ENV = utils.getEnv();
+const OAPP_PROGRAM_ID = utils.getProgramID(ENV); 
+
 const DST_EID = utils.getDstEid(ENV);
 const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
 
-console.log("OApp Config PDA:", oappConfigPda.toBase58());
+// console.log("OApp Config PDA:", oappConfigPda.toBase58());
 
 async function setup() {
     const multisig = utils.getMultisig(ENV);

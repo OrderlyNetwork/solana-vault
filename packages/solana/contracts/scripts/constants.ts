@@ -28,7 +28,7 @@ export const DEV_SOL_CHAIN_ID = 901901901;      // the chainid for solana devnet
 export const MAIN_SOL_CHAIN_ID = 900900900;     // the chainid for solana mainnet, defined by orderly
 export const LZ_RECEIVE_GAS = 500000;           
 export const LZ_RECEIVE_VALUE = 0;
-export const LZ_COMPOSE_GAS = 10;
+export const LZ_COMPOSE_GAS = 0;               
 export const LZ_COMPOSE_VALUE = 0;
 
 export const LOCAL_RPC = "http://localhost:8899";
@@ -41,12 +41,12 @@ export const TOKEN_SEED = "Token";
 export const OWNER_SEED = "Owner";
 export const ACCOUNT_LIST_SEED = "AccountList";
 
-// export const ENV = "dev";
+export const ENV: "DEV" | "QA" | "STAGING" | "MAIN" = "QA";
 export const MOCK_OAPP_PROGRAM_ID = new PublicKey("EFLrsQmcfYTSvVrUiP4qruDhbYBtjbQNAhC6tkLJbBtQ");
 export const DEV_OAPP_PROGRAM_ID = new PublicKey("EYJq9eU4GMRUriUJBgGoZ8YLQBXcWaciXuSsEXE7ieQS");
 export const QA_OAPP_PROGRAM_ID = new PublicKey("5zBjLor7vEraAt4zp2H82sy9MSqFoDnNa1Lx6EYKTYRZ");
 export const STAGING_OAPP_PROGRAM_ID = new PublicKey("9shwxWDUNhtwkHocsUAmrNAQfBH2DHh4njdAEdHZZkF2");
-export const MAIN_OAPP_PRORAM_ID = STAGING_OAPP_PROGRAM_ID;   // placeholder
+export const MAIN_OAPP_PROGRAM_ID = STAGING_OAPP_PROGRAM_ID;   // placeholder
 
 export const DEV_MULTISIG = new PublicKey("AbQgW1N8JAZxQFdh3VTx3ukGdGCN1vQYADktp3d2HDYw");
 export const QA_MULTISIG = new PublicKey("2WG7UG81NsutAzKDpJp6ZepEisMKrXS9XvMVPhsfqtuB");

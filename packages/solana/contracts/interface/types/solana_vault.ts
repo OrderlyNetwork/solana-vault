@@ -3,16 +3,21 @@ export type SolanaVault = {
   "name": "solana_vault",
   "instructions": [
     {
-      "name": "initVault",
+      "name": "setVault",
       "accounts": [
         {
-          "name": "signer",
+          "name": "admin",
           "isMut": true,
           "isSigner": true
         },
         {
           "name": "vaultAuthority",
           "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "oappConfig",
+          "isMut": false,
           "isSigner": false
         },
         {
@@ -25,7 +30,7 @@ export type SolanaVault = {
         {
           "name": "params",
           "type": {
-            "defined": "InitVaultParams"
+            "defined": "SetVaultParams"
           }
         }
       ]
@@ -136,6 +141,11 @@ export type SolanaVault = {
           "isSigner": false
         },
         {
+          "name": "accountList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false
@@ -151,7 +161,7 @@ export type SolanaVault = {
       ]
     },
     {
-      "name": "resetOapp",
+      "name": "setAccountList",
       "accounts": [
         {
           "name": "admin",
@@ -160,28 +170,17 @@ export type SolanaVault = {
         },
         {
           "name": "oappConfig",
-          "isMut": true,
-          "isSigner": false
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "reinitOapp",
-      "accounts": [
-        {
-          "name": "owner",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
-          "name": "oappConfig",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "vaultAuthority",
           "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "lzReceiveTypes",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "accountsList",
+          "isMut": true,
           "isSigner": false
         },
         {
@@ -194,56 +193,7 @@ export type SolanaVault = {
         {
           "name": "params",
           "type": {
-            "defined": "ReinitOAppParams"
-          }
-        }
-      ]
-    },
-    {
-      "name": "resetVault",
-      "accounts": [
-        {
-          "name": "owner",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
-          "name": "vaultAuthority",
-          "isMut": true,
-          "isSigner": false
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "reinitVault",
-      "accounts": [
-        {
-          "name": "admin",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
-          "name": "vaultAuthority",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "oappConfig",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [
-        {
-          "name": "params",
-          "type": {
-            "defined": "ReinitVaultParams"
+            "defined": "SetAccountListParams"
           }
         }
       ]
@@ -397,7 +347,7 @@ export type SolanaVault = {
           "isSigner": false
         },
         {
-          "name": "user",
+          "name": "brokerPda",
           "isMut": false,
           "isSigner": false,
           "docs": [
@@ -405,7 +355,31 @@ export type SolanaVault = {
           ]
         },
         {
-          "name": "userDepositWallet",
+          "name": "tokenPda",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "CHECK"
+          ]
+        },
+        {
+          "name": "tokenMint",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "CHECK"
+          ]
+        },
+        {
+          "name": "receiver",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "CHECK"
+          ]
+        },
+        {
+          "name": "receiverTokenAccount",
           "isMut": true,
           "isSigner": false
         },
@@ -415,22 +389,12 @@ export type SolanaVault = {
           "isSigner": false
         },
         {
-          "name": "vaultDepositWallet",
+          "name": "vaultTokenAccount",
           "isMut": true,
           "isSigner": false
         },
         {
-          "name": "depositToken",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
           "name": "tokenProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "systemProgram",
           "isMut": false,
           "isSigner": false
         },
@@ -459,6 +423,11 @@ export type SolanaVault = {
       "accounts": [
         {
           "name": "oappConfig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "accountList",
           "isMut": false,
           "isSigner": false
         }
@@ -655,19 +624,6 @@ export type SolanaVault = {
           {
             "name": "admin",
             "type": "publicKey"
-          },
-          {
-            "name": "usdcHash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "usdcMint",
-            "type": "publicKey"
           }
         ]
       }
@@ -679,6 +635,34 @@ export type SolanaVault = {
         "fields": [
           {
             "name": "oappConfig",
+            "type": "publicKey"
+          },
+          {
+            "name": "accountList",
+            "type": "publicKey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "accountList",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "usdcPda",
+            "type": "publicKey"
+          },
+          {
+            "name": "usdcMint",
+            "type": "publicKey"
+          },
+          {
+            "name": "woofiProPda",
             "type": "publicKey"
           }
         ]
@@ -894,23 +878,14 @@ export type SolanaVault = {
             "type": "publicKey"
           },
           {
+            "name": "accountList",
+            "type": "publicKey"
+          },
+          {
             "name": "endpointProgram",
             "type": {
               "option": "publicKey"
             }
-          },
-          {
-            "name": "usdcHash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "usdcMint",
-            "type": "publicKey"
           }
         ]
       }
@@ -1112,31 +1087,24 @@ export type SolanaVault = {
       }
     },
     {
-      "name": "ReinitOAppParams",
+      "name": "SetAccountListParams",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "admin",
+            "name": "accountList",
             "type": "publicKey"
           },
           {
-            "name": "endpointProgram",
-            "type": {
-              "option": "publicKey"
-            }
-          },
-          {
-            "name": "usdcHash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
+            "name": "usdcPda",
+            "type": "publicKey"
           },
           {
             "name": "usdcMint",
+            "type": "publicKey"
+          },
+          {
+            "name": "woofiProPda",
             "type": "publicKey"
           }
         ]
@@ -1300,62 +1268,6 @@ export type SolanaVault = {
       }
     },
     {
-      "name": "InitVaultParams",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "owner",
-            "type": "publicKey"
-          },
-          {
-            "name": "orderDelivery",
-            "type": "bool"
-          },
-          {
-            "name": "dstEid",
-            "type": "u32"
-          },
-          {
-            "name": "solChainId",
-            "type": "u128"
-          }
-        ]
-      }
-    },
-    {
-      "name": "ReinitVaultParams",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "owner",
-            "type": "publicKey"
-          },
-          {
-            "name": "dstEid",
-            "type": "u32"
-          },
-          {
-            "name": "depositNonce",
-            "type": "u64"
-          },
-          {
-            "name": "orderDelivery",
-            "type": "bool"
-          },
-          {
-            "name": "inboundNonce",
-            "type": "u64"
-          },
-          {
-            "name": "solChainId",
-            "type": "u128"
-          }
-        ]
-      }
-    },
-    {
       "name": "SetBrokerParams",
       "type": {
         "kind": "struct",
@@ -1418,6 +1330,38 @@ export type SolanaVault = {
       }
     },
     {
+      "name": "SetVaultParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "publicKey"
+          },
+          {
+            "name": "depositNonce",
+            "type": "u64"
+          },
+          {
+            "name": "orderDelivery",
+            "type": "bool"
+          },
+          {
+            "name": "inboundNonce",
+            "type": "u64"
+          },
+          {
+            "name": "dstEid",
+            "type": "u32"
+          },
+          {
+            "name": "solChainId",
+            "type": "u128"
+          }
+        ]
+      }
+    },
+    {
       "name": "RateLimiter",
       "type": {
         "kind": "struct",
@@ -1451,6 +1395,9 @@ export type SolanaVault = {
           },
           {
             "name": "InvalidSender"
+          },
+          {
+            "name": "InvalidReceiver"
           },
           {
             "name": "InvalidOptions"
@@ -1728,6 +1675,81 @@ export type SolanaVault = {
       ]
     },
     {
+      "name": "FrozenWithdrawn",
+      "fields": [
+        {
+          "name": "accountId",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "sender",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "receiver",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "brokerHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "tokenHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "tokenAmount",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "fee",
+          "type": "u128",
+          "index": false
+        },
+        {
+          "name": "chainId",
+          "type": "u128",
+          "index": false
+        },
+        {
+          "name": "withdrawNonce",
+          "type": "u64",
+          "index": false
+        }
+      ]
+    },
+    {
       "name": "OAppSent",
       "fields": [
         {
@@ -1807,16 +1829,21 @@ export const IDL: SolanaVault = {
   "name": "solana_vault",
   "instructions": [
     {
-      "name": "initVault",
+      "name": "setVault",
       "accounts": [
         {
-          "name": "signer",
+          "name": "admin",
           "isMut": true,
           "isSigner": true
         },
         {
           "name": "vaultAuthority",
           "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "oappConfig",
+          "isMut": false,
           "isSigner": false
         },
         {
@@ -1829,7 +1856,7 @@ export const IDL: SolanaVault = {
         {
           "name": "params",
           "type": {
-            "defined": "InitVaultParams"
+            "defined": "SetVaultParams"
           }
         }
       ]
@@ -1940,6 +1967,11 @@ export const IDL: SolanaVault = {
           "isSigner": false
         },
         {
+          "name": "accountList",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false
@@ -1955,7 +1987,7 @@ export const IDL: SolanaVault = {
       ]
     },
     {
-      "name": "resetOapp",
+      "name": "setAccountList",
       "accounts": [
         {
           "name": "admin",
@@ -1964,28 +1996,17 @@ export const IDL: SolanaVault = {
         },
         {
           "name": "oappConfig",
-          "isMut": true,
-          "isSigner": false
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "reinitOapp",
-      "accounts": [
-        {
-          "name": "owner",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
-          "name": "oappConfig",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "vaultAuthority",
           "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "lzReceiveTypes",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "accountsList",
+          "isMut": true,
           "isSigner": false
         },
         {
@@ -1998,56 +2019,7 @@ export const IDL: SolanaVault = {
         {
           "name": "params",
           "type": {
-            "defined": "ReinitOAppParams"
-          }
-        }
-      ]
-    },
-    {
-      "name": "resetVault",
-      "accounts": [
-        {
-          "name": "owner",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
-          "name": "vaultAuthority",
-          "isMut": true,
-          "isSigner": false
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "reinitVault",
-      "accounts": [
-        {
-          "name": "admin",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
-          "name": "vaultAuthority",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "oappConfig",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [
-        {
-          "name": "params",
-          "type": {
-            "defined": "ReinitVaultParams"
+            "defined": "SetAccountListParams"
           }
         }
       ]
@@ -2201,7 +2173,7 @@ export const IDL: SolanaVault = {
           "isSigner": false
         },
         {
-          "name": "user",
+          "name": "brokerPda",
           "isMut": false,
           "isSigner": false,
           "docs": [
@@ -2209,7 +2181,31 @@ export const IDL: SolanaVault = {
           ]
         },
         {
-          "name": "userDepositWallet",
+          "name": "tokenPda",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "CHECK"
+          ]
+        },
+        {
+          "name": "tokenMint",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "CHECK"
+          ]
+        },
+        {
+          "name": "receiver",
+          "isMut": false,
+          "isSigner": false,
+          "docs": [
+            "CHECK"
+          ]
+        },
+        {
+          "name": "receiverTokenAccount",
           "isMut": true,
           "isSigner": false
         },
@@ -2219,22 +2215,12 @@ export const IDL: SolanaVault = {
           "isSigner": false
         },
         {
-          "name": "vaultDepositWallet",
+          "name": "vaultTokenAccount",
           "isMut": true,
           "isSigner": false
         },
         {
-          "name": "depositToken",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
           "name": "tokenProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "systemProgram",
           "isMut": false,
           "isSigner": false
         },
@@ -2263,6 +2249,11 @@ export const IDL: SolanaVault = {
       "accounts": [
         {
           "name": "oappConfig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "accountList",
           "isMut": false,
           "isSigner": false
         }
@@ -2459,19 +2450,6 @@ export const IDL: SolanaVault = {
           {
             "name": "admin",
             "type": "publicKey"
-          },
-          {
-            "name": "usdcHash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "usdcMint",
-            "type": "publicKey"
           }
         ]
       }
@@ -2483,6 +2461,34 @@ export const IDL: SolanaVault = {
         "fields": [
           {
             "name": "oappConfig",
+            "type": "publicKey"
+          },
+          {
+            "name": "accountList",
+            "type": "publicKey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "accountList",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "usdcPda",
+            "type": "publicKey"
+          },
+          {
+            "name": "usdcMint",
+            "type": "publicKey"
+          },
+          {
+            "name": "woofiProPda",
             "type": "publicKey"
           }
         ]
@@ -2698,23 +2704,14 @@ export const IDL: SolanaVault = {
             "type": "publicKey"
           },
           {
+            "name": "accountList",
+            "type": "publicKey"
+          },
+          {
             "name": "endpointProgram",
             "type": {
               "option": "publicKey"
             }
-          },
-          {
-            "name": "usdcHash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "usdcMint",
-            "type": "publicKey"
           }
         ]
       }
@@ -2916,31 +2913,24 @@ export const IDL: SolanaVault = {
       }
     },
     {
-      "name": "ReinitOAppParams",
+      "name": "SetAccountListParams",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "admin",
+            "name": "accountList",
             "type": "publicKey"
           },
           {
-            "name": "endpointProgram",
-            "type": {
-              "option": "publicKey"
-            }
-          },
-          {
-            "name": "usdcHash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
+            "name": "usdcPda",
+            "type": "publicKey"
           },
           {
             "name": "usdcMint",
+            "type": "publicKey"
+          },
+          {
+            "name": "woofiProPda",
             "type": "publicKey"
           }
         ]
@@ -3104,62 +3094,6 @@ export const IDL: SolanaVault = {
       }
     },
     {
-      "name": "InitVaultParams",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "owner",
-            "type": "publicKey"
-          },
-          {
-            "name": "orderDelivery",
-            "type": "bool"
-          },
-          {
-            "name": "dstEid",
-            "type": "u32"
-          },
-          {
-            "name": "solChainId",
-            "type": "u128"
-          }
-        ]
-      }
-    },
-    {
-      "name": "ReinitVaultParams",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "owner",
-            "type": "publicKey"
-          },
-          {
-            "name": "dstEid",
-            "type": "u32"
-          },
-          {
-            "name": "depositNonce",
-            "type": "u64"
-          },
-          {
-            "name": "orderDelivery",
-            "type": "bool"
-          },
-          {
-            "name": "inboundNonce",
-            "type": "u64"
-          },
-          {
-            "name": "solChainId",
-            "type": "u128"
-          }
-        ]
-      }
-    },
-    {
       "name": "SetBrokerParams",
       "type": {
         "kind": "struct",
@@ -3222,6 +3156,38 @@ export const IDL: SolanaVault = {
       }
     },
     {
+      "name": "SetVaultParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "publicKey"
+          },
+          {
+            "name": "depositNonce",
+            "type": "u64"
+          },
+          {
+            "name": "orderDelivery",
+            "type": "bool"
+          },
+          {
+            "name": "inboundNonce",
+            "type": "u64"
+          },
+          {
+            "name": "dstEid",
+            "type": "u32"
+          },
+          {
+            "name": "solChainId",
+            "type": "u128"
+          }
+        ]
+      }
+    },
+    {
       "name": "RateLimiter",
       "type": {
         "kind": "struct",
@@ -3255,6 +3221,9 @@ export const IDL: SolanaVault = {
           },
           {
             "name": "InvalidSender"
+          },
+          {
+            "name": "InvalidReceiver"
           },
           {
             "name": "InvalidOptions"
@@ -3458,6 +3427,81 @@ export const IDL: SolanaVault = {
     },
     {
       "name": "VaultWithdrawn",
+      "fields": [
+        {
+          "name": "accountId",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "sender",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "receiver",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "brokerHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "tokenHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "tokenAmount",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "fee",
+          "type": "u128",
+          "index": false
+        },
+        {
+          "name": "chainId",
+          "type": "u128",
+          "index": false
+        },
+        {
+          "name": "withdrawNonce",
+          "type": "u64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "FrozenWithdrawn",
       "fields": [
         {
           "name": "accountId",

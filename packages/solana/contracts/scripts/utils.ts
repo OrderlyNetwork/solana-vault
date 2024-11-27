@@ -12,22 +12,19 @@ import {
 import * as constants from "./constants";
 import { keccak256, AbiCoder, solidityPackedKeccak256 } from "ethers"
 
-import OAppIdl from '../target/idl/solana_vault.json';
-import { SolanaVault } from "../target/types/solana_vault";
+// import OAppIdl from '../target/idl/solana_vault.json';
+// import { SolanaVault } from "../target/types/solana_vault";
+
+// Select the environment to interact with vault
+// const INTERACT_ENV: "DEV" | "QA" | "STAGING" | "MAIN" = "STAGING";
+
+import {IDL, SolanaVault} from "../interface/types/solana_vault";
 
 
-const INTERACT_ENV: "QA" | "DEV" | "STAGING" | "MAIN" = "STAGING";
-import devOAppIdl from '../interface/dev/idl/solana_vault.json';
-import {SolanaVault as devSolanaVault} from "../interface/dev/types/solana_vault";
-
-import qaOAppIdl from '../interface/qa/idl/solana_vault.json';
-import {SolanaVault as qaSolanaVault} from "../interface/qa/types/solana_vault";
-
-import stagingOAppIdl from '../interface/staging/idl/solana_vault.json';
-import {SolanaVault as stagingSolanaVault} from "../interface/qa/types/solana_vault";
-
-import mainOAppIdl from '../interface/mainnet/idl/solana_vault.json';
-import {SolanaVault as mainSolanaVault} from "../interface/mainnet/types/solana_vault";
+// import devOAppIdl from '../interface/dev/idl/solana_vault.json';
+// import qaOAppIdl from '../interface/qa/idl/solana_vault.json';
+// import stagingOAppIdl from '../interface/staging/idl/solana_vault.json';
+// import mainOAppIdl from '../interface/mainnet/idl/solana_vault.json';
 
 export function getOAppConfigPda(OAPP_PROGRAM_ID: PublicKey): PublicKey {
     return PublicKey.findProgramAddressSync(
@@ -287,26 +284,42 @@ export function setAnchor(): [anchor.AnchorProvider, anchor.Wallet, string] {
     return [provider, wallet, rpc];
 }
 
-export function getDeployedProgram(): [PublicKey, anchor.Program] {
+export function getDeployedProgram(ENV: String, provider: anchor.AnchorProvider): [PublicKey, anchor.Program] {
     let OAPP_PROGRAM_ID, OAppProgram
-    if (INTERACT_ENV === "DEV") {
-        OAPP_PROGRAM_ID = new PublicKey(devOAppIdl.metadata.address);
-        OAppProgram = anchor.workspace.SolanaVault as anchor.Program<devSolanaVault>;
-    } else if (INTERACT_ENV === "QA") {
-        OAPP_PROGRAM_ID = new PublicKey(qaOAppIdl.metadata.address);
-        OAppProgram = anchor.workspace.SolanaVault as anchor.Program<qaSolanaVault>;
-    } else if (INTERACT_ENV === "STAGING") {
-        OAPP_PROGRAM_ID = new PublicKey(stagingOAppIdl.metadata.address);
-        OAppProgram = anchor.workspace.SolanaVault as anchor.Program<stagingSolanaVault>;
-    } else if (INTERACT_ENV === "MAIN") {
-        OAPP_PROGRAM_ID = new PublicKey(mainOAppIdl.metadata.address);
-        OAppProgram = anchor.workspace.SolanaVault as anchor.Program<mainSolanaVault>
+    // const [provider, wallet, rpc] = setAnchor();
+    if (ENV === "DEV") {
+        OAPP_PROGRAM_ID = constants.DEV_OAPP_PROGRAM_ID;
+        // OAppProgram = new anchor.Program<SolanaVault>(IDL, OAPP_PROGRAM_ID, provider);
+        
+    } else if (ENV === "QA") {
+        OAPP_PROGRAM_ID = constants.QA_OAPP_PROGRAM_ID;
+        // OAppProgram = new anchor.Program<SolanaVault>(IDL, OAPP_PROGRAM_ID, provider);
+    } else if (ENV === "STAGING") {
+        OAPP_PROGRAM_ID = constants.STAGING_OAPP_PROGRAM_ID;
+        // OAppProgram = new anchor.Program<SolanaVault>(IDL, OAPP_PROGRAM_ID, provider);
+    } else if (ENV === "MAIN") {
+        OAPP_PROGRAM_ID = constants.MAIN_OAPP_PROGRAM_ID;
     } else {
         throw new Error("Invalid Environment");
     }
-    // const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
-    // const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
+    // OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
+    // OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
+    OAppProgram = new anchor.Program<SolanaVault>(IDL, OAPP_PROGRAM_ID, provider);
     return [OAPP_PROGRAM_ID, OAppProgram];
+}
+
+export function getProgramID(ENV: String): PublicKey {
+    if (ENV === "DEV") {
+        return constants.DEV_OAPP_PROGRAM_ID;
+    } else if (ENV === "QA") {
+        return constants.QA_OAPP_PROGRAM_ID;
+    } else if (ENV === "STAGING") {
+        return constants.STAGING_OAPP_PROGRAM_ID;
+    } else if (ENV === "MAIN") {
+        return constants.MAIN_OAPP_PROGRAM_ID;
+    } else {
+        throw new Error("Invalid Environment");
+    }
 }
 
 export async function createAndSendV0Tx(txInstructions: TransactionInstruction[], provider: anchor.AnchorProvider, wallet: anchor.Wallet) {
@@ -402,8 +415,8 @@ export async function getLookupTableAccount(provider: anchor.AnchorProvider, loo
 
 
 // get the usdc address, user account, and vault account
-export function getRelatedUSDCAcount(wallet: anchor.Wallet, rpc: string): PublicKey[] {
-    const [VAULT_PROGRAM_ID, VaultProgram] =  getDeployedProgram();
+export function getRelatedUSDCAcount(wallet: anchor.Wallet, rpc: string, ENV: String): PublicKey[] {
+    const VAULT_PROGRAM_ID =  getProgramID(ENV); // getDeployedProgram(ENV, provider);
     const vaultAuthorityPda = getVaultAuthorityPda(VAULT_PROGRAM_ID);
     const usdcAddress = getUSDCAddress(rpc);
     const userUSDCAccount = getUSDCAccount(usdcAddress, wallet.publicKey);
@@ -411,8 +424,8 @@ export function getRelatedUSDCAcount(wallet: anchor.Wallet, rpc: string): Public
     return [usdcAddress, userUSDCAccount, vaultUSDCAccount];
 }
 
-export async function createRelatedUSDCAcount(provider: anchor.AnchorProvider, wallet: anchor.Wallet, rpc: string): Promise<PublicKey[]> {
-    const [VAULT_PROGRAM_ID, VaultProgram] =  getDeployedProgram();
+export async function createRelatedUSDCAcount(provider: anchor.AnchorProvider, wallet: anchor.Wallet, rpc: string, ENV: String): Promise<PublicKey[]> {
+    const VAULT_PROGRAM_ID =  getProgramID(ENV);
     const usdcAddress = getUSDCAddress(rpc);
     const vaultAuthorityPda = getVaultAuthorityPda(VAULT_PROGRAM_ID);
     const userUSDCAccount = await createUSDCAccount(provider, wallet, usdcAddress, wallet.publicKey);
@@ -536,7 +549,7 @@ export async function mintUSDC(provider: anchor.Provider, wallet: anchor.Wallet,
     console.log(`💶 Minted ${amount} USDC to ${receiverATA.toBase58()}: ${sigMint}`);
 }
 
-export function printPda(OAPP_PROGRAM_ID: PublicKey, wallet: anchor.Wallet, rpc: string, ENV) {
+export function printPda(OAPP_PROGRAM_ID: PublicKey, wallet: anchor.Wallet, rpc: string, ENV: String) {
     const PEER_ADDRESS = getPeerAddress(ENV);
     const DST_EID = getDstEid(ENV);
     const oappConfigPda = getOAppConfigPda(OAPP_PROGRAM_ID);
@@ -614,7 +627,7 @@ export function printPda(OAPP_PROGRAM_ID: PublicKey, wallet: anchor.Wallet, rpc:
     const messageLibPda = getMessageLibPda();
     console.log("🔑 Message Lib PDA: ", messageLibPda.toString());
 
-    const [usdcAddress, userUSDCAccount, vaultUSDCAccount] =  getRelatedUSDCAcount(wallet, rpc);
+    const [usdcAddress, userUSDCAccount, vaultUSDCAccount] =  getRelatedUSDCAcount(wallet, rpc, ENV);
     console.log("🔑 USDC Address: ", usdcAddress.toString());
     console.log("🔑 User USDC Account: ", userUSDCAccount.toString());
     console.log("🔑 Vault USDC Account: ", vaultUSDCAccount.toString());
@@ -893,22 +906,24 @@ export function getDepositRemainingAccounts(PROGRAM_ID: PublicKey, ENV: String, 
     return remainingAccounts;
 }
 
-export function getEnv(PROGRAM_ID: PublicKey): String {
-    if (PROGRAM_ID.toBase58() === constants.DEV_OAPP_PROGRAM_ID.toBase58()) {
-        console.log("Running on DEV");
-        return "DEV";
-    } else if (PROGRAM_ID.toBase58() === constants.QA_OAPP_PROGRAM_ID.toBase58()) {
-        console.log("Running on QA");
-        return "QA";
-    } else if (PROGRAM_ID.toBase58() === constants.STAGING_OAPP_PROGRAM_ID.toBase58()) {
-        console.log("Running on STAGING");
-        return "STAGING";
-    } else if (PROGRAM_ID.toBase58() === constants.MAIN_OAPP_PRORAM_ID.toBase58()) {
-        console.log("Running on MAIN");
-        return "MAIN";
-    } else {
-        throw new Error("Invalid OAPP Program ID");
-    }
+export function getEnv(): String {
+    // if (PROGRAM_ID.toBase58() === constants.DEV_OAPP_PROGRAM_ID.toBase58()) {
+    //     console.log("Running on DEV");
+    //     return "DEV";
+    // } else if (PROGRAM_ID.toBase58() === constants.QA_OAPP_PROGRAM_ID.toBase58()) {
+    //     console.log("Running on QA");
+    //     return "QA";
+    // } else if (PROGRAM_ID.toBase58() === constants.STAGING_OAPP_PROGRAM_ID.toBase58()) {
+    //     console.log("Running on STAGING");
+    //     return "STAGING";
+    // } else if (PROGRAM_ID.toBase58() === constants.MAIN_OAPP_PROGRAM_ID.toBase58()) {
+    //     console.log("Running on MAIN");
+    //     return "MAIN";
+    // } else {
+    //     throw new Error("Invalid OAPP Program ID");
+    // }
+    console.log(`Running on ${constants.ENV}`);
+    return constants.ENV;
 }
 
 export function getPeerAddress(ENV: String): Uint8Array {

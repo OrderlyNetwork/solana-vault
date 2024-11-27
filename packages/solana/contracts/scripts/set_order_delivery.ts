@@ -6,8 +6,8 @@ import * as utils from "./utils";
 import * as constants from "./constants";
 import { util } from "chai";
 const [provider, wallet, rpc] = utils.setAnchor();
-const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(); 
-const ENV = utils.getEnv(OAPP_PROGRAM_ID);
+const ENV = utils.getEnv();
+const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider); 
 const DST_EID = utils.getDstEid(ENV);
 
 async function setOrderDelivery() {

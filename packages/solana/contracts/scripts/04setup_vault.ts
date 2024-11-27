@@ -7,8 +7,9 @@ import * as constants from "./constants";
 import OAppIdl from "../target/idl/solana_vault.json";
 import { SolanaVault } from "../target/types/solana_vault";
 const [provider, wallet, rpc] = utils.setAnchor();
-const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(); 
-const ENV = utils.getEnv(OAPP_PROGRAM_ID);
+const ENV = utils.getEnv();
+const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider); 
+
 const DST_EID = utils.getDstEid(ENV);
 const SOL_CHAIN_ID = utils.getSolChainId(ENV);
 

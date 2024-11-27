@@ -6,12 +6,12 @@ import * as utils from "./utils";
 import * as constants from "./constants";
 
 const [provider, wallet, rpc] = utils.setAnchor();
-const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(); 
-const ENV = utils.getEnv(OAPP_PROGRAM_ID);
+const ENV = utils.getEnv();
+const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider); 
 
 async function setBroker() {
     const multisig = utils.getMultisig(ENV);
-    const useMultisig = true;
+    const useMultisig = false;
     const allowedBrokerList = utils.getBrokerList(ENV);
     console.log("Setting up Brokers...");
 

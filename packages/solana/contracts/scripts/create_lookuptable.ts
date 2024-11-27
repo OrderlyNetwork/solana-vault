@@ -2,8 +2,8 @@ import * as utils from "./utils";
 import * as constants from "./constants";
 import { PublicKey } from "@solana/web3.js";
 const [provider, wallet, rpc] = utils.setAnchor();
-const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram();  
-const ENV = utils.getEnv(OAPP_PROGRAM_ID);
+const ENV = utils.getEnv();
+const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider); 
 
 async function createLookupTable() {
     const lookupTableList = utils.printPda(OAPP_PROGRAM_ID, wallet, rpc, ENV);

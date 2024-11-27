@@ -3,11 +3,14 @@ import { PublicKey } from "@solana/web3.js";
 import * as utils from "./utils";
 import { hexlify } from "ethers";
 import { OftTools } from "@layerzerolabs/lz-solana-sdk-v2";
+import * as constants from "./constants";
+import { Options } from "@layerzerolabs/lz-v2-utilities";
+
 
 const [provider, wallet, rpc] = utils.setAnchor();
-const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram();  
+const ENV = utils.getEnv();
+const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider); 
 
-const ENV = utils.getEnv(OAPP_PROGRAM_ID);
 const DST_EID = utils.getDstEid(ENV);
 
 async function printConfig() {
@@ -25,7 +28,7 @@ async function printConfig() {
     console.log("OApp Config PDA: ",  oappConfigPda.toBase58());
     console.log("   - endpoint: ", new PublicKey(oappConfigPdaData.endpointProgram).toBase58());
     console.log("   - oapp admin: ", new PublicKey(oappConfigPdaData.admin).toBase58());
-    console.log("   - bump: ", oappConfigPdaData.bump);
+    // console.log("   - bump: ", oappConfigPdaData.bump);
 
     const vaultAuthorityPdaData = await OAppProgram.account.vaultAuthority.fetch(vaultAuthorityPda);
 
@@ -36,12 +39,12 @@ async function printConfig() {
     console.log("   - deposit nonce: ", Number(vaultAuthorityPdaData.depositNonce));
     console.log("   - order delivery: ", vaultAuthorityPdaData.orderDelivery);
     console.log("   - inbound nonce: ", Number(vaultAuthorityPdaData.inboundNonce));
-    console.log("   - bump: ", vaultAuthorityPdaData.bump);
+    // console.log("   - bump: ", vaultAuthorityPdaData.bump);
     
     const peerPdaData = await OAppProgram.account.peer.fetch(peerPda);
     console.log("Peer PDA: ", peerPda.toBase58());
     console.log("   - peer address: ", bytes32ToEthAddress(Buffer.from(peerPdaData.address as Uint8Array)));
-    console.log("   - bump: ", peerPdaData.bump);
+    // console.log("   - bump: ", peerPdaData.bump);
 
     const lzReceiveTypesAccountsPdaData = await OAppProgram.account.oAppLzReceiveTypesAccounts.fetch(lzReceiveTypesAccountsPda);
     console.log("LZ Receive Types PDA: ", lzReceiveTypesAccountsPda.toBase58());
@@ -55,7 +58,26 @@ async function printConfig() {
     console.log("   - usdc pda: ", new PublicKey(accountListPdaData.usdcPda).toBase58());
     console.log("   - usdc mint: ", new PublicKey(accountListPdaData.usdcMint).toBase58());
     console.log("   - woofi_pro pda: ", new PublicKey(accountListPdaData.woofiProPda).toBase58());
-    console.log("   - bump: ", accountListPdaData.bump);
+    // console.log("   - bump: ", accountListPdaData.bump);
+
+    const programDataAddress = PublicKey.findProgramAddressSync(
+        [OAPP_PROGRAM_ID.toBuffer()],
+        new PublicKey("BPFLoaderUpgradeab1e11111111111111111111111") // Address of BPF Loader for upgradeable programs
+    )[0];
+
+    // console.log("ProgramData Address:", programDataAddress.toBase58());
+
+    // Step 3: Fetch the ProgramData account info
+    const programDataAccountInfo = await provider.connection.getAccountInfo(programDataAddress);
+    if (!programDataAccountInfo) {
+        console.error("ProgramData account not found!");
+        return;
+    }
+
+    // Step 4: Parse the Authority from the ProgramData account
+    const authorityPubkey = new PublicKey(programDataAccountInfo.data.slice(13, 45)); // Authority starts at offset 4
+    console.log("Upgrade Authority:", authorityPubkey.toBase58());
+
 
     const tokenSymbol = "USDC";
     const tokenHash = utils.getTokenHash(tokenSymbol);
@@ -80,8 +102,11 @@ async function printConfig() {
     console.log("Peer Address: ", peer);
     const peerOptions = await OftTools.getEnforcedOptions(provider.connection, oappConfigPda, DST_EID, OAPP_PROGRAM_ID);
     // console.log("Peer Options: ", peerOptions);
-    console.log(`Enforced options onchain for send: `, Buffer.from(peerOptions.send).toString('hex'))
-    console.log(`Enforced options onchain for sendAndCall: `, Buffer.from(peerOptions.sendAndCall).toString('hex'))
+    console.log(`Option for LzReceive: gas = ${constants.LZ_RECEIVE_GAS}, value = ${constants.LZ_RECEIVE_VALUE}`);
+    console.log(`Encode optoin for LzReceive:   `, Options.newOptions().addExecutorLzReceiveOption(constants.LZ_RECEIVE_GAS, constants.LZ_RECEIVE_VALUE).addExecutorOrderedExecutionOption().toHex())
+    console.log(`Options onchain for LzReceive: `, '0x' + Buffer.from(peerOptions.send).toString('hex'))
+    console.log(`Encode optoin for LzCompose:   `, Options.newOptions().addExecutorLzReceiveOption(constants.LZ_RECEIVE_GAS, constants.LZ_RECEIVE_VALUE).addExecutorComposeOption(0, constants.LZ_COMPOSE_GAS, constants.LZ_COMPOSE_VALUE).toHex())
+    console.log(`Options onchain for LzCompose: `, '0x' + Buffer.from(peerOptions.sendAndCall).toString('hex'))
 
     const endpointConfig = await OftTools.getEndpointConfig(provider.connection, oappConfigPda, DST_EID);
     console.log(`Endpoint config - send lib config: `) // , endpointConfig.sendLibraryConfig

@@ -4,12 +4,11 @@ import { OftTools } from "@layerzerolabs/lz-solana-sdk-v2";
 import * as utils from "./utils";
 import * as constants from "./constants";
 import OAppIdl from "../target/idl/solana_vault.json";
-const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
 
 const [provider, wallet, rpc] = utils.setAnchor();
-const ENV = utils.getEnv(OAPP_PROGRAM_ID);
+const ENV = utils.getEnv();
+const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV); 
 const DST_EID = utils.getDstEid(ENV);
-
 
 const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
 const PEER_ADDRESS = utils.getPeerAddress(ENV);
@@ -38,6 +37,8 @@ async function init() {
         )
     
         console.log("Init Nonce transaction confirmed:", sigInitNonce);
+        // sleep for 5 seconds to allow the nonce to be initialized
+        await new Promise((resolve) => setTimeout(resolve, 5000));
     } catch (e) {
         console.log("Already Init Nonce");
     }
@@ -64,6 +65,8 @@ async function init() {
         )
 
         console.log("Init Config transaction confirmed:", sigInitConfig);
+        // sleep for 5 seconds to allow the config to be initialized
+        await new Promise((resolve) => setTimeout(resolve, 5000));
     } catch (e) {
         console.log("Already Init Config");
     }
