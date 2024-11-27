@@ -41,7 +41,7 @@ export const TOKEN_SEED = "Token";
 export const OWNER_SEED = "Owner";
 export const ACCOUNT_LIST_SEED = "AccountList";
 
-export const ENV: "DEV" | "QA" | "STAGING" | "MAIN" = "QA";
+export const ENV: "DEV" | "QA" | "STAGING" | "MAIN" = "STAGING";
 export const MOCK_OAPP_PROGRAM_ID = new PublicKey("EFLrsQmcfYTSvVrUiP4qruDhbYBtjbQNAhC6tkLJbBtQ");
 export const DEV_OAPP_PROGRAM_ID = new PublicKey("EYJq9eU4GMRUriUJBgGoZ8YLQBXcWaciXuSsEXE7ieQS");
 export const QA_OAPP_PROGRAM_ID = new PublicKey("5zBjLor7vEraAt4zp2H82sy9MSqFoDnNa1Lx6EYKTYRZ");
@@ -51,7 +51,7 @@ export const MAIN_OAPP_PROGRAM_ID = STAGING_OAPP_PROGRAM_ID;   // placeholder
 export const DEV_MULTISIG = new PublicKey("AbQgW1N8JAZxQFdh3VTx3ukGdGCN1vQYADktp3d2HDYw");
 export const QA_MULTISIG = new PublicKey("2WG7UG81NsutAzKDpJp6ZepEisMKrXS9XvMVPhsfqtuB");
 export const STAGING_MULTISIG = new PublicKey("48usEusxMDBxpjLkyrarHupqodAfxXyoaLDVNDJFvkME");
-export const MAIN_MULTISIG = STAGING_MULTISIG;  // placeholder
+export const MAIN_MULTISIG = new PublicKey("6aQHPsgaSxCGwf1uAVetEmzuz9bpv9Rn4bq9jTg91RH8");
 
 export const DEV_LOOKUP_TABLE_ADDRESS = new PublicKey("BWp8HaYYhiNHekt3zgQhqoCrRftneGxxfgKmCZ6svHN");
 export const QA_LOOKUP_TABLE_ADDRESS = new PublicKey("BswrQQoPKAFojTuJutZcBMtigAgTghEH4M8ofn3EG2X2");

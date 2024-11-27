@@ -13,10 +13,10 @@ const DST_EID = utils.getDstEid(ENV);
 const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
 
 // console.log("OApp Config PDA:", oappConfigPda.toBase58());
-
+// STAGING OPTION SET
 async function setup() {
     const multisig = utils.getMultisig(ENV);
-    const useMultisig = true;
+    const useMultisig = false;
     console.log("Setting up OApp...");
     const ixSetOption = await OftTools.createSetEnforcedOptionsIx(
         useMultisig? multisig : wallet.publicKey,

@@ -7,7 +7,7 @@ import OAppIdl from "../target/idl/solana_vault.json";
 
 const [provider, wallet, rpc] = utils.setAnchor();
 const ENV = utils.getEnv();
-const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV); 
+const OAPP_PROGRAM_ID = utils.getProgramID(ENV); 
 const DST_EID = utils.getDstEid(ENV);
 
 const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);

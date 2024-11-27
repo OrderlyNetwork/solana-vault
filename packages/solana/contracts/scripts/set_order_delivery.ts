@@ -25,7 +25,7 @@ async function setOrderDelivery() {
     console.log("   - order delivery: ", vaultAuthorityPdaData.orderDelivery);
     console.log("   - inbound nonce: ", Number(vaultAuthorityPdaData.inboundNonce));
     const setOrderDeliveryParams = {
-        orderDelivery: false,
+        orderDelivery: true,
         nonce: vaultAuthorityPdaData.inboundNonce, // need to fetch from lz-endpoint
     }
     console.log("Set Order Delivery Params:", setOrderDeliveryParams);
