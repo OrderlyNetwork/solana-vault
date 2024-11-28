@@ -10,7 +10,7 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider);
 
 async function setAccountList() {
     const multisig = utils.getMultisig(ENV);
-    const useMultisig = true;
+    const useMultisig = false;
     const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
     const lzReceiveTypesAccountsPda = utils.getLzReceiveTypesPda(OAPP_PROGRAM_ID, oappConfigPda);
     const accountListPda = utils.getAccountListPda(OAPP_PROGRAM_ID, oappConfigPda);

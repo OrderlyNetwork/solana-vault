@@ -503,7 +503,7 @@ export function getSolAccountId(userAccount: PublicKey, brokerId: string): strin
 
 export function getUSDCAddress(rpc: string): PublicKey {
     
-    if (rpc === constants.MAIN_RPC) {
+    if (rpc === constants.MAIN_RPC || rpc === "https://mainnet.helius-rpc.com/?api-key=c15678c4-98bb-4abf-ad96-787c684b124e") {
         return constants.MAIN_USDC_ACCOUNT;
     }
     return constants.DEV_USDC_ACCOUNT;
@@ -991,5 +991,12 @@ export function getMultisig(ENV: String) {
         return constants.STAGING_MULTISIG;
     } else if (ENV === "MAIN") {
         return constants.MAIN_MULTISIG;
+    }
+}
+
+export async function delay(ENV: String) {
+    if (ENV === "MAIN") {
+        // sleep for 5 seconds to wait for the lookup table to be updated
+        await new Promise(resolve => setTimeout(resolve, 5000));
     }
 }

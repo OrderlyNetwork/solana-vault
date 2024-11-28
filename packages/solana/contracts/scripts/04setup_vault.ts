@@ -15,7 +15,7 @@ const SOL_CHAIN_ID = utils.getSolChainId(ENV);
 
 async function setup() {
     const multisig = utils.getMultisig(ENV);
-    const useMultisig = true;
+    const useMultisig = false;
     console.log("Setting up Vault...");
     const usdc = await utils.getUSDCAddress(rpc);
     const userUSDCAccount = await utils.getUSDCAccount(usdc, wallet.publicKey);

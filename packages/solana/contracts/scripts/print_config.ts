@@ -87,6 +87,8 @@ async function printConfig() {
     const tokenHash = utils.getTokenHash(tokenSymbol);
     const allowedTokenPda = utils.getTokenPda(OAPP_PROGRAM_ID, tokenHash);
     const allowedTokenPdaData = await OAppProgram.account.allowedToken.fetch(allowedTokenPda);
+    // sleep 5 senconds
+    await utils.delay(ENV)
     console.log("Allowed Token PDA:   ", allowedTokenPda.toBase58());
     console.log("   - token hash:     ", hexlify(Buffer.from(allowedTokenPdaData.tokenHash as Uint8Array)));
     console.log("   - token mint:     ", new PublicKey(allowedTokenPdaData.mintAccount).toBase58());
@@ -96,6 +98,8 @@ async function printConfig() {
     const brokerHash = utils.getBrokerHash(brokerId);
     const allowedBrokerPda = utils.getBrokerPda(OAPP_PROGRAM_ID, brokerHash);
     const allowedBrokerPdaData = await OAppProgram.account.allowedBroker.fetch(allowedBrokerPda);
+    // sleep 5 senconds
+    await utils.delay(ENV)
     console.log("Allowed Broker PDA:  ", allowedBrokerPda.toBase58());
     console.log("   - broker hash:    ", hexlify(Buffer.from(allowedBrokerPdaData.brokerHash as Uint8Array)));
     console.log("   - allowed status: ", allowedBrokerPdaData.allowed);
@@ -104,7 +108,11 @@ async function printConfig() {
 
     const peer = await OftTools.getPeerAddress(provider.connection, oappConfigPda, DST_EID, OAPP_PROGRAM_ID);
     console.log("Peer Address: ", peer);
+    // sleep 5 senconds
+    await utils.delay(ENV)
     const peerOptions = await OftTools.getEnforcedOptions(provider.connection, oappConfigPda, DST_EID, OAPP_PROGRAM_ID);
+    // sleep 5 senconds
+    await utils.delay(ENV)
     // console.log("Peer Options: ", peerOptions);
     console.log(`Option for LzReceive: gas = ${constants.LZ_RECEIVE_GAS}, value = ${constants.LZ_RECEIVE_VALUE}`);
     console.log(`Encode optoin for LzReceive:   `, Options.newOptions().addExecutorLzReceiveOption(constants.LZ_RECEIVE_GAS, constants.LZ_RECEIVE_VALUE).addExecutorOrderedExecutionOption().toHex())
@@ -113,6 +121,8 @@ async function printConfig() {
     console.log(`Options onchain for LzCompose: `, '0x' + Buffer.from(peerOptions.sendAndCall).toString('hex'))
 
     const endpointConfig = await OftTools.getEndpointConfig(provider.connection, oappConfigPda, DST_EID);
+    // sleep 5 senconds
+    await utils.delay(ENV)
     console.log(`Endpoint config - send lib config: `) // , endpointConfig.sendLibraryConfig
     console.log(`    - messageLib: `, endpointConfig.sendLibraryConfig.messageLib.toString())
     console.log(`    - uln sendConfig: `);

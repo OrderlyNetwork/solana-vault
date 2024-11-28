@@ -14,7 +14,7 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider);
 
 async function setBroker() {
     const multisig = utils.getMultisig(ENV);
-    const useMultisig = true;
+    const useMultisig = false;
     const tokenSymble = "USDC";
     const tokenHash = utils.getTokenHash(tokenSymble);
     console.log("Token Hash:", tokenHash);
@@ -32,14 +32,14 @@ async function setBroker() {
         tokenHash: codedTokenHash,
         allowed: allowed,
     };
-    console.log("Set Token Params:", setTokenParams);
+    // console.log("Set Token Params:", setTokenParams);
     const setTokenAccounts = {
         admin: useMultisig ? multisig : wallet.publicKey,
         allowedToken: tokenPda,
         oappConfig: oappConfigPda,
         mintAccount: mintAccount,
     }
-    console.log("Set Token Accounts:", setTokenAccounts);
+    // console.log("Set Token Accounts:", setTokenAccounts);
     const ixSetToken = await OAppProgram.methods.setToken(setTokenParams).accounts(setTokenAccounts).instruction();
 
     
@@ -50,6 +50,7 @@ async function setBroker() {
         const txBase58 = await utils.getBase58Tx(provider, wallet.publicKey, txSetToken);
         console.log("txBase58 for set token:\n", txBase58);
      } else {
+        console.log(`Setting up Token ${tokenSymble} ...`);
         const sigSetToken = await sendAndConfirmTransaction(
             provider.connection,
             txSetToken,

@@ -17,7 +17,7 @@ export const PEER_ADDRESS = addressToBytes32('0x5Bf771A65d057e778C5f0Ed52A000331
 export const DEV_PEER_ADDRESS = addressToBytes32("0x9Dc724b24146BeDD2dA28b8C4B74126169B8f312");
 export const QA_PEER_ADDRESS = addressToBytes32("0x45b6C6266A7A2170617d8A27A50C642fd68b91c4");
 export const STAGING_PEER_ADDRESS = addressToBytes32("0x5Bf771A65d057e778C5f0Ed52A0003316f94322D");
-export const MAIN_PEER_ADDRESS = STAGING_PEER_ADDRESS;
+export const MAIN_PEER_ADDRESS = addressToBytes32("0xCecAe061aa078e13b5e70D5F9eCee90a3F2B6AeA");
 
 export const DST_EID = 40200;
 export const TEST_DST_EID = 40200;  // eid of orderly testnet, defined by layerzero: https://docs.layerzero.network/v2/developers/evm/technical-reference/deployed-contracts
@@ -41,12 +41,12 @@ export const TOKEN_SEED = "Token";
 export const OWNER_SEED = "Owner";
 export const ACCOUNT_LIST_SEED = "AccountList";
 
-export const ENV: "DEV" | "QA" | "STAGING" | "MAIN" = "STAGING";
+export const ENV: "DEV" | "QA" | "STAGING" | "MAIN" = "MAIN";
 export const MOCK_OAPP_PROGRAM_ID = new PublicKey("EFLrsQmcfYTSvVrUiP4qruDhbYBtjbQNAhC6tkLJbBtQ");
 export const DEV_OAPP_PROGRAM_ID = new PublicKey("EYJq9eU4GMRUriUJBgGoZ8YLQBXcWaciXuSsEXE7ieQS");
 export const QA_OAPP_PROGRAM_ID = new PublicKey("5zBjLor7vEraAt4zp2H82sy9MSqFoDnNa1Lx6EYKTYRZ");
 export const STAGING_OAPP_PROGRAM_ID = new PublicKey("9shwxWDUNhtwkHocsUAmrNAQfBH2DHh4njdAEdHZZkF2");
-export const MAIN_OAPP_PROGRAM_ID = STAGING_OAPP_PROGRAM_ID;   // placeholder
+export const MAIN_OAPP_PROGRAM_ID = new PublicKey("ErBmAD61mGFKvrFNaTJuxoPwqrS8GgtwtqJTJVjFWx9Q");   
 
 export const DEV_MULTISIG = new PublicKey("AbQgW1N8JAZxQFdh3VTx3ukGdGCN1vQYADktp3d2HDYw");
 export const QA_MULTISIG = new PublicKey("2WG7UG81NsutAzKDpJp6ZepEisMKrXS9XvMVPhsfqtuB");
@@ -121,6 +121,6 @@ export const STAGING_BROKERS = [
     "bun_dex",
     "linear_finance"
     ];
-export const MAIN_BROKERS = STAGING_BROKERS;  // placeholder
+export const MAIN_BROKERS = ["woofi_pro"];  // placeholder
 
 
