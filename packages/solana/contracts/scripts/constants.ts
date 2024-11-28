@@ -56,7 +56,7 @@ export const MAIN_MULTISIG = new PublicKey("6aQHPsgaSxCGwf1uAVetEmzuz9bpv9Rn4bq9
 export const DEV_LOOKUP_TABLE_ADDRESS = new PublicKey("BWp8HaYYhiNHekt3zgQhqoCrRftneGxxfgKmCZ6svHN");
 export const QA_LOOKUP_TABLE_ADDRESS = new PublicKey("BswrQQoPKAFojTuJutZcBMtigAgTghEH4M8ofn3EG2X2");
 export const STAGING_LOOKUP_TABLE_ADDRESS = new PublicKey("BbGKfxuPwDmu58BjPpd7PMG69TqnZjSpKaLDMgf9E9Dr");
-export const MAIN_LOOKUP_TABLE_ADDRESS = STAGING_LOOKUP_TABLE_ADDRESS;  // placeholder
+export const MAIN_LOOKUP_TABLE_ADDRESS = new PublicKey("8iq7xCQt3bLdRRn4A46d5GuaXYinBoiAhbe2sUmZVzwg");  // placeholder
 
 export const DEV_BROKERS = ["woofi_pro", "vooi"];
 export const QA_BROKERS = ["woofi_pro", "vooi"];

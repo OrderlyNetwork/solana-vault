@@ -7,7 +7,7 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider);
 
 async function createLookupTable() {
     const lookupTableList = utils.printPda(OAPP_PROGRAM_ID, wallet, rpc, ENV);
-    // console.log("Lookup Table List:", lookupTableList);
+    console.log("Lookup Table List:", lookupTableList);
     
     const lookupTableAddress = await utils.getLookupTableAddress(ENV);
     console.log("Lookup Table Address:", lookupTableAddress.toBase58());
