@@ -9,7 +9,7 @@ pub struct SetPeer<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
     #[account(
-        init,
+        init_if_needed,
         payer = admin,
         space = 8 + Peer::INIT_SPACE,
         seeds = [PEER_SEED, &oapp_config.key().to_bytes(), &params.dst_eid.to_be_bytes()],
