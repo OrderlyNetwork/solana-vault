@@ -1,18 +1,17 @@
 import * as anchor from "@coral-xyz/anchor";
 import { PublicKey, sendAndConfirmTransaction, SystemProgram, Transaction } from "@solana/web3.js";
 import { OftTools } from "@layerzerolabs/lz-solana-sdk-v2";
-import { Options } from "@layerzerolabs/lz-v2-utilities";
-import { setAnchor, getLzReceiveTypesPda, getOAppConfigPda, getPeerPda, getEventAuthorityPda, getOAppRegistryPda, getSendLibConfigPda } from "./utils";
-import { DST_EID, ENDPOINT_PROGRAM_ID, PEER_ADDRESS, LZ_RECEIVE_GAS, LZ_COMPOSE_GAS, LZ_COMPOSE_VALUE, LZ_RECEIVE_VALUE, SEND_LIB_PROGRAM_ID } from "./constants";
-
+import * as utils from "./utils";
+import * as constants from "./constants";
 import OAppIdl from "../target/idl/solana_vault.json";
-import { SolanaVault } from "../target/types/solana_vault";
-const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
-const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
 
-const [provider, wallet, rpc] = setAnchor();
+const [provider, wallet, rpc] = utils.setAnchor();
+const ENV = utils.getEnv();
+const OAPP_PROGRAM_ID = utils.getProgramID(ENV); 
+const DST_EID = utils.getDstEid(ENV);
 
-const oappConfigPda = getOAppConfigPda(OAPP_PROGRAM_ID);
+const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
+const PEER_ADDRESS = utils.getPeerAddress(ENV);
 
 
 async function init() {
@@ -21,7 +20,7 @@ async function init() {
         DST_EID,
         oappConfigPda,
         PEER_ADDRESS,
-        ENDPOINT_PROGRAM_ID
+        constants.ENDPOINT_PROGRAM_ID
     );
 
     const txInitNonce = new Transaction().add(ixInitNonce);
@@ -38,6 +37,8 @@ async function init() {
         )
     
         console.log("Init Nonce transaction confirmed:", sigInitNonce);
+        // sleep for 5 seconds to allow the nonce to be initialized
+        await new Promise((resolve) => setTimeout(resolve, 5000));
     } catch (e) {
         console.log("Already Init Nonce");
     }
@@ -46,8 +47,8 @@ async function init() {
         wallet.publicKey,
         oappConfigPda,
         DST_EID,
-        SEND_LIB_PROGRAM_ID,
-        ENDPOINT_PROGRAM_ID
+        constants.SEND_LIB_PROGRAM_ID,
+        constants.ENDPOINT_PROGRAM_ID
     );
 
     const txInitConfig = new Transaction().add(IxInitConfig);
@@ -64,6 +65,8 @@ async function init() {
         )
 
         console.log("Init Config transaction confirmed:", sigInitConfig);
+        // sleep for 5 seconds to allow the config to be initialized
+        await new Promise((resolve) => setTimeout(resolve, 5000));
     } catch (e) {
         console.log("Already Init Config");
     }
