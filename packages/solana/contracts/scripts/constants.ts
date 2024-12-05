@@ -41,7 +41,7 @@ export const TOKEN_SEED = "Token";
 export const OWNER_SEED = "Owner";
 export const ACCOUNT_LIST_SEED = "AccountList";
 
-export const ENV: "DEV" | "QA" | "STAGING" | "MAIN" = "MAIN";
+export const ENV: "DEV" | "QA" | "STAGING" | "MAIN" = "DEV";
 export const MOCK_OAPP_PROGRAM_ID = new PublicKey("EFLrsQmcfYTSvVrUiP4qruDhbYBtjbQNAhC6tkLJbBtQ");
 export const DEV_OAPP_PROGRAM_ID = new PublicKey("EYJq9eU4GMRUriUJBgGoZ8YLQBXcWaciXuSsEXE7ieQS");
 export const QA_OAPP_PROGRAM_ID = new PublicKey("5zBjLor7vEraAt4zp2H82sy9MSqFoDnNa1Lx6EYKTYRZ");
@@ -58,7 +58,7 @@ export const QA_LOOKUP_TABLE_ADDRESS = new PublicKey("BswrQQoPKAFojTuJutZcBMtigA
 export const STAGING_LOOKUP_TABLE_ADDRESS = new PublicKey("BbGKfxuPwDmu58BjPpd7PMG69TqnZjSpKaLDMgf9E9Dr");
 export const MAIN_LOOKUP_TABLE_ADDRESS = new PublicKey("8iq7xCQt3bLdRRn4A46d5GuaXYinBoiAhbe2sUmZVzwg");  // placeholder
 
-export const DEV_BROKERS = ["woofi_pro", "vooi"];
+export const DEV_BROKERS = ["woofi_pro", "vooi", "orderly", "root"];
 export const QA_BROKERS = ["woofi_pro", "vooi"];
 export const STAGING_BROKERS = [
     "root",
@@ -125,22 +125,27 @@ export const MAIN_BROKERS = [
     "root",
     "orderly",
     "woofi_pro",
+
     "busywhale",
     "0xfin",
     "emdx_dex",
     "logx",
+
     "prime_protocol",
     "bitoro_network",
     "coolwallet",
     "quick_perps",
+
     "empyreal",
     "galar_fin",
     "what_exchange",
     "unibot",
+
     "ascendex",
     "sharpe_ai",
     "panda_terminal",
     "vooi",
+
     "fusionx_pro",
     "elixir",
     "xade_finance",
@@ -149,6 +154,7 @@ export const MAIN_BROKERS = [
     "dfyn",
     "ask_jimmy",
     "alphanaut",
+
     "rage_trade",
     "flash_x",
     "pinde",
@@ -157,6 +163,7 @@ export const MAIN_BROKERS = [
     "crust_finance",
     "btse_dex",
     "orderoo",
+
     "boodex_com",
     "tcmp",
     "tealstreet",
@@ -165,6 +172,7 @@ export const MAIN_BROKERS = [
     "veeno_dex",
     "dvx",
     "zotto", 
+
     "book_x",
     "atlas",
     "primex",
@@ -173,6 +181,7 @@ export const MAIN_BROKERS = [
     "blazpay",
     "if_exchange",
     "one_bow",
+
     "filament",
     "bun_dex",
     "raydium",
