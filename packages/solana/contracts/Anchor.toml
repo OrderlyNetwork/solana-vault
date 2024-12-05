@@ -17,8 +17,9 @@ uln = "H29REYdFVCCsvPADZH2Cc6wt17ee1jctUqRHcDYicCaW"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "mainnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
+# https://svc.blockdaemon.com/solana/mainnet/native?apiKey=zpka_417399a60de542759adf31a42a30e60e_61763d0a
 
 [scripts]
 deposit_vault = "yarn run ts-node scripts/05deposit_vault.ts"
@@ -35,6 +36,7 @@ set_token = "yarn run ts-node scripts/set_token.ts"
 setconfig_oapp = "yarn run ts-node scripts/03setconfig_oapp.ts"
 setup_oapp = "yarn run ts-node scripts/01setup_oapp.ts"
 setup_vault = "yarn run ts-node scripts/04setup_vault.ts"
+create_lut = "yarn run ts-node scripts/create_lookuptable.ts"
 set_option = "yarn run ts-node scripts/set_option.ts"
 test = "yarn run ts-mocha -b -p ./tsconfig.json -t 1000000 tests/**/*.test.ts"
 transfer_admin = "yarn run ts-node scripts/transfer_admin.ts"
