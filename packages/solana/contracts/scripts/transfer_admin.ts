@@ -14,12 +14,12 @@ async function transferAdmin() {
     const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
     const DST_EID = utils.getDstEid(ENV);
     const SOL_CHAIN_ID = utils.getSolChainId(ENV);
-
+    console.log("Multisig:", multisig.toBase58());
     const vaultAuthorityPda = utils.getVaultAuthorityPda(OAPP_PROGRAM_ID);
 
     let vaultAuthorityPdaData, setVaultParams;
     vaultAuthorityPdaData = await OAppProgram.account.vaultAuthority.fetch(vaultAuthorityPda);
-
+    await utils.delay(ENV);
     // console.log("Vault Authority PDA: ", vaultAuthorityPda.toBase58());
     // console.log("   - vault owner: ", new PublicKey(vaultAuthorityPdaData.owner).toBase58());
     // console.log("   - sol chain id: ", Number(vaultAuthorityPdaData.solChainId));
@@ -36,16 +36,18 @@ async function transferAdmin() {
         dstEid: DST_EID,
         solChainId: new anchor.BN(SOL_CHAIN_ID)
     }
+    console.log("Set Vault Params:", setVaultParams);
     const setVaultAccounts = {
         admin: wallet.publicKey,
         vaultAuthority: vaultAuthorityPda,
         oappConfig: utils.getOAppConfigPda(OAPP_PROGRAM_ID),
     }
-    // console.log("Set Vault Accounts:", setVaultAccounts);
+    console.log("Set Vault Accounts:", setVaultAccounts);
     const ixSetVault = await OAppProgram.methods.setVault(setVaultParams).accounts(setVaultAccounts).instruction();
+    await utils.delay(ENV);
     console.log("Transfer Vault Owner:");
-    const sigSetVault = await utils.createAndSendV0Tx([ixSetVault], provider, wallet);
-
+    // const sigSetVault = await utils.createAndSendV0Tx([ixSetVault], provider, wallet);
+    // await utils.delay(ENV);
     console.log("Set delegate and transfer admin...");
     const ixSetDelegate = await OftTools.createSetDelegateIx(
         wallet.publicKey,
@@ -62,8 +64,9 @@ async function transferAdmin() {
         admin: wallet.publicKey,
         oappConfig: oappConfigPda,
     }).instruction();
+    await utils.delay(ENV);
     const txSetDelegateAndAdmin = new Transaction().add(ixSetDelegate).add(ixTransferAdmin);
- 
+    
     const sigTransferAdmin = await sendAndConfirmTransaction(
         provider.connection,
         txSetDelegateAndAdmin,
