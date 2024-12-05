@@ -96,7 +96,7 @@ async function quoteLayerZeroFee() {
     // const receiverAddress = new PublicKey("9aFZUMoeVRvUnaE34RsHxpcJXvFMPPSWrG3QDNm6Sskf");
 
     const receiverAddress = senderAddress;
-    const usdc = utils.getUSDCAddress(rpc);
+    const usdc = utils.getUSDCAddress(ENV);
     const userUSDCAccount = utils.getUSDCAccount(usdc, senderAddress);
 
     const vaultAuthorityPda = utils.getVaultAuthorityPda(OAPP_PROGRAM_ID);
@@ -146,6 +146,7 @@ async function quoteLayerZeroFee() {
         console.log("LayerZero cross-chain fee quote:");
         console.log("Native fee:", nativeFee.toString());
         console.log("LZ token fee:", lzTokenFee.toString());
+        await utils.delay(ENV);
     } catch (error) {
         console.error("Error quoting LayerZero fee:", error);
     }

@@ -352,6 +352,7 @@ export async function createAndSendV0TxWithTable(txInstructions: TransactionInst
     // }
     const lookupTableAddress = getLookupTableAddress(ENV);
     const lookupTableAccount = await getLookupTableAccount(provider, lookupTableAddress);
+    await delay(ENV);
     const msg = new TransactionMessage({
         payerKey: wallet.payer.publicKey,
         recentBlockhash: (await provider.connection.getLatestBlockhash()).blockhash,
@@ -418,7 +419,7 @@ export async function getLookupTableAccount(provider: anchor.AnchorProvider, loo
 export function getRelatedUSDCAcount(wallet: anchor.Wallet, rpc: string, ENV: String): PublicKey[] {
     const VAULT_PROGRAM_ID =  getProgramID(ENV); // getDeployedProgram(ENV, provider);
     const vaultAuthorityPda = getVaultAuthorityPda(VAULT_PROGRAM_ID);
-    const usdcAddress = getUSDCAddress(rpc);
+    const usdcAddress = getUSDCAddress(ENV);
     const userUSDCAccount = getUSDCAccount(usdcAddress, wallet.publicKey);
     const vaultUSDCAccount = getUSDCAccount(usdcAddress, vaultAuthorityPda);
     return [usdcAddress, userUSDCAccount, vaultUSDCAccount];
@@ -426,7 +427,7 @@ export function getRelatedUSDCAcount(wallet: anchor.Wallet, rpc: string, ENV: St
 
 export async function createRelatedUSDCAcount(provider: anchor.AnchorProvider, wallet: anchor.Wallet, rpc: string, ENV: String): Promise<PublicKey[]> {
     const VAULT_PROGRAM_ID =  getProgramID(ENV);
-    const usdcAddress = getUSDCAddress(rpc);
+    const usdcAddress = getUSDCAddress(ENV);
     const vaultAuthorityPda = getVaultAuthorityPda(VAULT_PROGRAM_ID);
     const userUSDCAccount = await createUSDCAccount(provider, wallet, usdcAddress, wallet.publicKey);
     const vaultUSDCAccount = await createUSDCAccount(provider, wallet, usdcAddress, vaultAuthorityPda);
@@ -501,9 +502,9 @@ export function getSolAccountId(userAccount: PublicKey, brokerId: string): strin
 // base58 => bytes => hex => bytes32
 // const decodedUserAccount = hexToBytes((Buffer.from(userAccount.toBytes()).toString('hex')));
 
-export function getUSDCAddress(rpc: string): PublicKey {
+export function getUSDCAddress(ENV: String): PublicKey {
     
-    if (rpc === constants.MAIN_RPC || rpc === "https://mainnet.helius-rpc.com/?api-key=c15678c4-98bb-4abf-ad96-787c684b124e") {
+    if (ENV === "MAIN") {
         return constants.MAIN_USDC_ACCOUNT;
     }
     return constants.DEV_USDC_ACCOUNT;

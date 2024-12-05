@@ -14,12 +14,12 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider);
 
 async function setBroker() {
     const multisig = utils.getMultisig(ENV);
-    const useMultisig = false;
+    const useMultisig = true;
     const tokenSymble = "USDC";
     const tokenHash = utils.getTokenHash(tokenSymble);
     console.log("Token Hash:", tokenHash);
     const codedTokenHash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'));
-    const mintAccount = utils.getUSDCAddress(rpc);
+    const mintAccount = utils.getUSDCAddress(ENV);
     console.log("USDC mintAccount", mintAccount.toBase58());
     const tokenPda = utils.getTokenPda(OAPP_PROGRAM_ID, tokenHash);
     console.log("tokenPda", tokenPda.toBase58());
@@ -42,7 +42,7 @@ async function setBroker() {
     // console.log("Set Token Accounts:", setTokenAccounts);
     const ixSetToken = await OAppProgram.methods.setToken(setTokenParams).accounts(setTokenAccounts).instruction();
 
-    
+    await utils.delay(ENV);
 
     const txSetToken = new Transaction().add(ixSetToken);
 

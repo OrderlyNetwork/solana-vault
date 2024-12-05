@@ -17,7 +17,7 @@ async function setup() {
     const multisig = utils.getMultisig(ENV);
     const useMultisig = false;
     console.log("Setting up Vault...");
-    const usdc = await utils.getUSDCAddress(rpc);
+    const usdc = await utils.getUSDCAddress(ENV);
     const userUSDCAccount = await utils.getUSDCAccount(usdc, wallet.publicKey);
     console.log("User USDCAccount", userUSDCAccount.toBase58());
     const vaultAuthorityPda = utils.getVaultAuthorityPda(OAPP_PROGRAM_ID);
