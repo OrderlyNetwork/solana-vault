@@ -28,4 +28,5 @@ pub enum OAppError {
     RateLimitExceeded,
     WithdrawFailed,
     InvalidInboundNonce,
+    InvalidATA,
 }
