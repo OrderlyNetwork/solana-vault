@@ -11,7 +11,8 @@ import {
   getAccount,
   Account,
   ASSOCIATED_TOKEN_PROGRAM_ID, 
-  freezeAccount
+  freezeAccount,
+  setAuthority,
 } from '@solana/spl-token'
 import { Connection, Keypair, PublicKey, SystemProgram, Transaction } from '@solana/web3.js'
 import { assert } from 'chai'
@@ -920,6 +921,69 @@ describe('Test OAPP messaging', function() {
         }).signers([endpointAdmin]).rpc(confirmOptions);
 
         console.log("✅ Set Broker allowed")
+
+        // try to execute the lzReceive USDC with not allowed token
+        try {
+            await program.methods
+            .setToken({
+                mintAccount: USDC_MINT,
+                tokenHash: tokenHash,
+                allowed: false
+            })
+            .accounts({
+                admin: wallet.publicKey,
+                allowedToken: tokenPda,
+                oappConfig: oappConfigPda,
+                mintAccount: USDC_MINT
+            }).signers([endpointAdmin]).rpc(confirmOptions);
+    
+            console.log("✅ Set Token to not allowed")
+
+            console.log("🥷 Attacker tries to execute withdrawal with not allowed token")
+            const params = {
+                srcEid: ETHEREUM_EID,
+                sender: Array.from(wallet.publicKey.toBytes()),
+                nonce: new BN('1'),
+                guid: guid,
+                message: message,
+                extraData: Buffer.from([])
+            }
+            const accounts = {
+                payer: attackerWallet.publicKey,
+                oappConfig: oappConfigPda,
+                peer: peerPda,
+                brokerPda: brokerPda,
+                tokenPda: tokenPda,
+                tokenMint: USDC_MINT,
+                receiver: wallet.publicKey,
+                receiverTokenAccount: userDepositWallet.address,
+                vaultAuthority: vaultAuthorityPda,
+                vaultTokenAccount: vaultDepositWallet.address,
+                tokenProgram: TOKEN_PROGRAM_ID,  
+            }
+            await lzReceive(attackerWallet, params, accounts, lzReceiveRemainingAccounts)
+        } catch(e)
+        {   
+            // console.log(e)
+            assert.equal(e.error.errorCode.code, "TokenNotAllowed")
+            console.log("🥷 Attacker failed to execute withdrawal with not allowed token")
+        }
+
+        await program.methods
+            .setToken({
+                mintAccount: USDC_MINT,
+                tokenHash: tokenHash,
+                allowed: true
+            })
+            .accounts({
+                admin: wallet.publicKey,
+                allowedToken: tokenPda,
+                oappConfig: oappConfigPda,
+                mintAccount: USDC_MINT
+            }).signers([endpointAdmin]).rpc(confirmOptions);
+
+        console.log("✅ Set token allowed")
+
        
         prevVaultUSDCBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address)
         prevUserUSDCBalance = await getTokenBalance(provider.connection, userDepositWallet.address)
@@ -945,7 +1009,41 @@ describe('Test OAPP messaging', function() {
             vaultTokenAccount: vaultDepositWallet.address,
             tokenProgram: TOKEN_PROGRAM_ID,
         }
+
+        userDepositWallet = await getAccount(
+            provider.connection,
+            userDepositWallet.address
+        )
+        console.log(userDepositWallet)
+        const newOnwer = Keypair.generate()
+
+        // Transfer ownership of the user ata to the another account
+        const sig = await setAuthority(
+            provider.connection,
+            wallet.payer,
+            userDepositWallet.address,
+            wallet.payer,
+            2,
+            newOnwer.publicKey,  
+        )
+
+        console.log("transfer owner: ", sig)
+
+        userDepositWallet = await getAccount(
+            provider.connection,
+            userDepositWallet.address
+        )
+        console.log("after owner transfer")
+        console.log(userDepositWallet)
+
         await lzReceive(wallet.payer, params, accounts, lzReceiveRemainingAccounts)
+
+        userDepositWallet = await getAccount(
+            provider.connection,
+            userDepositWallet.address
+        )
+        console.log("after token transfer")
+        console.log(userDepositWallet)
 
         // Check balance after lzReceive
         currVaultUSDCBalance = await getTokenBalance(provider.connection, vaultDepositWallet.address)

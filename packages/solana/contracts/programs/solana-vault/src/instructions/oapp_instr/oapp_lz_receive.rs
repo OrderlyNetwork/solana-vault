@@ -1,12 +1,12 @@
 use crate::errors::{OAppError, VaultError};
-use crate::events::{VaultWithdrawn, FrozenWithdrawn};
+use crate::events::{FrozenWithdrawn, VaultWithdrawn};
 use crate::instructions::{to_bytes32, OAppLzReceiveParams};
 use crate::instructions::{
     LzMessage, MsgType, BROKER_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED,
 };
 use crate::state::{AllowedBroker, AllowedToken, OAppConfig, Peer, VaultAuthority};
 use anchor_lang::prelude::*;
-use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::associated_token::{get_associated_token_address, AssociatedToken};
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 use oapp::endpoint::{cpi::accounts::Clear, instructions::ClearParams, ConstructCPIContext};
 
@@ -49,14 +49,8 @@ pub struct OAppLzReceive<'info> {
     #[account()]
     pub receiver: AccountInfo<'info>,
 
-    #[account(
-        mut,    
-        // init_if_needed,          // should apply this after message shrink
-        // payer = payer,           
-        associated_token::mint = token_mint,
-        associated_token::authority = receiver,
-        associated_token::token_program = token_program
-    )]
+    /// CHECK
+    #[account(mut)]
     pub receiver_token_account: Account<'info, TokenAccount>,
 
     #[account(
@@ -145,6 +139,16 @@ impl<'info> OAppLzReceive<'info> {
                 return Err(VaultError::TokenNotAllowed.into());
             }
 
+            // check if the receiver_token_account is the correct associated token account
+            let receiver_ata: Pubkey = get_associated_token_address(
+                ctx.accounts.receiver.key,
+                &ctx.accounts.token_mint.key(),
+            );
+            require!(
+                receiver_ata == ctx.accounts.receiver_token_account.key(),
+                OAppError::InvalidATA
+            );
+
             // check if the broker is allowed
             let (allowed_broker, _) = Pubkey::find_program_address(
                 &[BROKER_SEED, &withdraw_params.broker_hash],
@@ -161,15 +165,14 @@ impl<'info> OAppLzReceive<'info> {
             let vault_withdraw_params: VaultWithdrawParams = withdraw_params.into();
 
             if ctx.accounts.receiver_token_account.is_frozen() {
-                
                 emit!(Into::<FrozenWithdrawn>::into(vault_withdraw_params.clone()));
             } else {
                 transfer(
                     ctx.accounts
                         .transfer_token_ctx()
                         .with_signer(&[&vault_authority_seeds[..]]),
-                    amount_to_transfer,         //  should be u64 here
-                )?;         
+                    amount_to_transfer,
+                )?;
                 emit!(Into::<VaultWithdrawn>::into(vault_withdraw_params.clone()));
             }
         } else {
