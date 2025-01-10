@@ -49,7 +49,10 @@ async function setBroker() {
 
         // const txSetBroker = new Transaction().add(ixSetBroker);
         txSetBroker.add(ixSetBroker);   
-        console.log(`Accounts to add broker ${brokerId}: `, setBrokerAccounts);  
+        console.log(`Accounts to add broker ${brokerId}: `); 
+        console.log(`   Admin: `, setBrokerAccounts.admin.toBase58());
+        console.log(`   Allowed Broker PDA: `, setBrokerAccounts.allowedBroker.toBase58());
+        console.log(`   OApp Config PDA: `, setBrokerAccounts.oappConfig.toBase58()); 
         console.log(`Params to add broker ${brokerId}: `, setBrokerParams); 
     }
 

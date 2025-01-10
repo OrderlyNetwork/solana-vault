@@ -14,12 +14,9 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider);
 async function callLzReceive() {
     console.log(OAPP_PROGRAM_ID.toString());
     // const lzReceiveAlertSig = "5zMstQM8UgLtBwD46EEChepXBz27fuHs8ded5tVwNqa6nsEMePZasJuTeQH6wkzmgG8vMoFs4qcoHBMLJSmBmhak";
+
     const lzReceiveAlertSigs = [
-      "ikBqWGH3scTtBwwxmXWSkzuciKp92nnQwgPBwkVGZgGuednvDfpeA4fPHNxKfbS4D2ZRRmiFkJAJ4i2Nkt1ubqc", 
-      "57UEtqCqNhMWxzKxHb5pY1aK4NB47EEKt1eLw995fax4nrD4NAHDYaVs2U13jP3BvPsxwPK1Sc74rw7oVf3yrp3F", 
-      "4xLSMjF5UkBBsiMMkkQ1T7jmtWkN4r598jyDK8tAxwnmmnr6YpWBmJrCpBMmrYJ7oT18feCmXLL4V52UvDKdytqw",
-      "5SRas21FNjKu3UP4WaG524oUcmczzygESzkKrD66VauoZ41GNP6oKsCjNsARzUYPL4LCqtZUyy5fdojhY9sJ8VF6",
-      "RRWku2YHc9L5YagniNBvfRkM8BwPXsiszRaKs1XP2cCrNJkYX1otheHcLWn6yGgynSgH2N51iv6RdmNTBw5icYv"
+     "3yzZrT2vJjvuwBupuNf3UApvwFrKQTnBxHrNiUTecwq23pXguUcyrcCmDrDZHtCxmTT8dmgvgA2FbRNRjBuxvNLA"
     ]
     
     for (const alertSig of lzReceiveAlertSigs) {
@@ -34,7 +31,7 @@ async function callLzReceive() {
         version: 1,
         nonce: lzReceiveEventAlert.nonce.toString(),
         srcEid: lzReceiveEventAlert.srcEid,
-        dstEid: 40168,
+        dstEid: ENV === 'MAIN' ? 30168 : 40168,
         sender: '0x' + Buffer.from(lzReceiveEventAlert.sender).toString('hex'),
         receiver: lzReceiveEventAlert.receiver.toBase58(), 
         guid: '0x'+ Buffer.from(lzReceiveEventAlert.guid).toString('hex'),
