@@ -1,9 +1,11 @@
 pub mod deposit;
-pub mod init_vault;
 pub mod set_broker;
+pub mod set_order_delivery;
 pub mod set_token;
+pub mod set_vault;
 
 pub use deposit::*;
-pub use init_vault::*;
 pub use set_broker::*;
+pub use set_order_delivery::*;
 pub use set_token::*;
+pub use set_vault::*;

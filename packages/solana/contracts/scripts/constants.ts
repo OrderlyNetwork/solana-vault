@@ -8,17 +8,27 @@ export const EXECUTOR_PROGRAM_ID = new PublicKey("6doghB248px58JSSwG4qejQ46kFMW4
 export const EXECUTOR_PDA = new PublicKey("AwrbHeCyniXaQhiJZkLhgWdUCteeWSGaSN1sTfLiY7xK");
 export const DVN_PROGRAM_ID = new PublicKey("HtEYV4xB4wvsj5fgTkcfuChYpvGYzgzwvNhgDZQNh7wW");
 export const PRICE_FEED_PROGRAM_ID = new PublicKey("8ahPGPjEbpgGaZx2NV1iG5Shj7TDwvsjkEDcGWjt94TP");
-export const DEV_LOOKUP_TABLE_ADDRESS = new PublicKey("AAudqEoxrKPYMfeYE4wAQuBNukeqxGtskQYmrNF947Z");
-export const MAIN_LOOKUP_TABLE_ADDRESS = DEV_LOOKUP_TABLE_ADDRESS;
+
 export const MOCK_USDC_ACCOUNT = new PublicKey("usdc4pNcoYJ2GNXcJN4iwNXfxbKXPQzqBdALdqaRyUn");
 export const DEV_USDC_ACCOUNT = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
 export const MAIN_USDC_ACCOUNT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 
-export const PEER_ADDRESS = addressToBytes32('0x42532863dcC16164B515C10eb2e46a3630A47762');
+export const PEER_ADDRESS = addressToBytes32('0x5Bf771A65d057e778C5f0Ed52A0003316f94322D');
+export const DEV_PEER_ADDRESS = addressToBytes32("0x9Dc724b24146BeDD2dA28b8C4B74126169B8f312");
+export const QA_PEER_ADDRESS = addressToBytes32("0x45b6C6266A7A2170617d8A27A50C642fd68b91c4");
+export const STAGING_PEER_ADDRESS = addressToBytes32("0x5Bf771A65d057e778C5f0Ed52A0003316f94322D");
+export const MAIN_PEER_ADDRESS = addressToBytes32("0xCecAe061aa078e13b5e70D5F9eCee90a3F2B6AeA");
+
 export const DST_EID = 40200;
-export const LZ_RECEIVE_GAS = 500000;
+export const TEST_DST_EID = 40200;  // eid of orderly testnet, defined by layerzero: https://docs.layerzero.network/v2/developers/evm/technical-reference/deployed-contracts
+export const MAIN_DST_EID = 30213;  // eid of orderly mainnet, defined by layerzero: https://docs.layerzero.network/v2/developers/evm/technical-reference/deployed-contracts
+
+export const SOL_CHAIN_ID = 901901901;      
+export const DEV_SOL_CHAIN_ID = 901901901;      // the chainid for solana devnet, defined by orderly
+export const MAIN_SOL_CHAIN_ID = 900900900;     // the chainid for solana mainnet, defined by orderly
+export const LZ_RECEIVE_GAS = 500000;           
 export const LZ_RECEIVE_VALUE = 0;
-export const LZ_COMPOSE_GAS = 10;
+export const LZ_COMPOSE_GAS = 0;               
 export const LZ_COMPOSE_VALUE = 0;
 
 export const LOCAL_RPC = "http://localhost:8899";
@@ -29,8 +39,153 @@ export const VAULT_AUTHORITY_SEED = "VaultAuthority";
 export const BROKER_SEED = "Broker";
 export const TOKEN_SEED = "Token";
 export const OWNER_SEED = "Owner";
+export const ACCOUNT_LIST_SEED = "AccountList";
 
-export const MOCK_USDC_PRIVATE_KEY = [225,216,136,177,14,114,134,37,6,11,223,44,152,142,184,158,139,30,47,126,122,71,205,171,3,242,4,98,142,13,246,170,13,139,115,107,50,109,97,239,233,48,175,33,60,17,30,115,75,120,53,150,157,243,187,249,130,59,76,84,26,123,232,123];
-export const DEV_LOOKUP_TABLE_PRIVATE_KEY = [34,81,178,29,220,118,76,1,237,155,90,252,238,163,70,18,38,70,146,193,233,167,78,118,169,92,64,91,58,208,204,7,242,171,13,70,176,229,137,37,101,183,244,226,5,145,15,33,116,222,52,118,16,31,10,140,18,194,160,103,209,121,84,59]
+export const ENV: "DEV" | "QA" | "STAGING" | "MAIN" = "DEV";
+export const MOCK_OAPP_PROGRAM_ID = new PublicKey("EFLrsQmcfYTSvVrUiP4qruDhbYBtjbQNAhC6tkLJbBtQ");
+export const DEV_OAPP_PROGRAM_ID = new PublicKey("EYJq9eU4GMRUriUJBgGoZ8YLQBXcWaciXuSsEXE7ieQS");
+export const QA_OAPP_PROGRAM_ID = new PublicKey("5zBjLor7vEraAt4zp2H82sy9MSqFoDnNa1Lx6EYKTYRZ");
+export const STAGING_OAPP_PROGRAM_ID = new PublicKey("9shwxWDUNhtwkHocsUAmrNAQfBH2DHh4njdAEdHZZkF2");
+export const MAIN_OAPP_PROGRAM_ID = new PublicKey("ErBmAD61mGFKvrFNaTJuxoPwqrS8GgtwtqJTJVjFWx9Q");   
+
+export const DEV_MULTISIG = new PublicKey("AbQgW1N8JAZxQFdh3VTx3ukGdGCN1vQYADktp3d2HDYw");
+export const QA_MULTISIG = new PublicKey("2WG7UG81NsutAzKDpJp6ZepEisMKrXS9XvMVPhsfqtuB");
+export const STAGING_MULTISIG = new PublicKey("48usEusxMDBxpjLkyrarHupqodAfxXyoaLDVNDJFvkME");
+export const MAIN_MULTISIG = new PublicKey("6aQHPsgaSxCGwf1uAVetEmzuz9bpv9Rn4bq9jTg91RH8");
+
+export const DEV_LOOKUP_TABLE_ADDRESS = new PublicKey("BWp8HaYYhiNHekt3zgQhqoCrRftneGxxfgKmCZ6svHN");
+export const QA_LOOKUP_TABLE_ADDRESS = new PublicKey("BswrQQoPKAFojTuJutZcBMtigAgTghEH4M8ofn3EG2X2");
+export const STAGING_LOOKUP_TABLE_ADDRESS = new PublicKey("BbGKfxuPwDmu58BjPpd7PMG69TqnZjSpKaLDMgf9E9Dr");
+export const MAIN_LOOKUP_TABLE_ADDRESS = new PublicKey("8iq7xCQt3bLdRRn4A46d5GuaXYinBoiAhbe2sUmZVzwg");  // placeholder
+
+export const DEV_BROKERS = ["woofi_pro", "vooi", "orderly", "root"];
+export const QA_BROKERS = ["woofi_pro", "vooi"];
+export const STAGING_BROKERS = [
+    "root",
+    "orderly",
+    "woofi_pro",
+    "woofi_dex",
+    "busywhale",
+    "0xfin",
+    "emdx_dex",
+    "logx",
+    "rkqa_dex",
+    "prime_protocol",
+    "bitoro_network",
+    "coolwallet",
+    "quick_perps",
+    "empyreal",
+    "galar_fin",
+    "what_exchange",
+    "ibx",
+    "unibot",
+    "ascendex",
+    "sharpe_ai",
+    "panda_terminal",
+    "vooi",
+    "fusionx_pro",
+    "elixir",
+    "xade_finance",
+    "kai",
+    "sable",
+    "dfyn",
+    "ask_jimmy",
+    "alphanaut",
+    "rage_trade",
+    "ox_markets",
+    "zk_automate",
+    "flash_x",
+    "pinde",
+    "ape_terminal",
+    "funl_ai",
+    "crust_finance",
+    "btse_dex",
+    "orderoo",
+    "boodex_com",
+    "tcmp",
+    "tealstreet",
+    "vls",
+    "veeno_dex",
+    "dvx",
+    "book_x",
+    "zotto", 
+    "atlas",
+    "primex",
+    "demo",
+    "eisen",
+    "blazpay",
+    "if_exchange",
+    "one_bow",
+    "filament",
+    "raydium",
+    "bun_dex",
+    "linear_finance"
+    ];
+export const MAIN_BROKERS = [
+    "root",
+    "orderly",
+    "woofi_pro",
+
+    "busywhale",
+    "0xfin",
+    "emdx_dex",
+    "logx",
+
+    "prime_protocol",
+    "bitoro_network",
+    "coolwallet",
+    "quick_perps",
+
+    "empyreal",
+    "galar_fin",
+    "what_exchange",
+    "unibot",
+
+    "ascendex",
+    "sharpe_ai",
+    "panda_terminal",
+    "vooi",
+
+    "fusionx_pro",
+    "elixir",
+    "xade_finance",
+    "kai",
+    "sable",
+    "dfyn",
+    "ask_jimmy",
+    "alphanaut",
+
+    "rage_trade",
+    "flash_x",
+    "pinde",
+    "ox_markets",
+    "funl_ai",
+    "crust_finance",
+    "btse_dex",
+    "orderoo",
+
+    "boodex_com",
+    "tcmp",
+    "tealstreet",
+    "ape_terminal",
+    "vls",
+    "veeno_dex",
+    "dvx",
+    "zotto", 
+
+    "book_x",
+    "atlas",
+    "primex",
+    "demo",
+    "eisen",
+    "blazpay",
+    "if_exchange",
+    "one_bow",
+
+    "filament",
+    "bun_dex",
+    "raydium",
+    "linear_finance"
+]
 
 

@@ -6,9 +6,12 @@ solana_version = "1.18.18"
 seeds = false
 skip-lint = false
 
+[programs.devnet]
+solana-oft = "5X3zucEv9LCpVYFr9ezHBXpFFy4w8Wr83nHCQK9tkvVe"
+
 [programs.localnet]
-oft = "HZuGXo97nFuv6UmvcYtt7T8L8vB3KAFRZTmohTA3k63m"
-solana-vault = "5seA2qXcGyC9najiKmUVK3u2hfotXZVHtaxuxfrwBLrX"
+solana-vault = "9shwxWDUNhtwkHocsUAmrNAQfBH2DHh4njdAEdHZZkF2"
+uln = "H29REYdFVCCsvPADZH2Cc6wt17ee1jctUqRHcDYicCaW"
 
 [registry]
 url = "https://api.apr.dev"
@@ -16,23 +19,47 @@ url = "https://api.apr.dev"
 [provider]
 cluster = "devnet"
 wallet = "~/.config/solana/id.json"
+# https://svc.blockdaemon.com/solana/mainnet/native?apiKey=zpka_417399a60de542759adf31a42a30e60e_61763d0a
 
 [scripts]
-
+deposit_vault = "yarn run ts-node scripts/05deposit_vault.ts"
+init_oapp = "yarn run ts-node scripts/02init_oapp.ts"
 oft = "yarn run ts-node scripts/oft.ts"
-send_oapp = "yarn run ts-node scripts/send.ts"
-
+order_delivery = "yarn run ts-node scripts/set_order_delivery.ts"
+print_config = "yarn run ts-node scripts/print_config.ts"
 print_pda = "yarn run ts-node scripts/00print_pda.ts"
-setup_oapp = "yarn run ts-node scripts/01setup_oapp.ts"
-setconfig_oapp = "yarn run ts-node scripts/02setconfig_oapp.ts"
-init_oapp = "yarn run ts-node scripts/03init_oapp.ts"
-mint_usdc = "yarn run ts-node scripts/04mint_usdc.ts"
-setup_vault = "yarn run ts-node scripts/05setup_vault.ts"
-deposit_vault = "yarn run ts-node scripts/06deposit_vault.ts"
-
+quote_deposit = "yarn run ts-node scripts/quote_oapp.ts"
+send_oapp = "yarn run ts-node scripts/send.ts"
+set_account_list = "yarn run ts-node scripts/set_account_list.ts"
 set_broker = "yarn run ts-node scripts/set_broker.ts"
 set_token = "yarn run ts-node scripts/set_token.ts"
-reset_oapp = "yarn run ts-node scripts/reset_oapp_config.ts"
-reinit_oapp = "yarn run ts-node scripts/reinit_oapp_config.ts"
-
+setconfig_oapp = "yarn run ts-node scripts/03setconfig_oapp.ts"
+setup_oapp = "yarn run ts-node scripts/01setup_oapp.ts"
+setup_vault = "yarn run ts-node scripts/04setup_vault.ts"
+create_lut = "yarn run ts-node scripts/create_lookuptable.ts"
+set_option = "yarn run ts-node scripts/set_option.ts"
 test = "yarn run ts-mocha -b -p ./tsconfig.json -t 1000000 tests/**/*.test.ts"
+transfer_admin = "yarn run ts-node scripts/transfer_admin.ts"
+lz_receive = "yarn run ts-node scripts/call_lzreceive.ts"
+
+[test]
+startup_wait = 5000
+shutdown_wait = 2000
+upgradeable = false
+
+[[test.genesis]]
+address = "76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6"
+program = "endpoint.so"
+
+[[test.genesis]]
+address = "7a4WjyR8VZ7yZz5XJAKm39BUGn5iT9CKcv2pmG9tdXVH"
+program = "uln.so"
+
+[test.validator]
+bind_address = "127.0.0.1"
+url = "https://api.mainnet-beta.solana.com"
+ledger = ".anchor/test-ledger"
+rpc_port = 8899
+
+[[test.validator.clone]]
+address = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"

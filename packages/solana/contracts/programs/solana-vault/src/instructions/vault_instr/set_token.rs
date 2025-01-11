@@ -31,7 +31,7 @@ pub struct SetToken<'info> {
 
 impl SetToken<'_> {
     pub fn apply(ctx: &mut Context<SetToken>, params: &SetTokenParams) -> Result<()> {
-        ctx.accounts.allowed_token.mint_account = params.mint_account;
+        ctx.accounts.allowed_token.mint_account = ctx.accounts.mint_account.key();
         ctx.accounts.allowed_token.token_hash = params.token_hash;
         ctx.accounts.allowed_token.token_decimals = ctx.accounts.mint_account.decimals;
         ctx.accounts.allowed_token.allowed = params.allowed;

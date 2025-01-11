@@ -1,30 +1,27 @@
-import * as anchor from "@coral-xyz/anchor";
-import { PublicKey, sendAndConfirmTransaction, SystemProgram, Transaction } from "@solana/web3.js";
+import { PublicKey, sendAndConfirmTransaction, Transaction } from "@solana/web3.js";
 import { OftTools, SetConfigType } from "@layerzerolabs/lz-solana-sdk-v2";
-import { Options } from "@layerzerolabs/lz-v2-utilities";
-import { setAnchor, getLzReceiveTypesPda, getOAppConfigPda, getPeerPda, getEventAuthorityPda, getOAppRegistryPda, getSendLibConfigPda, getSendLibInfoPda, getSendLibPda, getDvnConfigPda } from "./utils";
-import { DST_EID, ENDPOINT_PROGRAM_ID, PEER_ADDRESS, LZ_RECEIVE_GAS, LZ_COMPOSE_GAS, LZ_COMPOSE_VALUE, LZ_RECEIVE_VALUE, SEND_LIB_PROGRAM_ID, RECEIVE_LIB_PROGRAM_ID, EXECUTOR_PROGRAM_ID, EXECUTOR_PDA } from "./constants";
-
+import * as utils from "./utils";
+import * as constants from "./constants";
 import OAppIdl from "../target/idl/solana_vault.json";
-import { SolanaVault } from "../target/types/solana_vault";
-const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
+
+const [provider, wallet, rpc] = utils.setAnchor();
+const ENV = utils.getEnv();
+const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider);
+const DST_EID = utils.getDstEid(ENV);
 
 
-const [provider, wallet, rpc] = setAnchor();
-
-
-const oappConfigPda = getOAppConfigPda(OAPP_PROGRAM_ID);
+const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
 console.log("OApp Config PDA:", oappConfigPda.toBase58());
 
-const sendLibConfigPda = getSendLibConfigPda(oappConfigPda, DST_EID);
+const sendLibConfigPda = utils.getSendLibConfigPda(oappConfigPda, DST_EID);
 console.log("Send Library Config PDA:", sendLibConfigPda.toBase58());
 
-const sendLibPda = getSendLibPda();
+const sendLibPda = utils.getSendLibPda();
 console.log("Send Library PDA:", sendLibPda.toBase58());
-const sendLibInfoPda = getSendLibInfoPda(sendLibPda);
+const sendLibInfoPda = utils.getSendLibInfoPda(sendLibPda);
 console.log("Send Library Info PDA:", sendLibInfoPda.toBase58());
 
-const dvnConfigPda = getDvnConfigPda();
+const dvnConfigPda = utils.getDvnConfigPda();
 
 async function setconfig() {
     await setSendConfig();
@@ -53,6 +50,8 @@ async function setSendConfig() {
         );
     
         console.log("Init Send Library transaction confirmed:", sigInitSendLib);
+        //sleep for 5 seconds to allow the send library to be initialized
+        await new Promise((resolve) => setTimeout(resolve, 5000));
     } catch (e) {
         console.log("Send Library already initialized");
     }
@@ -62,7 +61,7 @@ async function setSendConfig() {
         await OftTools.createSetSendLibraryIx(
             wallet.publicKey,
             oappConfigPda,
-            SEND_LIB_PROGRAM_ID,
+            constants.SEND_LIB_PROGRAM_ID,
             DST_EID,
         ),
     );
@@ -75,6 +74,8 @@ async function setSendConfig() {
         );
     
         console.log("Set Send Library transaction confirmed:", sigSetSendLib);
+        // sleep for 5 seconds to allow the send library to be set
+        await new Promise((resolve) => setTimeout(resolve, 5000));
     } catch (e) {
         console.log("Send Library already set");
     }
@@ -88,7 +89,7 @@ async function setReceiveConfig() {
                 wallet.publicKey,
                 oappConfigPda,
                 DST_EID,
-                ENDPOINT_PROGRAM_ID
+                constants.ENDPOINT_PROGRAM_ID
             ),
         );
     
@@ -103,6 +104,8 @@ async function setReceiveConfig() {
         );
     
         console.log("Init Receive Library transaction confirmed:", sigInitReceiveLib);
+        // sleep for 5 seconds to allow the receive library to be initialized
+        await new Promise((resolve) => setTimeout(resolve, 5000));
     } catch (e) {
         console.log("Receive Library already initialized");
     }
@@ -111,10 +114,10 @@ async function setReceiveConfig() {
         await OftTools.createSetReceiveLibraryIx(
             wallet.publicKey,
             oappConfigPda,
-            RECEIVE_LIB_PROGRAM_ID,
+            constants.RECEIVE_LIB_PROGRAM_ID,
             DST_EID,
             BigInt(0),
-            ENDPOINT_PROGRAM_ID
+            constants.ENDPOINT_PROGRAM_ID
         ),
     );
 
@@ -130,26 +133,14 @@ async function setReceiveConfig() {
         );
     
         console.log("Set Receive Library transaction confirmed:", sigSetReceiveLib);
+        // sleep for 5 seconds to allow the receive library to be set
+        await new Promise((resolve) => setTimeout(resolve, 5000));
     } catch (e) {
         console.log("Receive Library already set");
     }
 }
 
 setconfig();
-
-async function getConfig() {
-    const config = await OftTools.getEndpointConfig(
-        provider.connection,
-        new PublicKey("5Lgo8UDHs9q76YZLtZpWMPFXzopTEqux4PLEJj5HG6Hs"),
-        DST_EID,
-    );
-
-    console.log("Config:", config);
-}
-
-// getConfig();
-
-// setULN();
 
 async function setULN() {
     // Set the Executor config for the pathway.
@@ -161,7 +152,7 @@ async function setULN() {
                 DST_EID,
                 SetConfigType.EXECUTOR,
                 {
-                    executor: EXECUTOR_PDA,
+                    executor: constants.EXECUTOR_PDA,
                     maxMessageSize: 10000,
                 },
             ),
@@ -185,7 +176,7 @@ async function setULN() {
                 DST_EID,
                 SetConfigType.SEND_ULN,
                 {
-                    confirmations: 10, // should be consistent with the target chain
+                    confirmations: ENV === "MAIN" ? 32 : 10, // should be consistent with the target chain
                     requiredDvnCount: 1,
                     optionalDvnCount: 0,
                     optionalDvnThreshold: 0,
@@ -213,7 +204,7 @@ async function setULN() {
                 DST_EID,
                 SetConfigType.RECEIVE_ULN,
                 {
-                    confirmations: 1, // should be consistent with the target chain
+                    confirmations: ENV === "MAIN" ? 5 : 1, // should be consistent with the target chain
                     requiredDvnCount: 1,
                     optionalDvnCount: 0,
                     optionalDvnThreshold: 0,

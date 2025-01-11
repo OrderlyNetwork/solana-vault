@@ -7,16 +7,16 @@ use anchor_lang::prelude::*;
 use errors::*;
 use instructions::*;
 
-use oapp::endpoint::{MessagingFee, MessagingReceipt};
+use oapp::endpoint::MessagingReceipt;
 
-declare_id!("EFLrsQmcfYTSvVrUiP4qruDhbYBtjbQNAhC6tkLJbBtQ");
+declare_id!("ErBmAD61mGFKvrFNaTJuxoPwqrS8GgtwtqJTJVjFWx9Q");
 
 #[program]
 pub mod solana_vault {
     use super::*;
 
-    pub fn init_vault(mut ctx: Context<InitVault>) -> Result<()> {
-        InitVault::apply(&mut ctx)
+    pub fn set_vault(ctx: Context<SetVault>, params: SetVaultParams) -> Result<()> {
+        SetVault::apply(ctx, &params)
     }
 
     pub fn deposit<'info>(
@@ -24,26 +24,18 @@ pub mod solana_vault {
         deposit_params: DepositParams,
         oapp_params: OAppSendParams,
     ) -> Result<MessagingReceipt> {
-        Deposit::apply(&mut ctx, deposit_params, oapp_params)
+        Deposit::apply(&mut ctx, &deposit_params, &oapp_params)
     }
 
     pub fn init_oapp(mut ctx: Context<InitOApp>, params: InitOAppParams) -> Result<()> {
         InitOApp::apply(&mut ctx, &params)
     }
 
-    // pub fn reinit_oapp(mut ctx: Context<ReinitOApp>, params: ReinitOAppParams) -> Result<()> {
-    //     ReinitOApp::apply(&mut ctx, &params)
-    // }
-
-    pub fn reset_oapp_config(mut ctx: Context<ResetOApp>) -> Result<()> {
-        ResetOApp::apply(&mut ctx)
-    }
-
-    pub fn reinit_oapp_config(
-        mut ctx: Context<ReinitOApp>,
-        params: ReinitOAppParams,
+    pub fn set_account_list(
+        mut ctx: Context<SetAccountList>,
+        params: SetAccountListParams,
     ) -> Result<()> {
-        ReinitOApp::apply(&mut ctx, &params)
+        SetAccountList::apply(&mut ctx, &params)
     }
 
     pub fn set_broker(mut ctx: Context<SetBroker>, params: SetBrokerParams) -> Result<()> {
@@ -54,7 +46,14 @@ pub mod solana_vault {
         SetToken::apply(&mut ctx, &params)
     }
 
-    pub fn oapp_quote(ctx: Context<OAppQuote>, params: OAppQuoteParams) -> Result<MessagingFee> {
+    pub fn set_order_delivery(
+        mut ctx: Context<SetOrderDelivery>,
+        params: SetOrderDeliveryParams,
+    ) -> Result<()> {
+        SetOrderDelivery::apply(&mut ctx, &params)
+    }
+
+    pub fn oapp_quote(ctx: Context<OAppQuote>, params: DepositParams) -> Result<MessagingFee> {
         OAppQuote::apply(&ctx, &params)
     }
 

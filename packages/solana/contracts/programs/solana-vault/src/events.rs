@@ -90,6 +90,35 @@ impl From<VaultWithdrawParams> for VaultWithdrawn {
     }
 }
 
+#[event]
+pub struct FrozenWithdrawn {
+    pub account_id: [u8; 32],
+    pub sender: [u8; 32],
+    pub receiver: [u8; 32],
+    pub broker_hash: [u8; 32],
+    pub token_hash: [u8; 32],
+    pub token_amount: u64,
+    pub fee: u128,
+    pub chain_id: u128,
+    pub withdraw_nonce: u64,
+}
+
+impl From<VaultWithdrawParams> for FrozenWithdrawn {
+    fn from(account_withdraw_params: VaultWithdrawParams) -> FrozenWithdrawn {
+        FrozenWithdrawn {
+            account_id: account_withdraw_params.account_id,
+            sender: account_withdraw_params.sender,
+            receiver: account_withdraw_params.receiver,
+            broker_hash: account_withdraw_params.broker_hash,
+            token_hash: account_withdraw_params.token_hash,
+            token_amount: account_withdraw_params.token_amount,
+            fee: account_withdraw_params.fee,
+            chain_id: account_withdraw_params.chain_id,
+            withdraw_nonce: account_withdraw_params.withdraw_nonce,
+        }
+    }
+}
+
 // OApp events
 #[event]
 pub struct OAppSent {

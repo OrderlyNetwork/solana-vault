@@ -7,8 +7,8 @@ use anchor_spl::{
 use oapp::endpoint::{instructions::SendParams as EndpointSendParams, MessagingReceipt};
 
 use crate::instructions::{
-    LzMessage, MsgType, VaultDepositParams, BROKER_SEED, ENFORCED_OPTIONS_SEED, OAPP_SEED,
-    PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED,
+    validate_account_id, LzMessage, MsgType, VaultDepositParams, BROKER_SEED,
+    ENFORCED_OPTIONS_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED,
 };
 
 use crate::errors::VaultError;
@@ -45,15 +45,17 @@ pub struct Deposit<'info> {
     )]
     pub vault_token_account: Box<Account<'info, TokenAccount>>,
 
-    #[account()]
+    #[account(
+        constraint = deposit_token.key() == allowed_token.mint_account @ VaultError::TokenNotAllowed,
+        mint::token_program = token_program
+    )]
     pub deposit_token: Box<Account<'info, Mint>>,
 
     #[account(
-        mut,
         seeds = [
             PEER_SEED,
             &oapp_config.key().to_bytes(),
-            &oapp_params.dst_eid.to_be_bytes()
+            &vault_authority.dst_eid.to_be_bytes()
         ],
         bump = peer.bump
     )]
@@ -63,7 +65,7 @@ pub struct Deposit<'info> {
         seeds = [
             ENFORCED_OPTIONS_SEED,
             &oapp_config.key().to_bytes(),
-            &oapp_params.dst_eid.to_be_bytes()
+            &vault_authority.dst_eid.to_be_bytes()
         ],
         bump = enforced_options.bump
     )]
@@ -107,9 +109,16 @@ impl<'info> Deposit<'info> {
 
     pub fn apply(
         ctx: &mut Context<'_, '_, '_, 'info, Deposit<'info>>,
-        deposit_params: DepositParams,
-        oapp_params: OAppSendParams,
+        deposit_params: &DepositParams,
+        oapp_params: &OAppSendParams,
     ) -> Result<MessagingReceipt> {
+        if !validate_account_id(
+            &deposit_params.account_id,
+            &deposit_params.user_address,
+            &deposit_params.broker_hash,
+        ) {
+            return Err(VaultError::InvalidAccountId.into());
+        }
         transfer(
             ctx.accounts.transfer_token_ctx(),
             deposit_params.token_amount,
@@ -117,16 +126,16 @@ impl<'info> Deposit<'info> {
 
         msg!("User deposited : {}", deposit_params.token_amount);
 
-        ctx.accounts.vault_authority.nonce += 1;
+        ctx.accounts.vault_authority.deposit_nonce += 1;
 
         let vault_deposit_params = VaultDepositParams {
             account_id: deposit_params.account_id,
             broker_hash: deposit_params.broker_hash,
             user_address: deposit_params.user_address, //
             token_hash: deposit_params.token_hash,
-            src_chain_id: deposit_params.src_chain_id,
+            src_chain_id: ctx.accounts.vault_authority.sol_chain_id,
             token_amount: deposit_params.token_amount as u128,
-            src_chain_deposit_nonce: ctx.accounts.vault_authority.nonce,
+            src_chain_deposit_nonce: ctx.accounts.vault_authority.deposit_nonce,
         };
 
         emit!(Into::<VaultDeposited>::into(vault_deposit_params.clone()));
@@ -142,7 +151,7 @@ impl<'info> Deposit<'info> {
         let options = EnforcedOptions::get_enforced_options(&ctx.accounts.enforced_options, &None);
 
         let endpoint_send_params = EndpointSendParams {
-            dst_eid: oapp_params.dst_eid,
+            dst_eid: ctx.accounts.vault_authority.dst_eid,
             receiver: ctx.accounts.peer.address,
             message: lz_message,
             options: options,
@@ -160,7 +169,7 @@ impl<'info> Deposit<'info> {
 
         emit!(OAppSent {
             guid: receipt.guid,
-            dst_eid: oapp_params.dst_eid,
+            dst_eid: ctx.accounts.vault_authority.dst_eid,
         });
 
         Ok(receipt)
@@ -173,13 +182,11 @@ pub struct DepositParams {
     pub broker_hash: [u8; 32],
     pub token_hash: [u8; 32],
     pub user_address: [u8; 32],
-    pub src_chain_id: u128,
     pub token_amount: u64,
 }
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct OAppSendParams {
-    pub dst_eid: u32,
     pub native_fee: u64,
     pub lz_token_fee: u64,
 }

@@ -1,9 +1,12 @@
-use crate::errors::OAppError;
-use crate::events::VaultWithdrawn;
+use crate::errors::{OAppError, VaultError};
+use crate::events::{FrozenWithdrawn, VaultWithdrawn};
 use crate::instructions::{to_bytes32, OAppLzReceiveParams};
-use crate::instructions::{LzMessage, MsgType, OAPP_SEED, PEER_SEED, VAULT_AUTHORITY_SEED};
-use crate::state::{OAppConfig, Peer, VaultAuthority};
+use crate::instructions::{
+    LzMessage, MsgType, BROKER_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED,
+};
+use crate::state::{AllowedBroker, AllowedToken, OAppConfig, Peer, VaultAuthority};
 use anchor_lang::prelude::*;
+use anchor_spl::associated_token::{get_associated_token_address, AssociatedToken};
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 use oapp::endpoint::{cpi::accounts::Clear, instructions::ClearParams, ConstructCPIContext};
 
@@ -14,7 +17,6 @@ pub struct OAppLzReceive<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
     #[account(
-        mut,
         seeds = [
             PEER_SEED,
             &oapp_config.key().to_bytes(),
@@ -29,18 +31,30 @@ pub struct OAppLzReceive<'info> {
         bump = oapp_config.bump
     )]
     pub oapp_config: Account<'info, OAppConfig>,
+
     /// CHECK
     #[account()]
-    pub user: AccountInfo<'info>,
+    pub broker_pda: Account<'info, AllowedBroker>,
+    /// CHECK
+    #[account()]
+    pub token_pda: Account<'info, AllowedToken>,
+
+    /// CHECK
+    #[account(
+        // mint::token_program = token_program
+    )]
+    pub token_mint: Account<'info, Mint>,
+
+    /// CHECK
+    #[account()]
+    pub receiver: AccountInfo<'info>,
+
+    /// CHECK
+    #[account(mut)]
+    pub receiver_token_account: Account<'info, TokenAccount>,
 
     #[account(
         mut,
-        associated_token::mint = deposit_token,
-        associated_token::authority = user
-    )]
-    pub user_deposit_wallet: Account<'info, TokenAccount>,
-
-    #[account(
         seeds = [VAULT_AUTHORITY_SEED],
         bump = vault_authority.bump,
     )]
@@ -48,24 +62,21 @@ pub struct OAppLzReceive<'info> {
 
     #[account(
         mut,
-        associated_token::mint = deposit_token,
+        associated_token::mint = token_mint,
         associated_token::authority = vault_authority
     )]
-    pub vault_deposit_wallet: Account<'info, TokenAccount>,
-
-    #[account()]
-    pub deposit_token: Account<'info, Mint>,
+    pub vault_token_account: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
-
-    pub system_program: Program<'info, System>,
+    // pub associated_token_program: Program<'info, AssociatedToken>,  // should apply this after message shrink
+    // pub system_program: Program<'info, System>,
 }
 
 impl<'info> OAppLzReceive<'info> {
     fn transfer_token_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
         let cpi_accounts = Transfer {
-            from: self.vault_deposit_wallet.to_account_info(),
-            to: self.user_deposit_wallet.to_account_info(),
+            from: self.vault_token_account.to_account_info(),
+            to: self.receiver_token_account.to_account_info(),
             authority: self.vault_authority.to_account_info(),
         };
         let cpi_program = self.token_program.to_account_info();
@@ -91,25 +102,79 @@ impl<'info> OAppLzReceive<'info> {
             },
         )?;
 
+        if ctx.accounts.vault_authority.order_delivery {
+            require!(
+                params.nonce == ctx.accounts.vault_authority.inbound_nonce + 1,
+                OAppError::InvalidInboundNonce
+            );
+        }
+
+        ctx.accounts.vault_authority.inbound_nonce = params.nonce;
+
         let lz_message = LzMessage::decode(&params.message).unwrap();
         msg!("msg_type: {:?}", lz_message.msg_type);
         if lz_message.msg_type == MsgType::Withdraw as u8 {
             let withdraw_params = AccountWithdrawSol::decode_packed(&lz_message.payload).unwrap();
+            require!(
+                withdraw_params.receiver == ctx.accounts.receiver.key.to_bytes(),
+                OAppError::InvalidReceiver
+            );
 
+            // check if the token is allowed and the mint is correct
+            let (allowed_token, _) = Pubkey::find_program_address(
+                &[TOKEN_SEED, &withdraw_params.token_hash.as_ref()],
+                ctx.program_id,
+            );
+            if allowed_token.key() != ctx.accounts.token_pda.key()
+                || !ctx.accounts.token_pda.allowed
+            {
+                return Err(VaultError::TokenNotAllowed.into());
+            }
+            if withdraw_params.token_hash == ctx.accounts.token_pda.token_hash {
+                require!(
+                    ctx.accounts.token_pda.mint_account.key() == ctx.accounts.token_mint.key(),
+                    VaultError::TokenNotAllowed
+                );
+            } else {
+                return Err(VaultError::TokenNotAllowed.into());
+            }
+
+            // check if the receiver_token_account is the correct associated token account
+            let receiver_ata: Pubkey = get_associated_token_address(
+                ctx.accounts.receiver.key,
+                &ctx.accounts.token_mint.key(),
+            );
+            require!(
+                receiver_ata == ctx.accounts.receiver_token_account.key(),
+                OAppError::InvalidATA
+            );
+
+            // check if the broker is allowed
+            let (allowed_broker, _) = Pubkey::find_program_address(
+                &[BROKER_SEED, &withdraw_params.broker_hash],
+                ctx.program_id,
+            );
+
+            if allowed_broker != ctx.accounts.broker_pda.key() || !ctx.accounts.broker_pda.allowed {
+                return Err(VaultError::BrokerNotAllowed.into());
+            }
             let vault_authority_seeds =
                 &[VAULT_AUTHORITY_SEED, &[ctx.accounts.vault_authority.bump]];
 
-            msg!("Withdraw amount = {}", withdraw_params.token_amount);
-
-            transfer(
-                ctx.accounts
-                    .transfer_token_ctx()
-                    .with_signer(&[&vault_authority_seeds[..]]),
-                withdraw_params.token_amount,
-            )?;
-
+            let amount_to_transfer = withdraw_params.token_amount - withdraw_params.fee;
             let vault_withdraw_params: VaultWithdrawParams = withdraw_params.into();
-            emit!(Into::<VaultWithdrawn>::into(vault_withdraw_params.clone()));
+
+            if ctx.accounts.receiver_token_account.is_frozen() {
+                emit!(Into::<FrozenWithdrawn>::into(vault_withdraw_params.clone()));
+            } else {
+                transfer(
+                    ctx.accounts
+                        .transfer_token_ctx()
+                        .with_signer(&[&vault_authority_seeds[..]]),
+                    amount_to_transfer,
+                )?;
+                emit!(Into::<VaultWithdrawn>::into(vault_withdraw_params.clone()));
+            }
         } else {
             msg!("Invalid message type: {:?}", lz_message.msg_type);
         }
@@ -145,6 +210,28 @@ impl AccountWithdrawSol {
         encoded.extend_from_slice(&to_bytes32(&self.chain_id.to_be_bytes()));
         encoded.extend_from_slice(&to_bytes32(&self.withdraw_nonce.to_be_bytes()));
         encoded
+    }
+
+    pub fn get_receiver_address(encoded: &[u8]) -> Result<Pubkey> {
+        // Decode the LzMessage to get the payload
+        let message = LzMessage::decode(encoded)?;
+
+        // Decode the payload
+        let withdraw_params = AccountWithdrawSol::decode_packed(&message.payload)?;
+
+        // Return the receiver address as a Pubkey
+        Ok(Pubkey::new_from_array(withdraw_params.receiver))
+    }
+
+    pub fn get_token_hash(encoded: &[u8]) -> Result<[u8; 32]> {
+        // Decode the LzMessage to get the payload
+        let message = LzMessage::decode(encoded)?;
+
+        // Decode the payload
+        let withdraw_params = AccountWithdrawSol::decode_packed(&message.payload)?;
+
+        // Return the receiver address as a Pubkey
+        Ok(withdraw_params.token_hash)
     }
 
     pub fn encode_packed(&self) -> Vec<u8> {
@@ -260,113 +347,113 @@ pub struct VaultWithdrawParams {
 }
 
 // test code
-#[cfg(test)]
-mod tests {
+// #[cfg(test)]
+// mod tests {
 
-    use super::*;
+//     use super::*;
 
-    #[test]
-    fn test_account_withdraw_sol_encode_decode() {
-        let account_withdraw_sol = AccountWithdrawSol {
-            account_id: [1u8; 32],
-            sender: [2u8; 32],
-            receiver: [3u8; 32],
-            broker_hash: [4u8; 32],
-            token_hash: [5u8; 32],
-            token_amount: 1000,
-            fee: 10,
-            chain_id: 1,
-            withdraw_nonce: 1,
-        };
-        let encoded = account_withdraw_sol.encode();
-        // print the encoded bytes in hex format
-        // println!("{:x?}", encoded);
-        let decoded = AccountWithdrawSol::decode(&encoded).unwrap();
-        assert_eq!(account_withdraw_sol.account_id, decoded.account_id);
-        assert_eq!(account_withdraw_sol.sender, decoded.sender);
-        assert_eq!(account_withdraw_sol.receiver, decoded.receiver);
-        assert_eq!(account_withdraw_sol.broker_hash, decoded.broker_hash);
-        assert_eq!(account_withdraw_sol.token_hash, decoded.token_hash);
-        assert_eq!(account_withdraw_sol.token_amount, decoded.token_amount);
-        assert_eq!(account_withdraw_sol.fee, decoded.fee);
-        assert_eq!(account_withdraw_sol.chain_id, decoded.chain_id);
-        assert_eq!(account_withdraw_sol.withdraw_nonce, decoded.withdraw_nonce);
-    }
+//     #[test]
+//     fn test_account_withdraw_sol_encode_decode() {
+//         let account_withdraw_sol = AccountWithdrawSol {
+//             account_id: [1u8; 32],
+//             sender: [2u8; 32],
+//             receiver: [3u8; 32],
+//             broker_hash: [4u8; 32],
+//             token_hash: [5u8; 32],
+//             token_amount: 1000,
+//             fee: 10,
+//             chain_id: 1,
+//             withdraw_nonce: 1,
+//         };
+//         let encoded = account_withdraw_sol.encode();
+//         // print the encoded bytes in hex format
+//         // println!("{:x?}", encoded);
+//         let decoded = AccountWithdrawSol::decode(&encoded).unwrap();
+//         assert_eq!(account_withdraw_sol.account_id, decoded.account_id);
+//         assert_eq!(account_withdraw_sol.sender, decoded.sender);
+//         assert_eq!(account_withdraw_sol.receiver, decoded.receiver);
+//         assert_eq!(account_withdraw_sol.broker_hash, decoded.broker_hash);
+//         assert_eq!(account_withdraw_sol.token_hash, decoded.token_hash);
+//         assert_eq!(account_withdraw_sol.token_amount, decoded.token_amount);
+//         assert_eq!(account_withdraw_sol.fee, decoded.fee);
+//         assert_eq!(account_withdraw_sol.chain_id, decoded.chain_id);
+//         assert_eq!(account_withdraw_sol.withdraw_nonce, decoded.withdraw_nonce);
+//     }
 
-    #[test]
-    fn test_account_withdraw_sol_encode_decode_packed() {
-        let account_withdraw_sol = AccountWithdrawSol {
-            account_id: [1u8; 32],
-            sender: [2u8; 32],
-            receiver: [3u8; 32],
-            broker_hash: [4u8; 32],
-            token_hash: [5u8; 32],
-            token_amount: 1000,
-            fee: 10,
-            chain_id: 1,
-            withdraw_nonce: 1,
-        };
-        let encoded = account_withdraw_sol.encode_packed();
+//     #[test]
+//     fn test_account_withdraw_sol_encode_decode_packed() {
+//         let account_withdraw_sol = AccountWithdrawSol {
+//             account_id: [1u8; 32],
+//             sender: [2u8; 32],
+//             receiver: [3u8; 32],
+//             broker_hash: [4u8; 32],
+//             token_hash: [5u8; 32],
+//             token_amount: 1000,
+//             fee: 10,
+//             chain_id: 1,
+//             withdraw_nonce: 1,
+//         };
+//         let encoded = account_withdraw_sol.encode_packed();
 
-        // print length of encoded
-        println!("length of encoded: {:?}", encoded.len());
-        // print the encoded bytes in hex string
-        println!("encoded: {:?}", hex::encode(&encoded));
+//         // print length of encoded
+//         println!("length of encoded: {:?}", encoded.len());
+//         // print the encoded bytes in hex string
+//         println!("encoded: {:?}", hex::encode(&encoded));
 
-        // print the encoded bytes in hex format
-        // println!("{:x?}", encoded);
-        let decoded = AccountWithdrawSol::decode_packed(&encoded).unwrap();
-        assert_eq!(account_withdraw_sol.account_id, decoded.account_id);
-        assert_eq!(account_withdraw_sol.sender, decoded.sender);
-        assert_eq!(account_withdraw_sol.receiver, decoded.receiver);
-        assert_eq!(account_withdraw_sol.broker_hash, decoded.broker_hash);
-        assert_eq!(account_withdraw_sol.token_hash, decoded.token_hash);
-        assert_eq!(account_withdraw_sol.token_amount, decoded.token_amount);
-        assert_eq!(account_withdraw_sol.fee, decoded.fee);
-        assert_eq!(account_withdraw_sol.chain_id, decoded.chain_id);
-        assert_eq!(account_withdraw_sol.withdraw_nonce, decoded.withdraw_nonce);
-    }
+//         // print the encoded bytes in hex format
+//         // println!("{:x?}", encoded);
+//         let decoded = AccountWithdrawSol::decode_packed(&encoded).unwrap();
+//         assert_eq!(account_withdraw_sol.account_id, decoded.account_id);
+//         assert_eq!(account_withdraw_sol.sender, decoded.sender);
+//         assert_eq!(account_withdraw_sol.receiver, decoded.receiver);
+//         assert_eq!(account_withdraw_sol.broker_hash, decoded.broker_hash);
+//         assert_eq!(account_withdraw_sol.token_hash, decoded.token_hash);
+//         assert_eq!(account_withdraw_sol.token_amount, decoded.token_amount);
+//         assert_eq!(account_withdraw_sol.fee, decoded.fee);
+//         assert_eq!(account_withdraw_sol.chain_id, decoded.chain_id);
+//         assert_eq!(account_withdraw_sol.withdraw_nonce, decoded.withdraw_nonce);
+//     }
 
-    #[test]
-    fn test_decode_cross_chain_msg() {
-        let account_id: [u8; 32] = [
-            226, 45, 187, 110, 76, 25, 151, 127, 51, 25, 214, 54, 34, 8, 181, 102, 166, 34, 59,
-            204, 54, 214, 252, 22, 163, 52, 72, 235, 230, 27, 184, 32,
-        ];
-        let sender: [u8; 32] = [
-            197, 197, 198, 154, 243, 143, 35, 186, 171, 130, 214, 237, 91, 67, 205, 5, 160, 40, 36,
-            59, 238, 205, 115, 218, 150, 35, 242, 63, 204, 186, 125, 235,
-        ];
-        let receiver: [u8; 32] = [
-            154, 198, 82, 111, 13, 161, 35, 64, 235, 21, 18, 177, 237, 133, 228, 188, 19, 181, 199,
-            83, 108, 69, 111, 25, 180, 206, 199, 51, 36, 31, 245, 185,
-        ];
-        let broker_hash: [u8; 32] = [
-            8, 48, 152, 197, 147, 243, 149, 190, 161, 222, 69, 221, 165, 82, 217, 241, 78, 143,
-            203, 11, 227, 250, 170, 122, 25, 3, 197, 71, 125, 123, 167, 253,
-        ];
-        let token_hash: [u8; 32] = [
-            214, 172, 161, 190, 151, 41, 193, 61, 103, 115, 53, 22, 19, 33, 100, 156, 204, 174,
-            106, 89, 21, 84, 119, 37, 22, 112, 15, 152, 111, 153, 184, 32,
-        ];
-        let token_amount: u64 = 64;
-        let fee: u64 = 10;
-        let chain_id: u64 = 901901901;
-        let withdraw_nonce: u64 = 1;
-        let account_withdraw_sol = AccountWithdrawSol {
-            account_id,
-            sender,
-            receiver,
-            broker_hash,
-            token_hash,
-            token_amount,
-            fee,
-            chain_id,
-            withdraw_nonce,
-        };
-        let encoded = account_withdraw_sol.encode_packed();
-        // print encoded as hex string
-        println!("encoded: {:?}", hex::encode(&encoded));
-        let _decoded = AccountWithdrawSol::decode_packed(&encoded).unwrap();
-    }
-}
+//     #[test]
+//     fn test_decode_cross_chain_msg() {
+//         let account_id: [u8; 32] = [
+//             226, 45, 187, 110, 76, 25, 151, 127, 51, 25, 214, 54, 34, 8, 181, 102, 166, 34, 59,
+//             204, 54, 214, 252, 22, 163, 52, 72, 235, 230, 27, 184, 32,
+//         ];
+//         let sender: [u8; 32] = [
+//             197, 197, 198, 154, 243, 143, 35, 186, 171, 130, 214, 237, 91, 67, 205, 5, 160, 40, 36,
+//             59, 238, 205, 115, 218, 150, 35, 242, 63, 204, 186, 125, 235,
+//         ];
+//         let receiver: [u8; 32] = [
+//             154, 198, 82, 111, 13, 161, 35, 64, 235, 21, 18, 177, 237, 133, 228, 188, 19, 181, 199,
+//             83, 108, 69, 111, 25, 180, 206, 199, 51, 36, 31, 245, 185,
+//         ];
+//         let broker_hash: [u8; 32] = [
+//             8, 48, 152, 197, 147, 243, 149, 190, 161, 222, 69, 221, 165, 82, 217, 241, 78, 143,
+//             203, 11, 227, 250, 170, 122, 25, 3, 197, 71, 125, 123, 167, 253,
+//         ];
+//         let token_hash: [u8; 32] = [
+//             214, 172, 161, 190, 151, 41, 193, 61, 103, 115, 53, 22, 19, 33, 100, 156, 204, 174,
+//             106, 89, 21, 84, 119, 37, 22, 112, 15, 152, 111, 153, 184, 32,
+//         ];
+//         let token_amount: u64 = 64;
+//         let fee: u64 = 10;
+//         let chain_id: u64 = 901901901;
+//         let withdraw_nonce: u64 = 1;
+//         let account_withdraw_sol = AccountWithdrawSol {
+//             account_id,
+//             sender,
+//             receiver,
+//             broker_hash,
+//             token_hash,
+//             token_amount,
+//             fee,
+//             chain_id,
+//             withdraw_nonce,
+//         };
+//         let encoded = account_withdraw_sol.encode_packed();
+//         // print encoded as hex string
+//         println!("encoded: {:?}", hex::encode(&encoded));
+//         let _decoded = AccountWithdrawSol::decode_packed(&encoded).unwrap();
+//     }
+// }

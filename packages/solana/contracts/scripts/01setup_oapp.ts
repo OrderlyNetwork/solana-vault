@@ -1,60 +1,56 @@
 import * as anchor from "@coral-xyz/anchor";
-import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
+import { SystemProgram, Transaction } from "@solana/web3.js";
 import { OftTools } from "@layerzerolabs/lz-solana-sdk-v2";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
-import { getLzReceiveTypesPda, getOAppConfigPda, getPeerPda, getEventAuthorityPda, getOAppRegistryPda, setAnchor, getTokenHash, getUSDCAddress, getTokenPda, getVaultOwnerPda } from "./utils";
-import { DST_EID, ENDPOINT_PROGRAM_ID, PEER_ADDRESS, LZ_RECEIVE_GAS, LZ_COMPOSE_GAS, LZ_COMPOSE_VALUE, LZ_RECEIVE_VALUE } from "./constants";
+import * as utils from "./utils";
+import * as constants from "./constants";
 
-import OAppIdl from "../target/idl/solana_vault.json";
-import { SolanaVault } from "../target/types/solana_vault";
-const OAPP_PROGRAM_ID = new PublicKey(OAppIdl.metadata.address);
-const OAppProgram = anchor.workspace.SolanaVault as anchor.Program<SolanaVault>;
+const [provider, wallet, rpc] = utils.setAnchor();
+const ENV = utils.getEnv();
+const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider);  
 
-const [provider, wallet, rpc] = setAnchor();
 
-const oappConfigPda = getOAppConfigPda(OAPP_PROGRAM_ID);
+const DST_EID = utils.getDstEid(ENV);
+
+const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
 console.log("OApp Config PDA:", oappConfigPda.toBase58());
 
-const lzReceiveTypesPda = getLzReceiveTypesPda(OAPP_PROGRAM_ID, oappConfigPda);
+const lzReceiveTypesPda = utils.getLzReceiveTypesPda(OAPP_PROGRAM_ID, oappConfigPda);
 console.log("LZ Receive Types PDA:", lzReceiveTypesPda.toBase58());
 
-const peerPda = getPeerPda(OAPP_PROGRAM_ID, oappConfigPda, DST_EID);
+const accountListPda = utils.getAccountListPda(OAPP_PROGRAM_ID, oappConfigPda);
+
+const peerPda = utils.getPeerPda(OAPP_PROGRAM_ID, oappConfigPda, DST_EID);
 console.log("Peer PDA:", peerPda.toBase58());
 
-const eventAuthorityPda = getEventAuthorityPda();
+const eventAuthorityPda = utils.getEventAuthorityPda();
 console.log("Event Authority PDA:", eventAuthorityPda.toBase58());
 
-const oappRegistryPda = getOAppRegistryPda(oappConfigPda);
+const oappRegistryPda = utils.getOAppRegistryPda(oappConfigPda);
 console.log("OApp Registry PDA:", oappRegistryPda.toBase58());
 
-const vaultOwnerPda = getVaultOwnerPda(OAPP_PROGRAM_ID);
+const vaultOwnerPda = utils.getVaultOwnerPda(OAPP_PROGRAM_ID);
 console.log("Owner PDA:", vaultOwnerPda.toBase58());
-
-
 
 async function setup() {
     console.log("Setting up OApp...");
-    const tokenSymble = "USDC";
-    const tokenHash = getTokenHash(tokenSymble);
-    const codedTokenHash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'));
-    const mintAccount = await getUSDCAddress(provider, wallet, rpc);
 
     const ixInitOapp = await OAppProgram.methods.initOapp({
         admin: wallet.publicKey,
-        endpointProgram: ENDPOINT_PROGRAM_ID,
-        usdcHash: codedTokenHash,
-        usdcMint: mintAccount
+        accountList: accountListPda,
+        endpointProgram: constants.ENDPOINT_PROGRAM_ID,
     }).accounts({
         payer: wallet.publicKey,
         oappConfig: oappConfigPda,
-        vaultOwner: vaultOwnerPda,
+        lzReceiveTypes: lzReceiveTypesPda,
+        accountList: accountListPda,
         systemProgram: SystemProgram.programId
     }).remainingAccounts(
         [
             {
                 isSigner: false,
                 isWritable: false,
-                pubkey: ENDPOINT_PROGRAM_ID,
+                pubkey: constants.ENDPOINT_PROGRAM_ID,
             },
             {
                 isSigner: true,
@@ -84,18 +80,25 @@ async function setup() {
             {
                 isSigner: false,
                 isWritable: false,
-                pubkey: ENDPOINT_PROGRAM_ID
+                pubkey: constants.ENDPOINT_PROGRAM_ID
             },
         ]
     ).instruction();
     
-    const txInitOapp = new Transaction().add(ixInitOapp);
-    const sigInitOapp = await provider.sendAndConfirm(txInitOapp, [wallet.payer]);
-    console.log("Init OApp transaction confirmed:", sigInitOapp);
+    try {
+        const txInitOapp = new Transaction().add(ixInitOapp);
+        const sigInitOapp = await provider.sendAndConfirm(txInitOapp, [wallet.payer]);
+        console.log("Init OApp transaction confirmed:", sigInitOapp);
+        // sleep for 5 seconds to make sure the OApp is initialized
+        await new Promise(resolve => setTimeout(resolve, 5000));
+    } catch (e) {
+        console.log("OApp already initialized");
+    }
 
+    const peerAddress = utils.getPeerAddress(ENV);
     const ixSetPeer = await OAppProgram.methods.setPeer({
         dstEid: DST_EID,
-        peer: Array.from(PEER_ADDRESS)
+        peer: Array.from(peerAddress)
     }).accounts({
         admin: wallet.publicKey,
         peer: peerPda,
@@ -107,18 +110,21 @@ async function setup() {
     const txSetPeer = new Transaction().add(ixSetPeer);
     const sigSetPeer = await provider.sendAndConfirm(txSetPeer, [wallet.payer]);
     console.log("Set Peer transaction confirmed:", sigSetPeer);
+    // sleep for 5 seconds to make sure the peer is set
+    await new Promise(resolve => setTimeout(resolve, 5000));
 
     const ixSetOption = await OftTools.createSetEnforcedOptionsIx(
         wallet.publicKey,
         oappConfigPda,
         DST_EID,
-        Options.newOptions().addExecutorLzReceiveOption(LZ_RECEIVE_GAS, LZ_RECEIVE_VALUE).toBytes(),
-        Options.newOptions().addExecutorLzReceiveOption(LZ_RECEIVE_GAS, LZ_RECEIVE_VALUE).addExecutorComposeOption(0, LZ_COMPOSE_GAS, LZ_COMPOSE_VALUE).toBytes(),
+        Options.newOptions().addExecutorLzReceiveOption(constants.LZ_RECEIVE_GAS, constants.LZ_RECEIVE_VALUE).addExecutorOrderedExecutionOption().toBytes(),
+        Options.newOptions().addExecutorLzReceiveOption(constants.LZ_RECEIVE_GAS, constants.LZ_RECEIVE_VALUE).addExecutorComposeOption(0, constants.LZ_COMPOSE_GAS, constants.LZ_COMPOSE_VALUE).toBytes(),
         OAPP_PROGRAM_ID
     )
 
     const txSetOption = await provider.sendAndConfirm(new anchor.web3.Transaction().add(ixSetOption), [wallet.payer]);
     console.log("Transaction to set options:", txSetOption);
+    // sleep for 5 seconds to make sure the options are set
 }
 
 
