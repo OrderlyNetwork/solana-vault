@@ -1,13 +1,15 @@
 import * as anchor from "@coral-xyz/anchor";
 import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
-
+import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
 import { OftTools, EndpointProgram, extractEventFromTransactionSignature, lzReceive, getLzReceiveAccounts, LzReceiveParams } from "@layerzerolabs/lz-solana-sdk-v2";
 import { Options, Packet } from "@layerzerolabs/lz-v2-utilities";
+import { encode } from 'bs58'
 import * as utils from "./utils";
 import * as constants from "./constants";
 
 const [provider, wallet, rpc] = utils.setAnchor();
 const ENV = utils.getEnv();
+const USDC_MINT = utils.getUSDCAddress(ENV)
 const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider); 
 
 
@@ -16,7 +18,7 @@ async function callLzReceive() {
     // const lzReceiveAlertSig = "5zMstQM8UgLtBwD46EEChepXBz27fuHs8ded5tVwNqa6nsEMePZasJuTeQH6wkzmgG8vMoFs4qcoHBMLJSmBmhak";
 
     const lzReceiveAlertSigs = [
-     "3yzZrT2vJjvuwBupuNf3UApvwFrKQTnBxHrNiUTecwq23pXguUcyrcCmDrDZHtCxmTT8dmgvgA2FbRNRjBuxvNLA"
+     "3s2kvgUqgNuqL4BuADUw5Z46Yx81foPnoqPeqz7UfYyBKp6ZTctN7YvxQV2z7ENSeR2ywpukn2JnM4VNvxA9npEJ"
     ]
     
     for (const alertSig of lzReceiveAlertSigs) {
@@ -39,8 +41,19 @@ async function callLzReceive() {
         payload: '',
       }
   
-      console.log(receivePacket)
-  
+     
+      console.log()
+      const receiverAccount = encode(Array.from(Buffer.from(receivePacket.message.slice(132, 132+64), 'hex')))
+      console.log(`receiver account ${receiverAccount}`)
+      const receiverATA = await getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        wallet.payer,
+        USDC_MINT,
+        new PublicKey(receiverAccount)
+      )
+
+      console.log(`receiver ata: `, receiverATA.address)
+    
       const ixLzReceive = await lzReceive(provider.connection, wallet.payer.publicKey,receivePacket);
       utils.delay(ENV);
       const txLzReceive = new Transaction().add(ixLzReceive);
