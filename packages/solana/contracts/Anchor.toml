@@ -42,6 +42,7 @@ test = "yarn run ts-mocha -b -p ./tsconfig.json -t 1000000 tests/**/*.test.ts"
 transfer_admin = "yarn run ts-node scripts/transfer_admin.ts"
 lz_receive = "yarn run ts-node scripts/call_lzreceive.ts"
 ata_owner = "yarn run ts-node scripts/transfer_ata_owner.ts"
+close_ata = "yarn run ts-node scripts/close_ata.ts"
 
 [test]
 startup_wait = 5000

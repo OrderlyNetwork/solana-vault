@@ -1,5 +1,6 @@
 use crate::errors::{OAppError, VaultError};
-use crate::events::{FrozenWithdrawn, VaultWithdrawn};
+use crate::events::{EmptyATA, FrozenWithdrawn, VaultWithdrawn};
+use crate::get_account_id;
 use crate::instructions::{to_bytes32, OAppLzReceiveParams};
 use crate::instructions::{
     LzMessage, MsgType, BROKER_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED,
@@ -49,9 +50,9 @@ pub struct OAppLzReceive<'info> {
     #[account()]
     pub receiver: AccountInfo<'info>,
 
-    /// CHECK
+    /// UNCHECKED
     #[account(mut)]
-    pub receiver_token_account: Account<'info, TokenAccount>,
+    pub receiver_token_account: UncheckedAccount<'info>,
 
     #[account(
         mut,
@@ -67,8 +68,11 @@ pub struct OAppLzReceive<'info> {
     )]
     pub vault_token_account: Account<'info, TokenAccount>,
 
+    #[account(mut)]
+    pub admin_token_account: Account<'info, TokenAccount>,
+
     pub token_program: Program<'info, Token>,
-    // pub associated_token_program: Program<'info, AssociatedToken>,  // should apply this after message shrink
+    // pub associated_token_program: Program<'info, AssociatedToken>, // should apply this after message shrink
     // pub system_program: Program<'info, System>,
 }
 
@@ -77,6 +81,16 @@ impl<'info> OAppLzReceive<'info> {
         let cpi_accounts = Transfer {
             from: self.vault_token_account.to_account_info(),
             to: self.receiver_token_account.to_account_info(),
+            authority: self.vault_authority.to_account_info(),
+        };
+        let cpi_program = self.token_program.to_account_info();
+        CpiContext::new(cpi_program, cpi_accounts)
+    }
+
+    fn save_token_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
+        let cpi_accounts = Transfer {
+            from: self.vault_token_account.to_account_info(),
+            to: self.admin_token_account.to_account_info(),
             authority: self.vault_authority.to_account_info(),
         };
         let cpi_program = self.token_program.to_account_info();
@@ -146,7 +160,7 @@ impl<'info> OAppLzReceive<'info> {
             );
             require!(
                 receiver_ata == ctx.accounts.receiver_token_account.key(),
-                OAppError::InvalidATA
+                OAppError::InvalidReceiverTokenAccount,
             );
 
             // check if the broker is allowed
@@ -163,8 +177,39 @@ impl<'info> OAppLzReceive<'info> {
 
             let amount_to_transfer = withdraw_params.token_amount - withdraw_params.fee;
             let vault_withdraw_params: VaultWithdrawParams = withdraw_params.into();
+            if ctx.accounts.receiver_token_account.data_is_empty() {
+                emit!(EmptyATA {
+                    account_id: vault_withdraw_params.account_id,
+                    receiver: vault_withdraw_params.receiver,
+                    receiver_token_account: ctx.accounts.receiver_token_account.key().to_bytes(),
+                    withdraw_nonce: vault_withdraw_params.withdraw_nonce,
+                });
 
-            if ctx.accounts.receiver_token_account.is_frozen() {
+                require!(
+                    ctx.accounts.admin_token_account.key()
+                        == get_associated_token_address(
+                            &ctx.accounts.oapp_config.admin.key(),
+                            &ctx.accounts.token_mint.key()
+                        ),
+                    OAppError::InvalidAdminTokenAccount
+                );
+
+                transfer(
+                    ctx.accounts
+                        .save_token_ctx()
+                        .with_signer(&[&vault_authority_seeds[..]]),
+                    amount_to_transfer,
+                )?;
+                emit!(Into::<VaultWithdrawn>::into(vault_withdraw_params.clone()));
+
+                return Ok(());
+            }
+
+            let ata_data: &Vec<u8> = &(ctx.accounts.receiver_token_account.data).borrow().to_vec();
+
+            let ata_account = TokenAccount::try_deserialize(&mut &ata_data[..]).unwrap();
+
+            if ata_account.is_frozen() {
                 emit!(Into::<FrozenWithdrawn>::into(vault_withdraw_params.clone()));
             } else {
                 transfer(
@@ -185,7 +230,7 @@ impl<'info> OAppLzReceive<'info> {
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct AccountWithdrawSol {
-    pub account_id: [u8; 32],
+    // pub account_id: [u8; 32],
     pub sender: [u8; 32],
     pub receiver: [u8; 32],
     pub broker_hash: [u8; 32],
@@ -200,7 +245,7 @@ pub struct AccountWithdrawSol {
 impl AccountWithdrawSol {
     pub fn encode(&self) -> Vec<u8> {
         let mut encoded = Vec::new();
-        encoded.extend_from_slice(&self.account_id);
+        // encoded.extend_from_slice(&self.account_id);
         encoded.extend_from_slice(&self.sender);
         encoded.extend_from_slice(&self.receiver);
         encoded.extend_from_slice(&self.broker_hash);
@@ -223,20 +268,20 @@ impl AccountWithdrawSol {
         Ok(Pubkey::new_from_array(withdraw_params.receiver))
     }
 
-    pub fn get_token_hash(encoded: &[u8]) -> Result<[u8; 32]> {
-        // Decode the LzMessage to get the payload
-        let message = LzMessage::decode(encoded)?;
+    // pub fn get_token_hash(encoded: &[u8]) -> Result<[u8; 32]> {
+    //     // Decode the LzMessage to get the payload
+    //     let message = LzMessage::decode(encoded)?;
 
-        // Decode the payload
-        let withdraw_params = AccountWithdrawSol::decode_packed(&message.payload)?;
+    //     // Decode the payload
+    //     let withdraw_params = AccountWithdrawSol::decode_packed(&message.payload)?;
 
-        // Return the receiver address as a Pubkey
-        Ok(withdraw_params.token_hash)
-    }
+    //     // Return the receiver address as a Pubkey
+    //     Ok(withdraw_params.token_hash)
+    // }
 
     pub fn encode_packed(&self) -> Vec<u8> {
         let mut encoded = Vec::new();
-        encoded.extend_from_slice(&self.account_id);
+        // encoded.extend_from_slice(&self.account_id);
         encoded.extend_from_slice(&self.sender);
         encoded.extend_from_slice(&self.receiver);
         encoded.extend_from_slice(&self.broker_hash);
@@ -250,8 +295,8 @@ impl AccountWithdrawSol {
 
     pub fn decode_packed(encoded: &[u8]) -> Result<Self> {
         let mut offset = 0;
-        let account_id = encoded[offset..offset + 32].try_into().unwrap();
-        offset += 32;
+        // let account_id = encoded[offset..offset + 32].try_into().unwrap();
+        // offset += 32;
         let sender = encoded[offset..offset + 32].try_into().unwrap();
         offset += 32;
         let receiver = encoded[offset..offset + 32].try_into().unwrap();
@@ -269,7 +314,7 @@ impl AccountWithdrawSol {
         offset += 8;
         let withdraw_nonce = u64::from_be_bytes(encoded[offset..offset + 8].try_into().unwrap());
         Ok(Self {
-            account_id,
+            // account_id,
             sender,
             receiver,
             broker_hash,
@@ -283,8 +328,8 @@ impl AccountWithdrawSol {
 
     pub fn decode(encoded: &[u8]) -> Result<Self> {
         let mut offset = 0;
-        let account_id = encoded[offset..offset + 32].try_into().unwrap();
-        offset += 32;
+        // let account_id = encoded[offset..offset + 32].try_into().unwrap();
+        // offset += 32;
         let sender = encoded[offset..offset + 32].try_into().unwrap();
         offset += 32;
         let receiver = encoded[offset..offset + 32].try_into().unwrap();
@@ -304,7 +349,7 @@ impl AccountWithdrawSol {
         let withdraw_nonce =
             u64::from_be_bytes(encoded[offset + 24..offset + 32].try_into().unwrap());
         Ok(Self {
-            account_id,
+            // account_id,
             sender,
             receiver,
             broker_hash,
@@ -320,7 +365,10 @@ impl AccountWithdrawSol {
 impl From<AccountWithdrawSol> for VaultWithdrawParams {
     fn from(account_withdraw_sol: AccountWithdrawSol) -> VaultWithdrawParams {
         VaultWithdrawParams {
-            account_id: account_withdraw_sol.account_id,
+            account_id: get_account_id(
+                &account_withdraw_sol.sender,
+                &account_withdraw_sol.broker_hash,
+            ), // account_withdraw_sol.account_id
             sender: account_withdraw_sol.sender,
             receiver: account_withdraw_sol.receiver,
             broker_hash: account_withdraw_sol.broker_hash,
