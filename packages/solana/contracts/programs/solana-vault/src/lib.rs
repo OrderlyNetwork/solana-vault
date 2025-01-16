@@ -9,7 +9,7 @@ use instructions::*;
 
 use oapp::endpoint::MessagingReceipt;
 
-declare_id!("ErBmAD61mGFKvrFNaTJuxoPwqrS8GgtwtqJTJVjFWx9Q");
+declare_id!("9shwxWDUNhtwkHocsUAmrNAQfBH2DHh4njdAEdHZZkF2");
 
 #[program]
 pub mod solana_vault {
