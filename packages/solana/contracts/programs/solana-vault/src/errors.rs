@@ -28,4 +28,6 @@ pub enum OAppError {
     RateLimitExceeded,
     WithdrawFailed,
     InvalidInboundNonce,
+    InvalidReceiverTokenAccount,
+    InvalidAdminTokenAccount,
 }

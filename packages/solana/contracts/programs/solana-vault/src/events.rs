@@ -37,6 +37,14 @@ pub struct Withdrawn {
 }
 
 #[event]
+pub struct EmptyATA {
+    pub account_id: [u8; 32],
+    pub receiver: [u8; 32],
+    pub receiver_token_account: [u8; 32],
+    pub withdraw_nonce: u64,
+}
+
+#[event]
 pub struct VaultDeposited {
     pub account_id: [u8; 32],
     pub broker_hash: [u8; 32],
