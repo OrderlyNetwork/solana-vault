@@ -10,7 +10,7 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider);
 
 async function setAccountList() {
     const multisig = utils.getMultisig(ENV);
-    const useMultisig = false;
+    const useMultisig = true;
     const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
     const lzReceiveTypesAccountsPda = utils.getLzReceiveTypesPda(OAPP_PROGRAM_ID, oappConfigPda);
     const accountListPda = utils.getAccountListPda(OAPP_PROGRAM_ID, oappConfigPda);
@@ -23,7 +23,7 @@ async function setAccountList() {
     const params = {
         accountList: accountListPda,
         usdcPda: tokenPda,
-        usdcMint: utils.getUSDCAddress(rpc),
+        usdcMint: utils.getUSDCAddress(ENV),
         woofiProPda: brokerPda,
     }
     const ixSetAccountList = await OAppProgram.methods.setAccountList(params).accounts({
