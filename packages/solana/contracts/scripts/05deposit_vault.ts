@@ -22,7 +22,7 @@ async function deposit() {
     // flag: 9TJTNxsieXTSWebMRb5KbMiDDwfLJAeWa76NcPjbao42, 
     // tony: 9aFZUMoeVRvUnaE34RsHxpcJXvFMPPSWrG3QDNm6Sskf,
     // eric: 4NQEN28HJgWSRKeXB6Apcz6Fn9GHEH1f4Qjhpf4Vwy6B, 7aabN75pTupDnFRWmMQwrgprn1uLVdAr7tzP61yKbGwD
-    // const receiverAddress = new PublicKey("WTziovjBdbnqs42JHQ7g5uZTPoYwJPXH8k5RSnUhtnp");  
+    // const receiverAddress = new PublicKey("95TV6nFfXTec2cTgi3Vf3YB6BsRkYbY51sTii3bi78sb");  
 
     const receiverAddress = senderAddress;
     const usdc = utils.getUSDCAddress(ENV);
@@ -60,7 +60,7 @@ async function deposit() {
         brokerHash: codedBrokerHash,
         tokenHash:  codedTokenHash,
         userAddress: Array.from(receiverAddress.toBuffer()),
-        tokenAmount: new anchor.BN(10_000_000),
+        tokenAmount: new anchor.BN(4_000_000),
     };
 
 
@@ -106,9 +106,13 @@ async function deposit() {
     const ixAddComputeBudget = ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 });
 
     console.log("Deposit Entry:");
+
+    const computeBudgetIx = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: 40000, // set the total priority fee
+      });
     
     await utils.createAndSendV0TxWithTable(
-        [ixDepositEntry, ixAddComputeBudget],
+        [ixDepositEntry, ixAddComputeBudget, computeBudgetIx],
         provider,
         wallet,
         lookupTableList,

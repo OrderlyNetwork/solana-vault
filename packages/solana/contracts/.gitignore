@@ -8,4 +8,3 @@ test-ledger
 .yarn
 
 programs/uln/src/lib.rs
-programs/solana-vault/src/lib.rs

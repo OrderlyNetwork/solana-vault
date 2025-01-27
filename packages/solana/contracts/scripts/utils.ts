@@ -998,6 +998,6 @@ export function getMultisig(ENV: String) {
 export async function delay(ENV: String) {
     if (ENV === "MAIN") {
         // sleep for 5 seconds to wait for the lookup table to be updated
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await new Promise(resolve => setTimeout(resolve, 1000));
     }
 }

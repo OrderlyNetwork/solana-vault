@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { PublicKey, SystemProgram, Transaction , ConfirmOptions} from "@solana/web3.js";
+import { PublicKey, SystemProgram, Transaction , ConfirmOptions, ComputeBudgetProgram} from "@solana/web3.js";
 import { getOrCreateAssociatedTokenAccount, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { OftTools, EndpointProgram, extractEventFromTransactionSignature, lzReceive, getLzReceiveAccounts, LzReceiveParams } from "@layerzerolabs/lz-solana-sdk-v2";
 import { Options, Packet } from "@layerzerolabs/lz-v2-utilities";
@@ -16,16 +16,9 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider);
 
 async function callLzReceive() {
     console.log(OAPP_PROGRAM_ID.toString());
-    // const lzReceiveAlertSig = "5zMstQM8UgLtBwD46EEChepXBz27fuHs8ded5tVwNqa6nsEMePZasJuTeQH6wkzmgG8vMoFs4qcoHBMLJSmBmhak";
-    // 456: 
-  
-    // 
-    // 
-    // 
-    // 
-    // 
+
     const lzReceiveAlertSigs = [
-      "63RqgBa5taSzjrTDuDgDGJF4aeDkQPoS2dCbMHbVrwgtU9rtFYvXRmsiGZ1e3C1CaFi2JVXzafBucryiKnFtncbu"
+      "2NyaPtbMq9WS3z66wXoQzF7nKPuG32yoxCruSBBfNg8ijeMkXNEuCt9m9K61pPcPHzJyMYvikrDxan66y8X1z6kj"
     ]
     
     for (const alertSig of lzReceiveAlertSigs) {
@@ -49,31 +42,16 @@ async function callLzReceive() {
       
       console.log(receivePacket);
 
-      const receiverAccount = encode(Array.from(Buffer.from(receivePacket.message.slice(132, 132+64), 'hex')))
-      // console.log(`receiver account ${receiverAccount}`)
-      // const receiverATA = await getAssociatedTokenAddressSync(
-      //  USDC_MINT,
-      //   new PublicKey(receiverAccount)
-      // )
-
-      // console.log(`receiver ata: `, receiverATA.toBase58())
-
-      // const receiverAccount = encode(Array.from(Buffer.from(receivePacket.message.slice(132, 132+64), 'hex')))
-      // console.log(`receiver account ${receiverAccount}`)
-      
-      const receiverATA = await getOrCreateAssociatedTokenAccount(
-        provider.connection,
-        wallet.payer,
-        USDC_MINT,
-        new PublicKey(receiverAccount)
-      )
-
-      console.log(`receiver ata: `, receiverATA.address)
+      const receiverAccount = encode(Array.from(Buffer.from(receivePacket.message.slice(100, 100+64), 'hex')))
+      console.log(`receiver account ${receiverAccount}`)        // console.log(`receiver ata: `, receiverATA.address)
 
       const ixLzReceive = await lzReceive(provider.connection, wallet.payer.publicKey,receivePacket, undefined, "processed");
+      const ixAddComputeBudget = ComputeBudgetProgram.setComputeUnitLimit({ units: 100_000 });
       // utils.delay(ENV);
-      
-      const txLzReceive = new Transaction().add(ixLzReceive);
+      const ixComputeBudget = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: 10000000,   // set priority fee
+      });
+      const txLzReceive = new Transaction().add(ixLzReceive, ixAddComputeBudget, ixComputeBudget);
         const option: ConfirmOptions = {
           skipPreflight: true,
           commitment: 'processed',
@@ -85,20 +63,6 @@ async function callLzReceive() {
       let counter = 0;
       const sigLzReceive = await provider.sendAndConfirm(txLzReceive, [wallet.payer], option);
       console.log("LzReceive transaction confirmed:", sigLzReceive);
-      // while (retry) {
-        
-      //   try {
-      //     const sigLzReceive = await provider.sendAndConfirm(txLzReceive, [wallet.payer], option);
-      //     console.log("LzReceive transaction confirmed:", sigLzReceive);
-      //     retry = false;
-      //   } catch(e) {
-      //     console.error("Error calling lzReceive", e);
-      //     console.log(`Retry ${++counter}`);
-      //   }
-     
-      // }
-      // sleep 2 seconds
-      // utils.delay(ENV);
     }
 }
 
