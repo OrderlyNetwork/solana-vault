@@ -123,7 +123,8 @@ export const STAGING_BROKERS = [
     // "habit",
     // "funnymoney",
     // "boom",
-    "saros",
+    //"saros",
+    "cru",
     ];
 export const MAIN_BROKERS = [
     // "root",
@@ -193,7 +194,10 @@ export const MAIN_BROKERS = [
 
     // "habit",
     // "funnymoney",
-    "boom",
+    //"boom",
+    "saros",
+    "cryptotraders",
+    "cru",
 ]
 
 
