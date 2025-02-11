@@ -125,7 +125,8 @@ export const STAGING_BROKERS = [
     // "boom",
     //"saros",
     //"cru",
-    "orbidex",
+    //"orbidex",
+    "pump_space",
     ];
 export const MAIN_BROKERS = [
     // "root",
@@ -199,7 +200,8 @@ export const MAIN_BROKERS = [
     //"saros",
     //"cryptotraders",
     //"cru",
-    "orbidex",
+    //"orbidex",
+    "pump_space",
 ]
 
 
