@@ -129,7 +129,8 @@ export const STAGING_BROKERS = [
     //"pump_space",
     //"coin98",
     //"jojo",
-    "navigator",
+    //"navigator",
+    "pegasus",
     ];
 export const MAIN_BROKERS = [
     // "root",
@@ -207,7 +208,8 @@ export const MAIN_BROKERS = [
     //"pump_space",
     //"coin98",
     //"jojo",
-    "navigator",
+    //"navigator",
+    "pegasus",
 ]
 
 
