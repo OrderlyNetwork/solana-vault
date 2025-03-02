@@ -6,5 +6,3 @@ target
 node_modules
 test-ledger
 .yarn
-
-programs/uln/src/lib.rs
