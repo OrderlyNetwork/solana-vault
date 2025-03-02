@@ -262,14 +262,14 @@ export function getMessageLibInfoPda(msgLibPda: PublicKey, programId?: PublicKey
     )[0];
 }
 
-export function getPayloadHashPda(sender: PublicKey, srcEid: number, receiver: PublicKey, nonce: bigint): PublicKey {
+export function getPayloadHashPda(receiver: PublicKey, srcEid: number, sender: PublicKey, nonce: bigint): PublicKey {
     const bufferSrcEid = Buffer.alloc(4)
     bufferSrcEid.writeUInt32BE(srcEid)
     const bufferNonce = Buffer.alloc(8)
     bufferNonce.writeBigUInt64BE(nonce)
 
     return PublicKey.findProgramAddressSync(
-        [Buffer.from("PayloadHash"), sender.toBuffer(), bufferSrcEid, receiver.toBuffer(), bufferNonce],
+        [Buffer.from("PayloadHash"), receiver.toBuffer(), bufferSrcEid, sender.toBuffer(), bufferNonce],
         constants.ENDPOINT_PROGRAM_ID
     )[0]
 }
@@ -325,7 +325,6 @@ export function getProgramID(ENV: String): PublicKey {
 export async function createAndSendV0Tx(txInstructions: TransactionInstruction[], provider: anchor.AnchorProvider, wallet: anchor.Wallet) {
     // Step 1 - Fetch Latest Blockhash
     let latestBlockhash = await provider.connection.getLatestBlockhash('finalized');
-
     // Step 2 - Generate Transaction Message
     const messageV0 = new TransactionMessage({
         payerKey: wallet.publicKey,
