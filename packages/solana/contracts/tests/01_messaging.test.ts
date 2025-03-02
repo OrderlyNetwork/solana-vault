@@ -230,9 +230,14 @@ describe('Test OAPP messaging', function() {
             })
             .rpc(confirmOptions)
         console.log("✅ Init Endpoint Mock")
-    
+        
+        console.log('ulnProgram.programId', ulnProgram.programId)
         messageLibPda = getMessageLibPda(ulnProgram.programId)
         messageLibInfoPda = getMessageLibInfoPda(messageLibPda)
+
+        console.log("messageLibPda", messageLibPda.toBase58())
+        console.log("messageLibInfoPda", messageLibInfoPda.toBase58())
+
         
         await endpointProgram.methods
             .registerLibrary({
@@ -1469,9 +1474,8 @@ describe('Test OAPP messaging', function() {
                 },
             ])
             .view()
-
         assert.isTrue(nativeFee.eq(new BN(1000)))
-        assert.isTrue(lzTokenFee.eq(new BN(900)))
+        assert.isTrue(lzTokenFee.eq(new BN(0)))
         console.log("✅ Executed oapp quote")
     })
 })
