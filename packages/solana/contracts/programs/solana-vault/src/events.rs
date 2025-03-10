@@ -37,7 +37,7 @@ pub struct Withdrawn {
 }
 
 #[event]
-pub struct EmptyATA {
+pub struct CreatedATA {
     pub account_id: [u8; 32],
     pub receiver: [u8; 32],
     pub receiver_token_account: [u8; 32],
