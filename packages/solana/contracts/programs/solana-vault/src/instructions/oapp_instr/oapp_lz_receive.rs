@@ -1,5 +1,5 @@
 use crate::errors::{OAppError, VaultError};
-use crate::events::{EmptyATA, FrozenWithdrawn, VaultWithdrawn};
+use crate::events::{CreatedATA, FrozenWithdrawn, VaultWithdrawn};
 use crate::get_account_id;
 use crate::instructions::{to_bytes32, OAppLzReceiveParams};
 use crate::instructions::{
@@ -7,7 +7,7 @@ use crate::instructions::{
 };
 use crate::state::{AllowedBroker, AllowedToken, OAppConfig, Peer, VaultAuthority};
 use anchor_lang::prelude::*;
-use anchor_spl::associated_token::{get_associated_token_address, AssociatedToken};
+use anchor_spl::associated_token::{create, get_associated_token_address, AssociatedToken, Create};
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
 use oapp::endpoint::{cpi::accounts::Clear, instructions::ClearParams, ConstructCPIContext};
 
@@ -42,7 +42,7 @@ pub struct OAppLzReceive<'info> {
 
     /// CHECK
     #[account(
-        // mint::token_program = token_program
+        mint::token_program = token_program
     )]
     pub token_mint: Account<'info, Mint>,
 
@@ -64,16 +64,13 @@ pub struct OAppLzReceive<'info> {
     #[account(
         mut,
         associated_token::mint = token_mint,
-        associated_token::authority = vault_authority
+        associated_token::authority = vault_authority,
     )]
     pub vault_token_account: Account<'info, TokenAccount>,
 
-    #[account(mut)]
-    pub admin_token_account: Account<'info, TokenAccount>,
-
     pub token_program: Program<'info, Token>,
-    // pub associated_token_program: Program<'info, AssociatedToken>, // should apply this after message shrink
-    // pub system_program: Program<'info, System>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
 }
 
 impl<'info> OAppLzReceive<'info> {
@@ -81,16 +78,6 @@ impl<'info> OAppLzReceive<'info> {
         let cpi_accounts = Transfer {
             from: self.vault_token_account.to_account_info(),
             to: self.receiver_token_account.to_account_info(),
-            authority: self.vault_authority.to_account_info(),
-        };
-        let cpi_program = self.token_program.to_account_info();
-        CpiContext::new(cpi_program, cpi_accounts)
-    }
-
-    fn save_token_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
-        let cpi_accounts = Transfer {
-            from: self.vault_token_account.to_account_info(),
-            to: self.admin_token_account.to_account_info(),
             authority: self.vault_authority.to_account_info(),
         };
         let cpi_program = self.token_program.to_account_info();
@@ -172,46 +159,41 @@ impl<'info> OAppLzReceive<'info> {
             if allowed_broker != ctx.accounts.broker_pda.key() || !ctx.accounts.broker_pda.allowed {
                 return Err(VaultError::BrokerNotAllowed.into());
             }
-            let vault_authority_seeds =
-                &[VAULT_AUTHORITY_SEED, &[ctx.accounts.vault_authority.bump]];
 
             let amount_to_transfer = withdraw_params.token_amount - withdraw_params.fee;
             let vault_withdraw_params: VaultWithdrawParams = withdraw_params.into();
+
+            // if the receiver_token_account is empty, create a new ATA
             if ctx.accounts.receiver_token_account.data_is_empty() {
-                emit!(EmptyATA {
+                let cpi_accounts = Create {
+                    payer: ctx.accounts.payer.to_account_info(),
+                    associated_token: ctx.accounts.receiver_token_account.to_account_info(),
+                    authority: ctx.accounts.receiver.to_account_info(),
+                    mint: ctx.accounts.token_mint.to_account_info(),
+                    system_program: ctx.accounts.system_program.to_account_info(),
+                    token_program: ctx.accounts.token_program.to_account_info(),
+                };
+                let cpi_ctx = CpiContext::new(
+                    ctx.accounts.associated_token_program.to_account_info(),
+                    cpi_accounts,
+                );
+                create(cpi_ctx)?;
+                emit!(CreatedATA {
                     account_id: vault_withdraw_params.account_id,
                     receiver: vault_withdraw_params.receiver,
                     receiver_token_account: ctx.accounts.receiver_token_account.key().to_bytes(),
                     withdraw_nonce: vault_withdraw_params.withdraw_nonce,
                 });
-
-                require!(
-                    ctx.accounts.admin_token_account.key()
-                        == get_associated_token_address(
-                            &ctx.accounts.oapp_config.admin.key(),
-                            &ctx.accounts.token_mint.key()
-                        ),
-                    OAppError::InvalidAdminTokenAccount
-                );
-
-                transfer(
-                    ctx.accounts
-                        .save_token_ctx()
-                        .with_signer(&[&vault_authority_seeds[..]]),
-                    amount_to_transfer,
-                )?;
-                emit!(Into::<VaultWithdrawn>::into(vault_withdraw_params.clone()));
-
-                return Ok(());
             }
 
             let ata_data: &Vec<u8> = &(ctx.accounts.receiver_token_account.data).borrow().to_vec();
-
             let ata_account = TokenAccount::try_deserialize(&mut &ata_data[..]).unwrap();
 
             if ata_account.is_frozen() {
                 emit!(Into::<FrozenWithdrawn>::into(vault_withdraw_params.clone()));
             } else {
+                let vault_authority_seeds =
+                    &[VAULT_AUTHORITY_SEED, &[ctx.accounts.vault_authority.bump]];
                 transfer(
                     ctx.accounts
                         .transfer_token_ctx()

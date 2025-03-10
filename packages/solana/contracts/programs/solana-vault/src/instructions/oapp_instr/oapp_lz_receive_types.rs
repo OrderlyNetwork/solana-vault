@@ -25,10 +25,9 @@ use crate::BROKER_SEED;
 // 7: receiver_token_account
 // 8: vault_authority
 // 9: vault_token_account
-// 9.1: squads_token_account
 // 10: token_program_id
-// 10.1: associated_token_id  (should be added after payload shrink)
-// 10.2: system_program_id    (should be added after payload shrink)
+// 10.1: associated_token_id
+// 10.2: system_program_id
 // 11: event_authority_account
 // 12: program_id
 // 13..n: accounts for clear
@@ -123,9 +122,6 @@ impl OAppLzReceiveTypes<'_> {
             // account 9
             let vault_token_account = get_associated_token_address(&vault_authority, &token_mint);
 
-            // account 9.1
-            let admin_token_account =
-                get_associated_token_address(&ctx.accounts.oapp_config.admin.key(), &token_mint);
             // account 10
             let token_program_id = TOKEN_PROGRAM_ID;
 
@@ -176,25 +172,20 @@ impl OAppLzReceiveTypes<'_> {
                     is_writable: true,
                 }, // 9
                 LzAccount {
-                    pubkey: admin_token_account,
-                    is_signer: false,
-                    is_writable: true,
-                }, // 9.1
-                LzAccount {
                     pubkey: token_program_id,
                     is_signer: false,
                     is_writable: false,
                 }, // 10
-                // LzAccount {
-                //     pubkey: ASSOCIATED_TOKEN_ID,
-                //     is_signer: false,
-                //     is_writable: false,
-                // }, // 10.1
-                // LzAccount {
-                //     pubkey: system_program_id,
-                //     is_signer: false,
-                //     is_writable: false,
-                // }, // 10.2
+                LzAccount {
+                    pubkey: ASSOCIATED_TOKEN_ID,
+                    is_signer: false,
+                    is_writable: false,
+                }, // 10.1
+                LzAccount {
+                    pubkey: system_program_id,
+                    is_signer: false,
+                    is_writable: false,
+                }, // 10.2
                 LzAccount {
                     pubkey: event_authority_account,
                     is_signer: false,

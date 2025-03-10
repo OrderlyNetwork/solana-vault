@@ -934,7 +934,7 @@ describe('Test OAPP messaging', function() {
                 receiverTokenAccount: attackerDepositWallet.address,
                 vaultAuthority: vaultAuthorityPda,
                 vaultTokenAccount: vaultUSDCAccount.address,
-                adminTokenAccount: adminUSDCAccount.address,
+                // adminTokenAccount: adminUSDCAccount.address,
                 tokenProgram: TOKEN_PROGRAM_ID,
             } 
             await lzReceive(attackerWallet, params, accountsWithInvalidReceiver, nonce)
@@ -983,7 +983,7 @@ describe('Test OAPP messaging', function() {
                 receiverTokenAccount: userMEMEAccount.address,
                 vaultAuthority: vaultAuthorityPda,
                 vaultTokenAccount: vaultMEMEAccount.address,
-                adminTokenAccount: adminUSDCAccount.address,
+                // adminTokenAccount: adminUSDCAccount.address,
                 tokenProgram: TOKEN_PROGRAM_ID,  
             }
             await lzReceive(attackerWallet, params, accountsWithMemeToken, nonce)       
@@ -1028,7 +1028,7 @@ describe('Test OAPP messaging', function() {
                 receiverTokenAccount: userUSDCAccount.address,
                 vaultAuthority: vaultAuthorityPda,
                 vaultTokenAccount: vaultUSDCAccount.address,
-                adminTokenAccount: adminUSDCAccount.address,
+                // adminTokenAccount: adminUSDCAccount.address,
                 tokenProgram: TOKEN_PROGRAM_ID,  
             }
             await lzReceive(attackerWallet, params, accountsWithInvalidBroker, nonce)
@@ -1159,7 +1159,7 @@ describe('Test OAPP messaging', function() {
             receiverTokenAccount: userUSDCAccount.address,
             vaultAuthority: vaultAuthorityPda,
             vaultTokenAccount: vaultUSDCAccount.address,
-            adminTokenAccount: adminUSDCAccount.address,
+            // adminTokenAccount: adminUSDCAccount.address,
             tokenProgram: TOKEN_PROGRAM_ID,
         }
 
@@ -1210,7 +1210,7 @@ describe('Test OAPP messaging', function() {
             receiverTokenAccount: userUSDCAccount.address,
             vaultAuthority: vaultAuthorityPda,
             vaultTokenAccount: vaultUSDCAccount.address,
-            adminTokenAccount: adminUSDCAccount.address,
+            // adminTokenAccount: adminUSDCAccount.address,
             tokenProgram: TOKEN_PROGRAM_ID,
         }
         await lzReceive(wallet.payer, params, accounts, nonce)
@@ -1267,91 +1267,6 @@ describe('Test OAPP messaging', function() {
             newOwner,  
         )
 
-        // try to steal token from squads account
-        try {
-            console.log("🥷 Attacker frontruns to steal USDC from Squads for a closed ATA")
-            // const attackerWallet = Keypair.generate();
-            // await provider.connection.requestAirdrop(attackerWallet.publicKey, 1e9)
-
-            // create usdc account for attacker
-            const attackerDepositWallet = await getOrCreateAssociatedTokenAccount(
-                provider.connection,
-                wallet.payer,
-                USDC_MINT,
-                attackerWallet.publicKey,
-                true
-            )
-            // wait for 1 second
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            const params = {
-                srcEid: ETHEREUM_EID,
-                sender: Array.from(wallet.publicKey.toBytes()),
-                nonce: new BN(nonce),
-                guid: guid,
-                message: msg,
-                extraData: Buffer.from([])
-            }
-
-            await provider.connection.requestAirdrop(attackerWallet.publicKey, 10e9)
-            // console.log(attackerWallet.publicKey.toBase58())
-            const accountsWithInvalidSquads = {
-                payer: attackerWallet.publicKey,
-                oappConfig: oappConfigPda,
-                peer: peerPda,
-                brokerPda: brokerPda,
-                tokenPda: tokenPda,
-                tokenMint: USDC_MINT,
-                receiver: userWallet.publicKey,
-                receiverTokenAccount: userUSDCAccount.address,
-                vaultAuthority: vaultAuthorityPda,
-                vaultTokenAccount: vaultUSDCAccount.address,
-                adminTokenAccount: attackerDepositWallet.address,
-                tokenProgram: TOKEN_PROGRAM_ID,
-            } 
-            await lzReceive(attackerWallet, params, accountsWithInvalidSquads, nonce)
-        } catch(e) {
-            assert.equal(e.error.errorCode.code, "InvalidAdminTokenAccount")
-            console.log("🥷 Attacker failed to steal USDC")
-        }
-
-        console.log("✅ Closed USDC ATA")
-        prevVaultUSDCBalance = await getTokenBalance(provider.connection, vaultUSDCAccount.address)
-
-        // attacker try to steal usdc when the ata is closed
-
-        try {
-            const params = {
-                srcEid: ETHEREUM_EID,
-                sender: Array.from(wallet.publicKey.toBytes()),
-                nonce: new BN(nonce),
-                guid: guid,
-                message: msg,
-                extraData: Buffer.from([])
-            }
-            const accountsWithInvalidAdminTokenAccount = {
-
-                payer: attackerWallet.publicKey,
-                oappConfig: oappConfigPda,
-                peer: peerPda,
-                brokerPda: brokerPda,
-                tokenPda: tokenPda,
-                tokenMint: USDC_MINT,
-                receiver: userWallet.publicKey,
-                receiverTokenAccount: userUSDCAccount.address,
-                vaultAuthority: vaultAuthorityPda,
-                vaultTokenAccount: vaultUSDCAccount.address,
-                adminTokenAccount: attackerUSDCAccount.address,
-                tokenProgram: TOKEN_PROGRAM_ID,
-            }
-
-            await lzReceive(attackerWallet, params, accountsWithInvalidAdminTokenAccount, nonce)
-        } catch(e) {
-            // console.log(e)
-            assert.equal(e.error.errorCode.code, "InvalidAdminTokenAccount")
-            console.log("🥷 Attacker failed to steal USDC from closed ATA ")
-
-        }
         
         params = {
             srcEid: ETHEREUM_EID,
@@ -1372,8 +1287,9 @@ describe('Test OAPP messaging', function() {
             receiverTokenAccount: userUSDCAccount.address,
             vaultAuthority: vaultAuthorityPda,
             vaultTokenAccount: vaultUSDCAccount.address,
-            adminTokenAccount: adminUSDCAccount.address,
             tokenProgram: TOKEN_PROGRAM_ID,
+            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
         }
 
         await mintTokenTo(provider.connection, wallet.payer, usdcMintAuthority, USDC_MINT, vaultUSDCAccount.address, WITHDRAW_AMOUNT)
@@ -1385,10 +1301,11 @@ describe('Test OAPP messaging', function() {
        
         currVaultUSDCBalance = await getTokenBalance(provider.connection, vaultUSDCAccount.address)
         assert.equal(prevVaultUSDCBalance - currVaultUSDCBalance, WITHDRAW_AMOUNT - WITHDRAW_FEE)
-        let currSqaudsBalance = await getTokenBalance(provider.connection, adminUSDCAccount.address)
-        assert.equal(currSqaudsBalance - prevAdminBalance, WITHDRAW_AMOUNT - WITHDRAW_FEE)
 
-        console.log("✅ Executed lzReceive instruction to withdraw USDC to Squads with closed ATA")
+        currUserUSDCBalance = await getTokenBalance(provider.connection, userUSDCAccount.address)
+        assert.equal(currUserUSDCBalance, WITHDRAW_AMOUNT - WITHDRAW_FEE)
+
+        console.log("✅ Executed lzReceive instruction to create empty ATA and withdraw USDC")
     })
 
     
