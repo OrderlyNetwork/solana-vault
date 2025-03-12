@@ -8,7 +8,8 @@ use oapp::endpoint_cpi::LzAccount;
 
 use crate::instructions::AccountWithdrawSol;
 use crate::instructions::{
-    LzMessage, MsgType, ACCOUNT_LIST_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED,
+    get_usdc_hash, LzMessage, MsgType, ACCOUNT_LIST_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED,
+    VAULT_AUTHORITY_SEED,
 };
 use crate::state::{AccountList, OAppConfig};
 use crate::BROKER_SEED;
@@ -96,7 +97,7 @@ impl OAppLzReceiveTypes<'_> {
 
             // account 4
             let (token_pda, _) = Pubkey::find_program_address(
-                &[TOKEN_SEED, withdraw_params.token_hash.as_ref()],
+                &[TOKEN_SEED, get_usdc_hash().as_ref()],
                 ctx.program_id,
             );
 

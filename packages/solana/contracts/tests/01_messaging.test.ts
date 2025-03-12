@@ -756,7 +756,7 @@ describe('Test OAPP messaging', function() {
             wallet.publicKey.toBuffer(),  // sender     
             userWallet.publicKey.toBuffer(),  // receiver
             Buffer.from(brokerHash), 
-            Buffer.from(tokenHash), 
+            // Buffer.from(tokenHash), 
             tokenAmountBuffer,
             feeBuffer,
             chainIdBuffer,
