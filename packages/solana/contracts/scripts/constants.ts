@@ -132,7 +132,10 @@ export const STAGING_BROKERS = [
     //"navigator",
     //"pegasus",
     //"aark",
-    "denx",
+    //"denx",
+    //"kyrrio",
+    //"mode",
+    "yummy",
     ];
 export const MAIN_BROKERS = [
     // "root",
@@ -213,7 +216,10 @@ export const MAIN_BROKERS = [
     //"navigator",
     //"pegasus",
     //"aark",
-    "denx",
+    //"denx",
+    //"kyrrio",
+    //"mode",
+    "yummy",
 ]
 
 
