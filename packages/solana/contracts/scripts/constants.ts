@@ -135,7 +135,8 @@ export const STAGING_BROKERS = [
     //"denx",
     //"kyrrio",
     //"mode",
-    "yummy",
+    //"yummy",
+    "noot",
     ];
 export const MAIN_BROKERS = [
     // "root",
@@ -219,7 +220,8 @@ export const MAIN_BROKERS = [
     //"denx",
     //"kyrrio",
     //"mode",
-    "yummy",
+    //"yummy",
+    "noot",
 ]
 
 
