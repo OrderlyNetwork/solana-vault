@@ -142,7 +142,8 @@ export const STAGING_BROKERS = [
     //"aiw3",
     //"purps",
     //"interlink",
-    "involio"
+    //"involio",
+    "hyperx"
     ];
 export const MAIN_BROKERS = [
     // "root",
@@ -233,7 +234,8 @@ export const MAIN_BROKERS = [
     //"aiw3",
     //"purps",
     //"interlink",
-    "involio"
+    //"involio",
+    "hyperx"
 ]
 
 
