@@ -143,7 +143,9 @@ export const STAGING_BROKERS = [
     //"purps",
     //"interlink",
     //"involio",
-    "hyperx"
+    //"hyperx",
+    //"desk",
+    "ranger"
     ];
 export const MAIN_BROKERS = [
     // "root",
@@ -235,7 +237,8 @@ export const MAIN_BROKERS = [
     //"purps",
     //"interlink",
     //"involio",
-    "hyperx"
+    //"hyperx",
+    "ranger"
 ]
 
 
