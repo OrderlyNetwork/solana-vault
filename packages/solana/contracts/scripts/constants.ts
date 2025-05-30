@@ -148,7 +148,8 @@ export const STAGING_BROKERS = [
     //"ranger",
     //"luma",
     //"hyperai",
-    "trading_strategy"
+    //"trading_strategy",
+    "lolol"
     ];
 export const MAIN_BROKERS = [
     // "root",
@@ -242,8 +243,10 @@ export const MAIN_BROKERS = [
     //"involio",
     //"hyperx",
     //"ranger",
-    "luma",
-    "hyperai"
+    //"luma",
+    //"hyperai",
+    //"lolol",
+    "bgsc"
 ]
 
 
