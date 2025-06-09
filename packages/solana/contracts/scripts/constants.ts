@@ -248,7 +248,8 @@ export const MAIN_BROKERS = [
     //"hyperai",
     //"lolol",
     //"bgsc",
-    "apolo_pay"
+    //"apolo_pay",
+    "desk"
 ]
 
 
