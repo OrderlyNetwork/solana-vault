@@ -150,7 +150,8 @@ export const STAGING_BROKERS = [
     //"hyperai",
     //"trading_strategy",
     //"lolol",
-    "apolo_pay"
+    //"apolo_pay",
+    "ninco_fi"
     ];
 export const MAIN_BROKERS = [
     // "root",
@@ -249,7 +250,8 @@ export const MAIN_BROKERS = [
     //"lolol",
     //"bgsc",
     //"apolo_pay",
-    "desk"
+    //"desk",
+    "ninco_fi"
 ]
 
 
