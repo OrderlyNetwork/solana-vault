@@ -41,7 +41,7 @@ export const TOKEN_SEED = "Token";
 export const OWNER_SEED = "Owner";
 export const ACCOUNT_LIST_SEED = "AccountList";
 
-export const ENV: "DEV" | "QA" | "STAGING" | "MAIN" = "DEV";
+export const ENV: "DEV" | "QA" | "STAGING" | "MAIN" = "MAIN";
 export const MOCK_OAPP_PROGRAM_ID = new PublicKey("EFLrsQmcfYTSvVrUiP4qruDhbYBtjbQNAhC6tkLJbBtQ");
 export const DEV_OAPP_PROGRAM_ID = new PublicKey("EYJq9eU4GMRUriUJBgGoZ8YLQBXcWaciXuSsEXE7ieQS");
 export const QA_OAPP_PROGRAM_ID = new PublicKey("5zBjLor7vEraAt4zp2H82sy9MSqFoDnNa1Lx6EYKTYRZ");
@@ -130,7 +130,30 @@ export const STAGING_BROKERS = [
     //"coin98",
     //"jojo",
     //"navigator",
-    "pegasus",
+    //"pegasus",
+    //"aark",
+    //"denx",
+    //"kyrrio",
+    //"mode",
+    //"yummy",
+    //"noot",
+    //"angryberas",
+    //"bbx",
+    //"aiw3",
+    //"purps",
+    //"interlink",
+    //"involio",
+    //"hyperx",
+    //"desk",
+    //"ranger",
+    //"luma",
+    //"hyperai",
+    //"trading_strategy",
+    //"lolol",
+    //"apolo_pay",
+    //"ninco_fi",
+    //"shitzu",
+    "degentics"
     ];
 export const MAIN_BROKERS = [
     // "root",
@@ -209,7 +232,30 @@ export const MAIN_BROKERS = [
     //"coin98",
     //"jojo",
     //"navigator",
-    "pegasus",
+    //"pegasus",
+    //"aark",
+    //"denx",
+    //"kyrrio",
+    //"mode",
+    //"yummy",
+    //"noot",
+    //"angryberas",
+    //"bbx",
+    //"aiw3",
+    //"purps",
+    //"interlink",
+    //"involio",
+    //"hyperx",
+    //"ranger",
+    //"luma",
+    //"hyperai",
+    //"lolol",
+    //"bgsc",
+    //"apolo_pay",
+    //"desk",
+    //"ninco_fi",
+    //"shitzu",
+    "degentics"
 ]
 
 
