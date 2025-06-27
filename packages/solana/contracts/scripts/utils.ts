@@ -462,10 +462,22 @@ export function getTokenHash(tokenSymbol: string): string {
     return solidityPackedKeccak256(['string'], [tokenSymbol])
 }
 
+export function getManagerRoleHash(managerRole: string): string {
+    return solidityPackedKeccak256(['string'], [managerRole])
+}
+
 export function getBrokerPda(VAULT_PROGRAM_ID: PublicKey, brokerHash: string): PublicKey {
     const hash = Array.from(Buffer.from(brokerHash.slice(2), 'hex'));
     return PublicKey.findProgramAddressSync(
         [Buffer.from(constants.BROKER_SEED, "utf8"), Buffer.from(hash)],
+        VAULT_PROGRAM_ID
+    )[0];
+}
+
+export function getManagerRolePda(VAULT_PROGRAM_ID: PublicKey, managerRoleHash: string, managerAddress: PublicKey): PublicKey {
+    const hash = Array.from(Buffer.from(managerRoleHash.slice(2), 'hex'));
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from(constants.ACCESS_CONTROL_SEED, "utf8"), Buffer.from(hash), managerAddress.toBuffer()],
         VAULT_PROGRAM_ID
     )[0];
 }
