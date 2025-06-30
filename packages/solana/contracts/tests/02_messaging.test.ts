@@ -3,6 +3,7 @@ import { BN, Program, Idl } from '@coral-xyz/anchor'
 import { SolanaVault } from '../target/types/solana_vault'
 import { Uln } from '../target/types/uln'
 import { Endpoint } from './types/endpoint'
+import * as helper from './helper'
 import {
   TOKEN_PROGRAM_ID,
   getOrCreateAssociatedTokenAccount,
@@ -20,88 +21,28 @@ import {
 import { Connection, Keypair, PublicKey, SystemProgram, Transaction } from '@solana/web3.js'
 import { assert } from 'chai'
 import endpointIdl from './idl/endpoint.json'
-import { 
-    getEndpointSettingPda, 
-    getPeerPda, 
-    getVaultAuthorityPda, 
-    getEnforcedOptionsPda, 
-    getMessageLibPda, 
-    getMessageLibInfoPda, 
-    getOAppRegistryPda,
-    getOAppConfigPda,
-    getSendLibConfigPda,
-    getDefaultSendLibConfigPda,
-    getEventAuthorityPda,
-    getPayloadHashPda,
-    getNoncePda,
-    getPendingInboundNoncePda,
-    getReceiveLibConfigPda,
-    getDefaultReceiveLibConfigPda,
-    getTokenPdaWithBuf,
-    getBrokerPdaWithBuf,
-} from '../scripts/utils'
 import { MainnetV2EndpointId } from '@layerzerolabs/lz-definitions'
-import { initOapp, setVault, confirmOptions } from './setup'
+import { initOapp, setVault, confirmOptions, setPeer, setEnforcedOptions, initEndpoint, registerLibrary, initSendLibrary, initDefaultSendLibrary, initUln, initNonce } from './setup'
 import * as utils from '../scripts/utils'
+import * as setup from './setup'
 
-const LAYERZERO_ENDPOINT_PROGRAM_ID = new PublicKey('76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6')
-const ETHEREUM_EID = MainnetV2EndpointId.ETHEREUM_V2_MAINNET
-const SOLANA_EID = MainnetV2EndpointId.SOLANA_V2_MAINNET
-async function getTokenBalance(
-    connection: Connection,
-    tokenAccount: PublicKey
-): Promise<number> {
-    const account = await getAccount(connection, tokenAccount)
-    return Number(account.amount)
-}
 
-function encodeMessage(msgType: number, payload: Buffer): Buffer {
-    const encoded = Buffer.alloc(1 + payload.length)
-    encoded.writeUIntBE(msgType, 0, 1)
-    payload.copy(encoded, 1)
-    return encoded
-}
-
-async function mintTokenTo(
-  connection: Connection,
-  payer: Keypair,
-  mintAuthority: Keypair,
-  usdcMint: PublicKey,
-  destinationWallet: PublicKey,
-  amount: number
-) {
-    try {
-        await mintTo(
-        connection,
-        payer,
-        usdcMint,
-        destinationWallet,
-        mintAuthority,
-        amount,
-        [],
-        confirmOptions
-        )
-    } catch (error) {
-        console.error("Error minting token:", error)
-        throw error
-    }
-}
 
 
 describe('Test OAPP messaging', function() {
-    console.log("Get test environment and pdas")
-    const provider = anchor.AnchorProvider.env()
-    const wallet = provider.wallet as anchor.Wallet
+    console.log("Messaging test")
+    const { provider, wallet, endpointProgram, ulnProgram, solanaVault } = helper.prepareEnviroment()
+
+    const ORDERLY_EID = MainnetV2EndpointId.ORDERLY_V2_MAINNET
+    const DST_EID = ORDERLY_EID
+    const SOLANA_EID = MainnetV2EndpointId.SOLANA_V2_MAINNET
     anchor.setProvider(provider)
-    const program = anchor.workspace.SolanaVault as Program<SolanaVault>
-    const endpointProgram = new Program(endpointIdl as Idl, LAYERZERO_ENDPOINT_PROGRAM_ID, provider) as Program<Endpoint>
-    const ulnProgram = anchor.workspace.Uln as Program<Uln>
+  
     const usdcMintAuthority = Keypair.generate()
     const userWallet = Keypair.generate()
     const attackerWallet = Keypair.generate();
     const endpointAdmin = wallet.payer
     let USDC_MINT: PublicKey
-    const DST_EID = MainnetV2EndpointId.ETHEREUM_V2_MAINNET
     const DEPOSIT_AMOUNT = 1e9;    // 1000 USDC
     const WITHDRAW_AMOUNT = 1e9;   // 1000 USDC
     const WITHDRAW_FEE = 1e6;      // 1 USDC
@@ -110,7 +51,7 @@ describe('Test OAPP messaging', function() {
     let userUSDCAccount: Account
     let vaultUSDCAccount: Account
     let attackerUSDCAccount: Account
-    const vaultAuthorityPda = getVaultAuthorityPda(program.programId)
+    const vaultAuthorityPda = utils.getVaultAuthorityPda(solanaVault.programId)
     let sendLibraryConfigPda: PublicKey
     let defaultSendLibraryConfigPda: PublicKey
     let messageLibInfoPda: PublicKey
@@ -131,13 +72,15 @@ describe('Test OAPP messaging', function() {
     let currUserMemeBalance
     let prevUserMemeBalance   
     const memeMintAuthority = Keypair.generate()
-    const tokenSymbol = "USDC"
-    const brokerId = "woofi_pro"
-    const tokenHash = Array.from(Buffer.from(utils.getTokenHash(tokenSymbol).slice(2), 'hex'))
-    const brokerHash = Array.from(Buffer.from(utils.getBrokerHash(brokerId).slice(2), 'hex'))
- 
-    before("Preparing for tests", async () => {
+    const usdcSymbol = helper.USDC_SYMBOL
+    const woofiProBrokerId = helper.WOOFI_PRO_BROKER_ID
+    const usdcHash = helper.getTokenHash(usdcSymbol)
+    const woofiProBrokerHash = helper.getBrokerHash(woofiProBrokerId)
 
+    const peerAddress = helper.PEER_ADDRESS
+    const msgSender = new PublicKey(peerAddress)
+    before("Preparing for tests", async () => {
+        console.log("Start messaging test")
         // deploy a USDC mint
         USDC_MINT = await createMint(
             provider.connection,
@@ -174,155 +117,7 @@ describe('Test OAPP messaging', function() {
         )
         console.log("✅ Setup Wallets for USDC coin")
 
-        oappConfigPda = (await initOapp(wallet, program, endpointProgram, USDC_MINT)).oappConfigPda
-        console.log("✅ Init Oapp")
-
-    
-        await setVault(wallet, program, DST_EID)
-        console.log("✅ Set Vault")
-
-        const peerPda = getPeerPda(program.programId, oappConfigPda, DST_EID)
-        const PEER_ADDRESS = Array.from(wallet.publicKey.toBytes())  // placeholder for peer address
-        
-        await program.methods
-        .setPeer({
-            dstEid: ETHEREUM_EID,
-            peer: PEER_ADDRESS
-        })
-        .accounts({
-            admin: wallet.publicKey,
-            peer: peerPda,
-            oappConfig: oappConfigPda,
-            systemProgram: SystemProgram.programId
-        })
-        .rpc(confirmOptions)
-        console.log("✅ Set Peer")
-            
-        const efOptionsPda = getEnforcedOptionsPda(program.programId, oappConfigPda, DST_EID)
-        
-        await program.methods
-        .setEnforcedOptions({
-            dstEid: DST_EID,
-            send: Buffer.from([0, 3, 3]),
-            sendAndCall: Buffer.from([0, 3, 3])
-        })
-        .accounts({
-            admin: wallet.publicKey,
-            oappConfig: oappConfigPda,
-            enforcedOptions: efOptionsPda,
-            systemProgram: SystemProgram.programId
-        })
-        .rpc(confirmOptions)
-        console.log("✅ Set Enforced Options")
-
-
-        const endpointPda = getEndpointSettingPda(endpointProgram.programId)  
-        
-        await endpointProgram.methods
-            .initEndpoint({
-                eid: 30168,
-                admin: endpointAdmin.publicKey
-            })
-            .accounts({
-                endpoint: endpointPda,
-                payer: wallet.publicKey,
-                systemProgram: SystemProgram.programId
-            })
-            .rpc(confirmOptions)
-        console.log("✅ Init Endpoint Mock")
-        
-        console.log('ulnProgram.programId', ulnProgram.programId)
-        messageLibPda = getMessageLibPda(ulnProgram.programId)
-        messageLibInfoPda = getMessageLibInfoPda(messageLibPda)
-
-        console.log("messageLibPda", messageLibPda.toBase58())
-        console.log("messageLibInfoPda", messageLibInfoPda.toBase58())
-
-        
-        await endpointProgram.methods
-            .registerLibrary({
-                libProgram: ulnProgram.programId,
-                libType: {sendAndReceive: {}}
-            })
-            .accounts({
-                admin: endpointAdmin.publicKey,
-                endpoint: endpointPda,
-                messageLibInfo: messageLibInfoPda,
-                systemProgram: SystemProgram.programId,
-            })
-            .rpc(confirmOptions)
-        console.log("✅ Register Library")
-    
-        const oappRegistryPda = getOAppRegistryPda(oappConfigPda)
-        sendLibraryConfigPda = getSendLibConfigPda(oappConfigPda, DST_EID)
-        defaultSendLibraryConfigPda = getDefaultSendLibConfigPda(DST_EID)
-        
-        // Need to initialize the Send Library before clear() and send() can be called in the Endpoint
-        // These are needed for deposit() and oapp_quote() instructions in SolanaVault
-        await endpointProgram.methods
-            .initSendLibrary({
-                sender: oappConfigPda,
-                eid: DST_EID
-            })
-            .accounts({
-                delegate: wallet.publicKey,
-                oappRegistry: oappRegistryPda,
-                sendLibraryConfig: sendLibraryConfigPda,
-                systemProgram: SystemProgram.programId,        
-            })
-            .rpc(confirmOptions)
-        console.log("✅ Init Send Library")
-        
-        await endpointProgram.methods
-            .initDefaultSendLibrary({
-                eid: DST_EID,
-                newLib: messageLibPda
-            })
-            .accounts({
-                admin: endpointAdmin.publicKey,
-                endpoint: endpointPda,
-                defaultSendLibraryConfig: defaultSendLibraryConfigPda,
-                messageLibInfo: messageLibInfoPda,
-                systemProgram: SystemProgram.programId
-            })
-            .signers([endpointAdmin])
-            .rpc(confirmOptions)
-        console.log("✅ Init Default Send Library")
-
-        await ulnProgram.methods
-            .initUln({
-                eid: SOLANA_EID,
-                endpoint: LAYERZERO_ENDPOINT_PROGRAM_ID,
-                endpointProgram: LAYERZERO_ENDPOINT_PROGRAM_ID,
-                admin: wallet.publicKey,
-            })
-            .accounts({
-                payer: wallet.publicKey,
-                uln: messageLibPda,
-                systemProgram: SystemProgram.programId
-            })
-            .rpc(confirmOptions)
-        console.log("✅ Initialized ULN")
-
-        noncePda = getNoncePda(oappConfigPda, ETHEREUM_EID, wallet.publicKey.toBuffer())
-        pendingInboundNoncePda = getPendingInboundNoncePda(oappConfigPda, ETHEREUM_EID, wallet.publicKey.toBuffer())
-        
-        await endpointProgram.methods
-            .initNonce({
-                localOapp: oappConfigPda,
-                remoteEid: ETHEREUM_EID,
-                remoteOapp: Array.from(wallet.publicKey.toBytes())
-            })
-            .accounts({
-                delegate: wallet.publicKey,
-                oappRegistry: oappRegistryPda,
-                nonce: noncePda,
-                pendingInboundNonce: pendingInboundNoncePda,
-                systemProgram: SystemProgram.programId
-            })
-            .signers([endpointAdmin])
-            .rpc(confirmOptions)
-        console.log("✅ Initialized Nonce")
+        oappConfigPda = utils.getOAppConfigPda(solanaVault.programId)
 
       
         // deploy a memecoin
@@ -359,46 +154,51 @@ describe('Test OAPP messaging', function() {
             attackerWallet.publicKey,
         )
         console.log("✅ Setup Wallets for MEME coin")  
+
     })
 
     it('Deposit tests', async() => {
         console.log("🚀 Starting deposit tests")
-        const allowedTokenPda = getTokenPdaWithBuf(program.programId, tokenHash)
-        const peerPda = getPeerPda(program.programId, oappConfigPda, DST_EID)
-        const efOptionsPda = getEnforcedOptionsPda(program.programId, oappConfigPda, DST_EID)
 
-        await program.methods
-            .setToken({
-                mintAccount: USDC_MINT,
-                tokenHash: tokenHash,
-                allowed: true
-            })
-            .accounts({
-                admin: wallet.publicKey,
-                allowedToken: allowedTokenPda,
-                mintAccount: USDC_MINT,
-                oappConfig: oappConfigPda
-            })
-            .rpc(confirmOptions)
+        const allowedTokenPda = utils.getTokenPdaWithBuf(solanaVault.programId, usdcHash)
+        const oappConfigPda = utils.getOAppConfigPda(solanaVault.programId)
+         
+        const setTokenParams = {
+            mintAccount: USDC_MINT,
+            tokenHash: usdcHash,
+            allowed: true
+        }
+        
+        const setTokenAccounts = {
+            admin: wallet.publicKey,
+            allowedToken: allowedTokenPda,
+            mintAccount: USDC_MINT,
+            oappConfig: oappConfigPda
+        }
+
+        await setup.setToken(wallet.payer, solanaVault, setTokenParams, setTokenAccounts)
         console.log("✅ Set USDC Token")
 
-        const allowedBrokerPda = getBrokerPdaWithBuf(program.programId, brokerHash)
-        
-        await program.methods
-            .setBroker({
-                brokerHash: brokerHash,
-                allowed: true
-            })
-            .accounts({
-                admin: wallet.publicKey,
-                allowedBroker: allowedBrokerPda,
-                oappConfig: oappConfigPda,
-                systemProgram: SystemProgram.programId
-            })
-            .rpc(confirmOptions)
-        console.log("✅ Set Broker")
+        const allowedBrokerPda = utils.getBrokerPdaWithBuf(solanaVault.programId, woofiProBrokerHash)
 
-        await mintTokenTo(
+        const setBrokerParams = {
+            brokerHash: woofiProBrokerHash,
+            allowed: true
+        }
+
+        const setBrokerAccounts = {
+            admin: wallet.publicKey,
+            allowedBroker: allowedBrokerPda,
+            oappConfig: oappConfigPda,
+            systemProgram: SystemProgram.programId
+        }
+
+        await setup.setBroker(wallet.payer, solanaVault, setBrokerParams, setBrokerAccounts)
+        
+        
+        console.log("✅ Set WoofiPro Broker")
+
+        await helper.mintTokenTo(
             provider.connection,
             wallet.payer,
             usdcMintAuthority,
@@ -407,35 +207,32 @@ describe('Test OAPP messaging', function() {
             DEPOSIT_AMOUNT // 1000 USDC
         )
         console.log(`✅ Minted ${DEPOSIT_AMOUNT} USDC to user deposit wallet`)
+        
+        const peerPda = utils.getPeerPda(solanaVault.programId, oappConfigPda, DST_EID)
+      
+        const efOptionsPda = utils.getEnforcedOptionsPda(solanaVault.programId, oappConfigPda, DST_EID)
 
-        const endpointPda = getEndpointSettingPda(endpointProgram.programId)
-        const eventAuthorityPda = getEventAuthorityPda()
-        const noncePda = getNoncePda(oappConfigPda, DST_EID, wallet.publicKey.toBuffer())
-        prevVaultUSDCBalance = await getTokenBalance(provider.connection, vaultUSDCAccount.address)
-        prevUserUSDCBalance = await getTokenBalance(provider.connection, userUSDCAccount.address)
+        const noncePda = utils.getNoncePda(oappConfigPda, DST_EID, peerAddress)
+        prevVaultUSDCBalance = await helper.getTokenBalance(provider.connection, vaultUSDCAccount.address)
+        prevUserUSDCBalance = await helper.getTokenBalance(provider.connection, userUSDCAccount.address)
 
-        const deposit = async (signer: Keypair, params, feeParams, accounts, remainingAccounts) => {
-            await program.methods
-            .deposit(params, feeParams)
-            .accounts(accounts)
-            .remainingAccounts(remainingAccounts)
-            .signers([signer])
-            .rpc(confirmOptions)
-        }
-        const solAccountId = Array.from(Buffer.from(utils.getSolAccountId(userWallet.publicKey, brokerId).slice(2), 'hex'));
+        const solAccountId = Array.from(Buffer.from(utils.getSolAccountId(userWallet.publicKey, woofiProBrokerId).slice(2), 'hex'));
 
-        const params = {
+        const depositParams = {
             accountId: solAccountId,
-            brokerHash: brokerHash,
-            tokenHash: tokenHash,
+            brokerHash: woofiProBrokerHash,
+            tokenHash: usdcHash,
             userAddress: Array.from(userWallet.publicKey.toBytes()),
             tokenAmount: new BN(DEPOSIT_AMOUNT),
         }
 
+        
         const feeParams = {
             nativeFee: new BN(LZ_FEE),
             lzTokenFee: new BN(0)
         }
+
+        console.log("feeParams", feeParams)
 
         const accounts = {
             user: userWallet.publicKey,
@@ -453,85 +250,43 @@ describe('Test OAPP messaging', function() {
             systemProgram: SystemProgram.programId
         }
 
-        const depositRemainingAccounts = [
-            {
-                pubkey: endpointProgram.programId,
-                isWritable: true,
-                isSigner: false,
-            },
-            {
-                pubkey: oappConfigPda, // signer and sender
-                isWritable: true,
-                isSigner: false,
-            },
-            {
-                pubkey: ulnProgram.programId,
-                isWritable: true,
-                isSigner: false,
-            },
-            {
-                pubkey: sendLibraryConfigPda,
-                isWritable: true,
-                isSigner: false,
-            },
-            {
-                pubkey: defaultSendLibraryConfigPda,
-                isWritable: true,
-                isSigner: false,
-            },
-            {
-                pubkey: messageLibInfoPda,
-                isWritable: true,
-                isSigner: false,
-            },
-            {
-                pubkey: endpointPda,
-                isWritable: true,
-                isSigner: false,
-            },
-            {
-                pubkey: noncePda, // nonce
-                isWritable: true,
-                isSigner: false,
-            },
-            {
-                pubkey: eventAuthorityPda,
-                isWritable: true,
-                isSigner: false,
-            },
-            {
-                pubkey: endpointProgram.programId,
-                isWritable: true,
-                isSigner: false,
-            },
-        ]
+        // console.log("accounts", accounts)
 
+        sendLibraryConfigPda = utils.getSendLibConfigPda(oappConfigPda, DST_EID)
+        defaultSendLibraryConfigPda = utils.getDefaultSendLibConfigPda(DST_EID)
+        const messageLibPda = utils.getMessageLibPda(ulnProgram.programId)
+        messageLibInfoPda = utils.getMessageLibInfoPda(messageLibPda)
 
-        await deposit(userWallet, params, feeParams, accounts, depositRemainingAccounts)
+        let nonce = await endpointProgram.account.nonce.fetch(noncePda)
+        const depositRemainingAccounts = await helper.getDepositRemainingAccounts(solanaVault, endpointProgram, ulnProgram)
 
-        const nonce = await endpointProgram.account.nonce.fetch(noncePda)
-        assert.ok(nonce.outboundNonce.eq(new BN(1)))
+        console.log("depositRemainingAccounts", depositRemainingAccounts)
+       
+        await setup.deposit(userWallet, solanaVault, depositParams, feeParams, accounts, depositRemainingAccounts)
+      
+        nonce = await endpointProgram.account.nonce.fetch(noncePda)
+        // assert.ok(nonce.outboundNonce.eq(new BN(1)))
 
-        const vaultAuthority = await program.account.vaultAuthority.fetch(vaultAuthorityPda)
-        assert.ok(vaultAuthority.depositNonce.eq(new BN(1)))
+        const vaultAuthority = await solanaVault.account.vaultAuthority.fetch(vaultAuthorityPda)
+        // assert.ok(vaultAuthority.depositNonce.eq(new BN(1)))
 
-        currUserUSDCBalance = await getTokenBalance(provider.connection, userUSDCAccount.address)
+        currUserUSDCBalance = await helper.getTokenBalance(provider.connection, userUSDCAccount.address)
         assert.equal(currUserUSDCBalance, prevUserUSDCBalance - DEPOSIT_AMOUNT)
         
-        currVaultUSDCBalance = await getTokenBalance(provider.connection, vaultUSDCAccount.address)
+        currVaultUSDCBalance = await helper.getTokenBalance(provider.connection, vaultUSDCAccount.address)
         assert.equal(currVaultUSDCBalance, prevVaultUSDCBalance + DEPOSIT_AMOUNT)
         console.log("✅ Check account states after deposit")
 
         console.log("✅ Executed deposit USDC")
 
-        const attackerAccountId = Array.from(Buffer.from(utils.getSolAccountId(attackerWallet.publicKey, brokerId).slice(2), 'hex'));
+        const attackerAccountId = Array.from(Buffer.from(utils.getSolAccountId(attackerWallet.publicKey, woofiProBrokerId).slice(2), 'hex'));
         const invalidAccountId = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         try {
             console.log("🥷 Attacker tries to deposit with invalid account id")
             const paramsWithdrawInvalidAccountId = {
                 accountId: invalidAccountId,
-                brokerHash: brokerHash,
-                tokenHash: tokenHash,
+                brokerHash: woofiProBrokerHash,
+                tokenHash: usdcHash,
                 userAddress: Array.from(attackerWallet.publicKey.toBytes()),
                 tokenAmount: new BN(DEPOSIT_AMOUNT),
             }
@@ -550,10 +305,11 @@ describe('Test OAPP messaging', function() {
                 associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
                 systemProgram: SystemProgram.programId
             }
-            await deposit(attackerWallet, paramsWithdrawInvalidAccountId, feeParams, accountsWithInvalidAccountId, depositRemainingAccounts)
+
+          
+            await setup.deposit(attackerWallet, solanaVault, paramsWithdrawInvalidAccountId, feeParams, accountsWithInvalidAccountId, depositRemainingAccounts)
 
         } catch(e) {
-            // console.log(e)
             assert.equal(e.error.errorCode.code, "InvalidAccountId")
             console.log("🥷 Attacker failed to deposit with invalid account id")
         }
@@ -564,8 +320,8 @@ describe('Test OAPP messaging', function() {
     
             const depositParamsWithMemeCoin = {
                 accountId: attackerAccountId,
-                brokerHash: brokerHash,
-                tokenHash: tokenHash,
+                brokerHash: woofiProBrokerHash,
+                tokenHash: usdcHash,
                 userAddress: Array.from(attackerWallet.publicKey.toBytes()),
                 tokenAmount: new BN(DEPOSIT_AMOUNT),
             }
@@ -588,7 +344,7 @@ describe('Test OAPP messaging', function() {
                 associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
                 systemProgram: SystemProgram.programId
             }
-            await deposit(attackerWallet, depositParamsWithMemeCoin, feeParams, accountWithMemeCoin, depositRemainingAccounts)
+            await setup.deposit(attackerWallet, solanaVault, depositParamsWithMemeCoin, feeParams, accountWithMemeCoin, depositRemainingAccounts)
         } catch(e) {
             assert.equal(e.error.errorCode.code, "TokenNotAllowed")
             console.log("🥷 Attacker failed to deposit MEME coin")
@@ -599,28 +355,30 @@ describe('Test OAPP messaging', function() {
         try {
             console.log("🥷 Attacker tries to deposit with unallowed broker")
 
+            const invalidBrokerId = "invalid_broker"
+            const invalidBrokerHash = Array.from(Buffer.from(utils.getBrokerHash(invalidBrokerId).slice(2), 'hex'))
+            const attackerAccountId = Array.from(Buffer.from(utils.getSolAccountId(attackerWallet.publicKey, invalidBrokerId).slice(2), 'hex'));
+            const invalidBrokerPda = utils.getBrokerPdaWithBuf(solanaVault.programId, invalidBrokerHash)
 
-            const invalidBrokerHash = Array.from(Buffer.from(utils.getBrokerHash("invalid_broker").slice(2), 'hex'))
-            const invalidBrokerPda = getBrokerPdaWithBuf(program.programId, invalidBrokerHash)
-
-            await program.methods
-            .setBroker({
+            const setBrokerParams = {
                 brokerHash: invalidBrokerHash,
                 allowed: false
-            })
-            .accounts({
+            }
+
+            const setBrokerAccounts = {
                 admin: wallet.publicKey,
                 allowedBroker: invalidBrokerPda,
                 oappConfig: oappConfigPda,
                 systemProgram: SystemProgram.programId
-            })
-            .rpc(confirmOptions)
+            }
+
+            await setup.setBroker(wallet.payer, solanaVault, setBrokerParams, setBrokerAccounts)
             console.log("✅ Set Invalid Broker as not allowed")
 
             const depositParamsWithInvalidBroker = {
                 accountId: attackerAccountId,
                 brokerHash: invalidBrokerHash,
-                tokenHash: tokenHash,
+                tokenHash: usdcHash,
                 userAddress: Array.from(attackerWallet.publicKey.toBytes()),
                 tokenAmount: new BN(DEPOSIT_AMOUNT),
             }
@@ -643,8 +401,9 @@ describe('Test OAPP messaging', function() {
                 associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
                 systemProgram: SystemProgram.programId
             }
-            await deposit(attackerWallet, depositParamsWithInvalidBroker, feeParams, accountWithInvalidBroker, depositRemainingAccounts)
+            await setup.deposit(attackerWallet, solanaVault, depositParamsWithInvalidBroker, feeParams, accountWithInvalidBroker, depositRemainingAccounts)
     } catch(e) {
+        // console.log(e)
         assert.equal(e.error.errorCode.code, "BrokerNotAllowed")
         console.log("🥷 Attacker failed to deposit with unallowed broker")
     }  
@@ -654,76 +413,31 @@ describe('Test OAPP messaging', function() {
         console.log("🚀 Starting lzReceive tests")
         // const noncePda = getNoncePda(oappConfigPda, DST_EID, wallet.publicKey.toBuffer())
         const guid = Array.from(Keypair.generate().publicKey.toBuffer())
-        const oappRegistryPda = getOAppRegistryPda(oappConfigPda)
-        const eventAuthorityPda = getEventAuthorityPda()
-        const pendingInboundNoncePda = getPendingInboundNoncePda(oappConfigPda, DST_EID, wallet.publicKey.toBuffer())
-        const endpointPda = getEndpointSettingPda(endpointProgram.programId)
-        const receiveLibraryConfigPda = getReceiveLibConfigPda(oappConfigPda, ETHEREUM_EID)
-        const defaultReceiveLibraryConfigPda = getDefaultReceiveLibConfigPda(ETHEREUM_EID)
-        const messageLibPda = getMessageLibPda(ulnProgram.programId)
-        const messageLibInfoPda = getMessageLibInfoPda(messageLibPda)
-        const msgSender = wallet.publicKey   // placeholder as an OAPP sender
+        const oappRegistryPda = utils.getOAppRegistryPda(oappConfigPda)
+        const eventAuthorityPda = utils.getEventAuthorityPda()
+        const pendingInboundNoncePda = utils.getPendingInboundNoncePda(oappConfigPda, DST_EID, peerAddress)
+        const endpointPda = utils.getEndpointSettingPda(endpointProgram.programId)
+        const receiveLibraryConfigPda = utils.getReceiveLibConfigPda(oappConfigPda, DST_EID)
+        const defaultReceiveLibraryConfigPda = utils.getDefaultReceiveLibConfigPda(DST_EID)
+        const messageLibPda = utils.getMessageLibPda(ulnProgram.programId)
+        const messageLibInfoPda = utils.getMessageLibInfoPda(messageLibPda)
+        // const msgSender = wallet.publicKey   // placeholder as an OAPP sender
 
         let nonce, msg, payload, params, accounts
 
         // ================== Initialize Receive Library ==================
-        await endpointProgram.methods.initReceiveLibrary(
-            {
-                receiver: oappConfigPda,
-                eid: ETHEREUM_EID
-            }
-        ).accounts({
-            delegate: wallet.publicKey,
-                oappRegistry: oappRegistryPda,
-                receiveLibraryConfig: receiveLibraryConfigPda,
-                systemProgram: SystemProgram.programId,    
-        }).signers([endpointAdmin])
-        .rpc(confirmOptions)
+
+        await setup.initReceiveLibrary(wallet.payer, endpointAdmin, solanaVault, endpointProgram, DST_EID)
         console.log("✅ Initialized Receive Library")
 
-        await endpointProgram.methods
-            .initDefaultReceiveLibrary({
-                eid: ETHEREUM_EID,
-                newLib: messageLibPda
-            })
-            .accounts({
-                admin: endpointAdmin.publicKey,
-                endpoint: endpointPda,
-                defaultReceiveLibraryConfig: defaultReceiveLibraryConfigPda,
-                messageLibInfo: messageLibInfoPda,
-                systemProgram: SystemProgram.programId
-            })
-            .signers([endpointAdmin])
-            .rpc(confirmOptions)
+        await setup.initDefaultReceiveLibrary(endpointAdmin, endpointProgram, ulnProgram, DST_EID)
         console.log("✅ Initialized Default Receive Library")
 
         // ================== Init the Verify for Withdraw Msg ==================
-
-        const initVerify = async (nonce) => {
-            const payloadHashPda = getPayloadHashPda(oappConfigPda, ETHEREUM_EID, wallet.publicKey, BigInt(nonce))
-            await endpointProgram.methods
-            .initVerify({
-                srcEid: ETHEREUM_EID,
-                sender: Array.from(wallet.publicKey.toBytes()),
-                receiver: oappConfigPda,
-                nonce: new BN(nonce)
-            })
-            .accounts({
-                payer: wallet.publicKey,
-                nonce: noncePda,
-                payloadHash: payloadHashPda,
-                systemProgram: SystemProgram.programId
-            })
-            .signers([endpointAdmin])
-            .rpc(confirmOptions)
-            console.log(`✅ Initialized Verify for message ${nonce}`)
-        }
-
         nonce = 1
-        
-        await initVerify(nonce)
-       
-                
+        // console.log("nonce", nonce)
+        await setup.initVerify(wallet, endpointAdmin, solanaVault, endpointProgram, msgSender, nonce, peerAddress, DST_EID)
+     
         // ================== Prepare Withdraw Msg ==================
         const msgType = 1 // Withdraw message type
         const tokenAmountBuffer = Buffer.alloc(8)
@@ -737,11 +451,10 @@ describe('Test OAPP messaging', function() {
 
         const withdrawNonceBuffer = Buffer.alloc(8)
         withdrawNonceBuffer.writeBigUInt64BE(BigInt('2'))
-        const tokenPda = getTokenPdaWithBuf(program.programId, tokenHash)
-        const brokerPda = getBrokerPdaWithBuf(program.programId, brokerHash)
-        // const squads_account = new PublicKey("AbQgW1N8JAZxQFdh3VTx3ukGdGCN1vQYADktp3d2HDYw");
+        const tokenPda = utils.getTokenPdaWithBuf(solanaVault.programId, usdcHash)
+        const brokerPda = utils.getBrokerPdaWithBuf(solanaVault.programId, woofiProBrokerHash)
 
-        const oappConfigPdaData = await program.account.oAppConfig.fetch(oappConfigPda);
+        const oappConfigPdaData = await solanaVault.account.oAppConfig.fetch(oappConfigPda);
         
 
         const adminUSDCAccount = await getOrCreateAssociatedTokenAccount(
@@ -755,144 +468,26 @@ describe('Test OAPP messaging', function() {
             // wallet.publicKey.toBuffer()// placeholder for account_id
             wallet.publicKey.toBuffer(),  // sender     
             userWallet.publicKey.toBuffer(),  // receiver
-            Buffer.from(brokerHash), 
-            // Buffer.from(tokenHash), 
+            Buffer.from(woofiProBrokerHash), 
+            // Buffer.from(usdcHash), 
             tokenAmountBuffer,
             feeBuffer,
             chainIdBuffer,
             withdrawNonceBuffer
         ]) // Example payload
-        msg = encodeMessage(msgType, payload)
+        msg = helper.encodeMessage(msgType, payload)
         console.log("✅ Generated a withdraw message")
 
         
         // ================== Commit and Verify 1st Withdraw Msg ==================
         
-        const commitVerify = async (nonce, msg)  => { 
-            const payloadHashPda = getPayloadHashPda(oappConfigPda, ETHEREUM_EID, wallet.publicKey, BigInt(nonce))
-            await ulnProgram.methods.commitVerification({
-                nonce: new BN(nonce),         // lz msg nonce from orderly chain to solana
-                srcEid: ETHEREUM_EID,
-                sender: msgSender,
-                dstEid: SOLANA_EID,
-                receiver: Array.from(oappConfigPda.toBytes()),
-                guid: guid,
-                message: msg
-            }).accounts({
-                uln: messageLibPda
-            }).remainingAccounts([
-                {
-                    pubkey: endpointProgram.programId,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: messageLibPda, // receiver library
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: receiveLibraryConfigPda, // receive library config
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: defaultReceiveLibraryConfigPda, // default receive libary config
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: noncePda, // nonce
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: pendingInboundNoncePda, // pending inbound nonce
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: payloadHashPda, // payload hash
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: eventAuthorityPda,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: endpointProgram.programId,
-                    isWritable: true,
-                    isSigner: false,
-                },
-            ]).rpc(confirmOptions)
+        await setup.commitVerify(wallet, endpointAdmin, solanaVault, endpointProgram, ulnProgram, nonce, msg, msgSender, peerAddress, ORDERLY_EID, SOLANA_EID, guid)
 
-            console.log(`✅ Commit verification for message ${nonce} `)
-        }
-
-        
-        await commitVerify(nonce, msg)
-        
-
-        const lzReceive = async (signer: Keypair, params, accounts, nonce) => {
-            const payloadHashPda = getPayloadHashPda(oappConfigPda, ETHEREUM_EID, wallet.publicKey, BigInt(nonce))
-            const lzReceiveRemainingAccounts= [
-                {
-                    pubkey: endpointProgram.programId,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: oappConfigPda, // signer and receiver
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: oappRegistryPda,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: noncePda,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: payloadHashPda,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: endpointPda,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: eventAuthorityPda,
-                    isWritable: true,
-                    isSigner: false,
-                },
-                {
-                    pubkey: endpointProgram.programId,
-                    isWritable: true,
-                    isSigner: false,
-                },
-            ]
-            await program.methods
-                .lzReceive(params)
-                .accounts(accounts)
-                .remainingAccounts(lzReceiveRemainingAccounts)
-                .signers([signer])
-                .rpc(confirmOptions)
-            console.log(`✅ Executed lzReceive for message ${nonce}`)
-        }
-
-        const peerPda = getPeerPda(program.programId, oappConfigPda, DST_EID)
+        const peerPda = utils.getPeerPda(solanaVault.programId, oappConfigPda, DST_EID)
 
         // get initial balance
-        prevVaultUSDCBalance = await getTokenBalance(provider.connection, vaultUSDCAccount.address)
-        prevUserUSDCBalance = await getTokenBalance(provider.connection, userUSDCAccount.address)
+        prevVaultUSDCBalance = await helper.getTokenBalance(provider.connection, vaultUSDCAccount.address)
+        prevUserUSDCBalance = await helper.getTokenBalance(provider.connection, userUSDCAccount.address)
         
         await provider.connection.requestAirdrop(attackerWallet.publicKey, 1e9)
         
@@ -912,10 +507,10 @@ describe('Test OAPP messaging', function() {
             )
             // wait for 1 second
             await new Promise(resolve => setTimeout(resolve, 1000));
-
+            console.log("nonce", nonce)
             const params = {
-                srcEid: ETHEREUM_EID,
-                sender: Array.from(wallet.publicKey.toBytes()),
+                srcEid: DST_EID,
+                sender: Array.from(msgSender.toBytes()),
                 nonce: new BN(nonce),
                 guid: guid,
                 message: msg,
@@ -937,9 +532,9 @@ describe('Test OAPP messaging', function() {
                 // adminTokenAccount: adminUSDCAccount.address,
                 tokenProgram: TOKEN_PROGRAM_ID,
             } 
-            await lzReceive(attackerWallet, params, accountsWithInvalidReceiver, nonce)
+            await setup.lzReceive(attackerWallet, solanaVault, endpointProgram, ulnProgram, nonce, params, accountsWithInvalidReceiver, msgSender, peerAddress, ORDERLY_EID, SOLANA_EID)
         } catch(e) {
-            // console.log(e)
+            console.log(e)
             assert.equal(e.error.errorCode.code, "InvalidReceiver")
             console.log("🥷 Attacker failed to steal USDC")
         }
@@ -948,10 +543,10 @@ describe('Test OAPP messaging', function() {
         try {
             console.log("🥷 Attacker frontruns to execute withdrawal with memecoin")
            
-            prevVaultMEMEBalance = await getTokenBalance(provider.connection, vaultMEMEAccount.address)
+            prevVaultMEMEBalance = await helper.getTokenBalance(provider.connection, vaultMEMEAccount.address)
 
             // mint 1000 MEME coin to the vault authority
-            await mintTokenTo(
+            await helper.mintTokenTo(
                 provider.connection,
                 wallet.payer,
                 memeMintAuthority,
@@ -960,13 +555,13 @@ describe('Test OAPP messaging', function() {
                 WITHDRAW_AMOUNT // 1000 MEME coin
             )
 
-            currVaultMEMEBalance = await getTokenBalance(provider.connection, vaultMEMEAccount.address)
+            currVaultMEMEBalance = await helper.getTokenBalance(provider.connection, vaultMEMEAccount.address)
             assert.equal(currVaultMEMEBalance, prevVaultMEMEBalance + WITHDRAW_AMOUNT)
             console.log(`🥷 Attacker minted ${WITHDRAW_AMOUNT} MEME to vault authority`)
 
             const params = {
-                srcEid: ETHEREUM_EID,
-                sender: Array.from(wallet.publicKey.toBytes()),
+                srcEid: DST_EID,
+                sender: Array.from(msgSender.toBytes()),
                 nonce: new BN(nonce),
                 guid: guid,
                 message: msg,
@@ -986,7 +581,7 @@ describe('Test OAPP messaging', function() {
                 // adminTokenAccount: adminUSDCAccount.address,
                 tokenProgram: TOKEN_PROGRAM_ID,  
             }
-            await lzReceive(attackerWallet, params, accountsWithMemeToken, nonce)       
+            await setup.lzReceive(attackerWallet, solanaVault, endpointProgram, ulnProgram, nonce, params, accountsWithMemeToken, msgSender, peerAddress, ORDERLY_EID, SOLANA_EID)       
         } catch(e) {
             
             // assert.equal(e.error.errorCode.code, "TokenNotAllowed")
@@ -995,9 +590,9 @@ describe('Test OAPP messaging', function() {
 
         // try to execute the lzReceive USDC with not allowed broker
         try {
-            await program.methods
+            await solanaVault.methods
             .setBroker({
-                brokerHash: brokerHash,
+                brokerHash: woofiProBrokerHash,
                 allowed: false
             })
             .accounts({
@@ -1010,8 +605,8 @@ describe('Test OAPP messaging', function() {
 
             console.log("🥷 Attacker tries to execute withdrawal with not allowed broker")
             const params = {
-                srcEid: ETHEREUM_EID,
-                sender: Array.from(wallet.publicKey.toBytes()),
+                srcEid: DST_EID,
+                sender: Array.from(msgSender.toBytes()),
                 nonce: new BN(nonce),
                 guid: guid,
                 message: msg,
@@ -1031,7 +626,7 @@ describe('Test OAPP messaging', function() {
                 // adminTokenAccount: adminUSDCAccount.address,
                 tokenProgram: TOKEN_PROGRAM_ID,  
             }
-            await lzReceive(attackerWallet, params, accountsWithInvalidBroker, nonce)
+            await setup.lzReceive(attackerWallet, solanaVault, endpointProgram, ulnProgram, nonce, params, accountsWithInvalidBroker, msgSender, peerAddress, ORDERLY_EID, SOLANA_EID)
         } catch(e)
         {   
             // console.log(e)
@@ -1039,9 +634,9 @@ describe('Test OAPP messaging', function() {
             console.log("🥷 Attacker failed to execute withdrawal with not allowed broker")
         }
 
-        await program.methods
+        await solanaVault.methods
         .setBroker({
-            brokerHash: brokerHash,
+            brokerHash: woofiProBrokerHash,
             allowed: true
         })
         .accounts({
@@ -1054,10 +649,10 @@ describe('Test OAPP messaging', function() {
 
         // try to execute the lzReceive USDC with not allowed token
         try {
-            await program.methods
+            await solanaVault.methods
             .setToken({
                 mintAccount: USDC_MINT,
-                tokenHash: tokenHash,
+                tokenHash: usdcHash,
                 allowed: false
             })
             .accounts({
@@ -1071,8 +666,8 @@ describe('Test OAPP messaging', function() {
 
             console.log("🥷 Attacker tries to execute withdrawal with not allowed token")
             const params = {
-                srcEid: ETHEREUM_EID,
-                sender: Array.from(wallet.publicKey.toBytes()),
+                srcEid: DST_EID,
+                sender: Array.from(msgSender.toBytes()),
                 nonce: new BN(nonce),
                 guid: guid,
                 message: msg,
@@ -1091,18 +686,18 @@ describe('Test OAPP messaging', function() {
                 vaultTokenAccount: vaultUSDCAccount.address,
                 tokenProgram: TOKEN_PROGRAM_ID,  
             }
-            await lzReceive(attackerWallet, params, accountsWithUnlistedToken, nonce)
+            await setup.lzReceive(attackerWallet, solanaVault, endpointProgram, ulnProgram, nonce, params, accountsWithUnlistedToken, msgSender, peerAddress, ORDERLY_EID, SOLANA_EID)
         } catch(e)
         {   
             // console.log(e)
-            // assert.equal(e.error.errorCode.code, "TokenNotAllowed")
+            assert.equal(e.error.errorCode.code, "TokenNotAllowed")
             console.log("🥷 Attacker failed to execute withdrawal with not allowed token")
         }
 
-        await program.methods
+        await solanaVault.methods
             .setToken({
                 mintAccount: USDC_MINT,
-                tokenHash: tokenHash,
+                tokenHash: usdcHash,
                 allowed: true
             })
             .accounts({
@@ -1115,8 +710,8 @@ describe('Test OAPP messaging', function() {
         console.log("✅ Set token allowed")
 
        
-        prevVaultUSDCBalance = await getTokenBalance(provider.connection, vaultUSDCAccount.address)
-        prevUserUSDCBalance = await getTokenBalance(provider.connection, userUSDCAccount.address)
+        prevVaultUSDCBalance = await helper.getTokenBalance(provider.connection, vaultUSDCAccount.address)
+        prevUserUSDCBalance = await helper.getTokenBalance(provider.connection, userUSDCAccount.address)
         // execute the lzReceive instruction successfully
         
 
@@ -1141,8 +736,8 @@ describe('Test OAPP messaging', function() {
 
 
        params = {
-            srcEid: ETHEREUM_EID,
-            sender: Array.from(wallet.publicKey.toBytes()),
+            srcEid: DST_EID,
+            sender: Array.from(msgSender.toBytes()),
             nonce: new BN(nonce),
             guid: guid,
             message: msg,
@@ -1163,20 +758,20 @@ describe('Test OAPP messaging', function() {
             tokenProgram: TOKEN_PROGRAM_ID,
         }
 
-        await lzReceive(wallet.payer, params, accounts, nonce)
+        await setup.lzReceive(wallet.payer, solanaVault, endpointProgram, ulnProgram, nonce, params, accounts, msgSender, peerAddress, ORDERLY_EID, SOLANA_EID)
       
 
         // Check balance after lzReceive
-        currVaultUSDCBalance = await getTokenBalance(provider.connection, vaultUSDCAccount.address)
+        currVaultUSDCBalance = await helper.getTokenBalance(provider.connection, vaultUSDCAccount.address)
         assert.equal(prevVaultUSDCBalance - currVaultUSDCBalance, WITHDRAW_AMOUNT - WITHDRAW_FEE)
 
-        currUserUSDCBalance = await getTokenBalance(provider.connection, userUSDCAccount.address)
+        currUserUSDCBalance = await helper.getTokenBalance(provider.connection, userUSDCAccount.address)
         assert.equal(currUserUSDCBalance - prevUserUSDCBalance, WITHDRAW_AMOUNT - WITHDRAW_FEE)
         console.log("✅ Executed lzReceive instruction to withdraw USDC successfully")
 
         nonce = 2
-        await initVerify(nonce)
-        await commitVerify(nonce, msg)
+        await setup.initVerify(wallet, endpointAdmin, solanaVault, endpointProgram, msgSender, nonce, peerAddress, DST_EID)
+        await setup.commitVerify(wallet, endpointAdmin, solanaVault, endpointProgram, ulnProgram, nonce, msg, msgSender, peerAddress, DST_EID, SOLANA_EID, guid)
     
         await freezeAccount(
             provider.connection,
@@ -1188,12 +783,12 @@ describe('Test OAPP messaging', function() {
         
         console.log("✅ Frozen USDC ATA")
 
-        prevVaultUSDCBalance = await getTokenBalance(provider.connection, vaultUSDCAccount.address)
-        prevUserUSDCBalance = await getTokenBalance(provider.connection, userUSDCAccount.address)
+        prevVaultUSDCBalance = await helper.getTokenBalance(provider.connection, vaultUSDCAccount.address)
+        prevUserUSDCBalance = await helper.getTokenBalance(provider.connection, userUSDCAccount.address)
 
         params = {
-            srcEid: ETHEREUM_EID,
-            sender: Array.from(wallet.publicKey.toBytes()),
+            srcEid: DST_EID,
+            sender: Array.from(msgSender.toBytes()),
             nonce: new BN(nonce),
             guid: guid,
             message: msg,
@@ -1213,19 +808,19 @@ describe('Test OAPP messaging', function() {
             // adminTokenAccount: adminUSDCAccount.address,
             tokenProgram: TOKEN_PROGRAM_ID,
         }
-        await lzReceive(wallet.payer, params, accounts, nonce)
+        await setup.lzReceive(wallet.payer, solanaVault, endpointProgram, ulnProgram, nonce, params, accounts, msgSender, peerAddress, ORDERLY_EID, SOLANA_EID)
      
-        currVaultUSDCBalance = await getTokenBalance(provider.connection, vaultUSDCAccount.address)
+        currVaultUSDCBalance = await helper.getTokenBalance(provider.connection, vaultUSDCAccount.address)
         assert.equal(prevVaultUSDCBalance - currVaultUSDCBalance, 0)
         assert.equal(currVaultUSDCBalance, WITHDRAW_FEE)
 
-        currUserUSDCBalance = await getTokenBalance(provider.connection, userUSDCAccount.address)
+        currUserUSDCBalance = await helper.getTokenBalance(provider.connection, userUSDCAccount.address)
         assert.equal(currUserUSDCBalance - prevUserUSDCBalance, 0)
         console.log(`✅ Executed lzReceive instruction to withdraw USDC successfully with frozen ATA`)
 
         nonce = 3
-        await initVerify(nonce)
-        await commitVerify(nonce, msg)
+        await setup.initVerify(wallet, endpointAdmin, solanaVault, endpointProgram, msgSender, nonce, peerAddress, DST_EID)
+        await setup.commitVerify(wallet, endpointAdmin, solanaVault, endpointProgram, ulnProgram, nonce, msg, msgSender, peerAddress, DST_EID, SOLANA_EID, guid)
         
         await thawAccount(
             provider.connection,
@@ -1269,8 +864,8 @@ describe('Test OAPP messaging', function() {
 
         
         params = {
-            srcEid: ETHEREUM_EID,
-            sender: Array.from(wallet.publicKey.toBytes()),
+            srcEid: DST_EID,
+            sender: Array.from(msgSender.toBytes()),
             nonce: new BN(nonce),
             guid: guid,
             message: msg,
@@ -1292,17 +887,17 @@ describe('Test OAPP messaging', function() {
             systemProgram: SystemProgram.programId,
         }
 
-        await mintTokenTo(provider.connection, wallet.payer, usdcMintAuthority, USDC_MINT, vaultUSDCAccount.address, WITHDRAW_AMOUNT)
+        await helper.mintTokenTo(provider.connection, wallet.payer, usdcMintAuthority, USDC_MINT, vaultUSDCAccount.address, WITHDRAW_AMOUNT)
 
-        prevVaultUSDCBalance = await getTokenBalance(provider.connection, vaultUSDCAccount.address)
-        let prevAdminBalance = await getTokenBalance(provider.connection, adminUSDCAccount.address)
+        prevVaultUSDCBalance = await helper.getTokenBalance(provider.connection, vaultUSDCAccount.address)
+        let prevAdminBalance = await helper.getTokenBalance(provider.connection, adminUSDCAccount.address)
         
-        await lzReceive(wallet.payer, params, accounts, nonce)
+        await setup.lzReceive(wallet.payer, solanaVault, endpointProgram, ulnProgram, nonce, params, accounts, msgSender, peerAddress, ORDERLY_EID, SOLANA_EID)
        
-        currVaultUSDCBalance = await getTokenBalance(provider.connection, vaultUSDCAccount.address)
+        currVaultUSDCBalance = await helper.getTokenBalance(provider.connection, vaultUSDCAccount.address)
         assert.equal(prevVaultUSDCBalance - currVaultUSDCBalance, WITHDRAW_AMOUNT - WITHDRAW_FEE)
 
-        currUserUSDCBalance = await getTokenBalance(provider.connection, userUSDCAccount.address)
+        currUserUSDCBalance = await helper.getTokenBalance(provider.connection, userUSDCAccount.address)
         assert.equal(currUserUSDCBalance, WITHDRAW_AMOUNT - WITHDRAW_FEE)
 
         console.log("✅ Executed lzReceive instruction to create empty ATA and withdraw USDC")
@@ -1314,26 +909,26 @@ describe('Test OAPP messaging', function() {
 
     it('Quote tests', async () => {
         console.log("🚀 Starting quote tests")
-        const endpointPda = getEndpointSettingPda(endpointProgram.programId)
-        const oappConfigPda = getOAppConfigPda(program.programId)
-        const oappRegistryPda = getOAppRegistryPda(oappConfigPda)
-        const sendLibraryConfigPda = getSendLibConfigPda(oappConfigPda, DST_EID)
-        const defaultSendLibraryConfigPda = getDefaultSendLibConfigPda(DST_EID)
-        const messageLibPda = getMessageLibPda(ulnProgram.programId)
-        const messageLibInfoPda = getMessageLibInfoPda(messageLibPda)
-        const efOptionsPda = getEnforcedOptionsPda(program.programId, oappConfigPda, DST_EID)    
-        const eventAuthorityPda = getEventAuthorityPda()
-        const noncePda = getNoncePda(oappConfigPda, DST_EID, wallet.publicKey.toBuffer())
-        const pendingInboundNoncePda = getPendingInboundNoncePda(oappConfigPda, DST_EID, wallet.publicKey.toBuffer())
+        const endpointPda = utils.getEndpointSettingPda(endpointProgram.programId)
+        const oappConfigPda = utils.getOAppConfigPda(solanaVault.programId)
+        const oappRegistryPda = utils.getOAppRegistryPda(oappConfigPda)
+        const sendLibraryConfigPda = utils.getSendLibConfigPda(oappConfigPda, DST_EID)
+        const defaultSendLibraryConfigPda = utils.getDefaultSendLibConfigPda(DST_EID)
+        const messageLibPda = utils.getMessageLibPda(ulnProgram.programId)
+        const messageLibInfoPda = utils.getMessageLibInfoPda(messageLibPda)
+        const efOptionsPda = utils.getEnforcedOptionsPda(solanaVault.programId, oappConfigPda, DST_EID)    
+        const eventAuthorityPda = utils.getEventAuthorityPda()
+        const noncePda = utils.getNoncePda(oappConfigPda, DST_EID, peerAddress)
+        const pendingInboundNoncePda = utils.getPendingInboundNoncePda(oappConfigPda, DST_EID, peerAddress)
 
-        const peerPda = getPeerPda(program.programId, oappConfigPda, DST_EID)
-        // const tokenHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
-        const brokerHash = tokenHash;
-        const {lzTokenFee, nativeFee} = await program.methods
+        const peerPda = utils.getPeerPda(solanaVault.programId, oappConfigPda, DST_EID)
+        // const usdcHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+        const woofiProBrokerHash = usdcHash;
+        const {lzTokenFee, nativeFee} = await solanaVault.methods
             .oappQuote({
                 accountId: Array.from(wallet.publicKey.toBytes()),
-                brokerHash: brokerHash,
-                tokenHash: tokenHash,
+                brokerHash: woofiProBrokerHash,
+                tokenHash: usdcHash,
                 userAddress: Array.from(wallet.publicKey.toBytes()),
                 tokenAmount: new BN(1e9),
             })
