@@ -43,24 +43,24 @@ pub fn get_account_id(user_address: &[u8; 32], broker_hash: &[u8; 32]) -> [u8; 3
 //     hex.as_bytes().to_vec()
 // }
 
-// pub fn get_usdc_hash() -> [u8; 32] {
-//     let usdc_hash =
-//         hex::decode("d6aca1be9729c13d677335161321649cccae6a591554772516700f986f942eaa").unwrap();
-//     to_bytes32(&usdc_hash)
-// }
+pub fn get_usdc_hash() -> [u8; 32] {
+    let usdc_hash =
+        hex::decode("d6aca1be9729c13d677335161321649cccae6a591554772516700f986f942eaa").unwrap();
+    to_bytes32(&usdc_hash)
+}
 
-// // test the get_usdc_hash()
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+// test the get_usdc_hash()
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     #[test]
-//     fn test_get_usdc_hash() {
-//         let usdc_hash = get_usdc_hash();
-//         let expected_usdc_hash = [
-//             214, 172, 161, 190, 151, 41, 193, 61, 103, 115, 53, 22, 19, 33, 100, 156, 204, 174,
-//             106, 89, 21, 84, 119, 37, 22, 112, 15, 152, 111, 148, 46, 170,
-//         ]; // expected hash in bytes array
-//         assert_eq!(usdc_hash, expected_usdc_hash);
-//     }
-// }
+    #[test]
+    fn test_get_usdc_hash() {
+        let usdc_hash = get_usdc_hash();
+        let expected_usdc_hash = [
+            214, 172, 161, 190, 151, 41, 193, 61, 103, 115, 53, 22, 19, 33, 100, 156, 204, 174,
+            106, 89, 21, 84, 119, 37, 22, 112, 15, 152, 111, 148, 46, 170,
+        ]; // expected hash in bytes array
+        assert_eq!(usdc_hash, expected_usdc_hash);
+    }
+}
