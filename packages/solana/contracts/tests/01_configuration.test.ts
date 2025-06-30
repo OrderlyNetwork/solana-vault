@@ -31,7 +31,6 @@ describe('Test Solana-Vault configuration', function() {
     const ORDERLY_EID = helper.ORDERLY_EID
     const DST_EID = ORDERLY_EID
     const PEER_ADDRESS = Array.from(helper.PEER_ADDRESS)
-    console.log("PEER_ADDRESS", PEER_ADDRESS)
     let vaultAuthority
     let oappConfigPda: PublicKey
     const vaultAuthorityPda = getVaultAuthorityPda(solanaVault.programId)
@@ -324,10 +323,8 @@ describe('Test Solana-Vault configuration', function() {
        
         const peerPda = getPeerPda(solanaVault.programId, oappConfigPda, DST_EID)
         let peer = await solanaVault.account.peer.fetch(peerPda)
-        console.log("peer", peer)
         assert.deepEqual(peer.address, PEER_ADDRESS)
         assert.isOk(peer.bump)
-        console.log("hi")
 
         // FAILURE CASE - when admin/owner is not the signer
         console.log("🥷 Attacker trying to set Peer")

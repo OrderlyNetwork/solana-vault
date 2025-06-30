@@ -139,8 +139,6 @@ export async function getDepositRemainingAccounts(solanaVault: Program<SolanaVau
     const vaultAuthorityPda = utils.getVaultAuthorityPda(solanaVault.programId)
     const vaultAuthority = await solanaVault.account.vaultAuthority.fetch(vaultAuthorityPda)
     const oappConfigPda = utils.getOAppConfigPda(solanaVault.programId)
-    console.log("oappConfigPda", oappConfigPda)
-    console.log("vaultAuthority.dstEid", vaultAuthority.dstEid)
     const sendLibraryConfigPda = utils.getSendLibConfigPda(oappConfigPda, vaultAuthority.dstEid)
     const defaultSendLibraryConfigPda = utils.getDefaultSendLibConfigPda(vaultAuthority.dstEid)
     const messageLibPda = utils.getMessageLibPda(ulnProgram.programId)

@@ -232,8 +232,6 @@ describe('Test OAPP messaging', function() {
             lzTokenFee: new BN(0)
         }
 
-        console.log("feeParams", feeParams)
-
         const accounts = {
             user: userWallet.publicKey,
             userTokenAccount: userUSDCAccount.address,
@@ -250,8 +248,6 @@ describe('Test OAPP messaging', function() {
             systemProgram: SystemProgram.programId
         }
 
-        // console.log("accounts", accounts)
-
         sendLibraryConfigPda = utils.getSendLibConfigPda(oappConfigPda, DST_EID)
         defaultSendLibraryConfigPda = utils.getDefaultSendLibConfigPda(DST_EID)
         const messageLibPda = utils.getMessageLibPda(ulnProgram.programId)
@@ -259,8 +255,6 @@ describe('Test OAPP messaging', function() {
 
         let nonce = await endpointProgram.account.nonce.fetch(noncePda)
         const depositRemainingAccounts = await helper.getDepositRemainingAccounts(solanaVault, endpointProgram, ulnProgram)
-
-        console.log("depositRemainingAccounts", depositRemainingAccounts)
        
         await setup.deposit(userWallet, solanaVault, depositParams, feeParams, accounts, depositRemainingAccounts)
       
@@ -507,7 +501,6 @@ describe('Test OAPP messaging', function() {
             )
             // wait for 1 second
             await new Promise(resolve => setTimeout(resolve, 1000));
-            console.log("nonce", nonce)
             const params = {
                 srcEid: DST_EID,
                 sender: Array.from(msgSender.toBytes()),
@@ -534,7 +527,6 @@ describe('Test OAPP messaging', function() {
             } 
             await setup.lzReceive(attackerWallet, solanaVault, endpointProgram, ulnProgram, nonce, params, accountsWithInvalidReceiver, msgSender, peerAddress, ORDERLY_EID, SOLANA_EID)
         } catch(e) {
-            console.log(e)
             assert.equal(e.error.errorCode.code, "InvalidReceiver")
             console.log("🥷 Attacker failed to steal USDC")
         }
@@ -584,7 +576,7 @@ describe('Test OAPP messaging', function() {
             await setup.lzReceive(attackerWallet, solanaVault, endpointProgram, ulnProgram, nonce, params, accountsWithMemeToken, msgSender, peerAddress, ORDERLY_EID, SOLANA_EID)       
         } catch(e) {
             
-            // assert.equal(e.error.errorCode.code, "TokenNotAllowed")
+            assert.equal(e.error.errorCode.code, "TokenNotAllowed")
             console.log("🥷 Attacker failed to execute withdrawal with meme coin")
         }
 
@@ -630,7 +622,7 @@ describe('Test OAPP messaging', function() {
         } catch(e)
         {   
             // console.log(e)
-            // assert.equal(e.error.errorCode.code, "BrokerNotAllowed")
+            assert.equal(e.error.errorCode.code, "BrokerNotAllowed")
             console.log("🥷 Attacker failed to execute withdrawal with not allowed broker")
         }
 
@@ -902,10 +894,6 @@ describe('Test OAPP messaging', function() {
 
         console.log("✅ Executed lzReceive instruction to create empty ATA and withdraw USDC")
     })
-
-    
-
-
 
     it('Quote tests', async () => {
         console.log("🚀 Starting quote tests")
