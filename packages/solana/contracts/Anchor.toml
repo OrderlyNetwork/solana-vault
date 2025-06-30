@@ -50,11 +50,11 @@ upgradeable = false
 
 [[test.genesis]]
 address = "76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6"
-program = "endpoint.so"
+program = "tests/mocks/endpoint.so"
 
 [[test.genesis]]
 address = "7a4WjyR8VZ7yZz5XJAKm39BUGn5iT9CKcv2pmG9tdXVH"
-program = "uln.so"
+program = "tests/mocks/uln.so"
 
 [test.validator]
 bind_address = "127.0.0.1"
