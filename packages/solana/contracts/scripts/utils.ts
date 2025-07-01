@@ -364,6 +364,8 @@ export async function createAndSendV0TxWithTable(txInstructions: TransactionInst
     console.log("Send transaction confirmed:", sigSend);
     await sleep(2);
 
+    return sigSend
+
 }
 
 // export async function getLookupTableAddress(provider: anchor.AnchorProvider, wallet: anchor.Wallet, rpc: string, OAPP_PROGRAM_ID: PublicKey): Promise<PublicKey> {
@@ -465,6 +467,7 @@ export function getTokenHash(tokenSymbol: string): string {
 export function getManagerRoleHash(managerRole: string): string {
     return solidityPackedKeccak256(['string'], [managerRole])
 }
+
 
 export function getBrokerPda(VAULT_PROGRAM_ID: PublicKey, brokerHash: string): PublicKey {
     const hash = Array.from(Buffer.from(brokerHash.slice(2), 'hex'));
@@ -1018,4 +1021,13 @@ export async function delay(ENV: String) {
         // sleep for 5 seconds to wait for the lookup table to be updated
         await new Promise(resolve => setTimeout(resolve, 1000));
     }
+}
+
+
+export function getLayerZeroScanLink(hash: string, isTestnet = true){ 
+    return isTestnet ? `https://testnet.layerzeroscan.com/tx/${hash}` : `https://layerzeroscan.com/tx/${hash}`
+}
+
+export function getExplorerTxLink(hash: string, isTestnet = true){
+    return `https://explorer.solana.com/tx/${hash}?cluster=${isTestnet ? 'devnet' : 'mainnet-beta'}`
 }

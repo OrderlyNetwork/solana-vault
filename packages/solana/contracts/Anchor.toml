@@ -17,7 +17,7 @@ uln = "279tDX6wTFgrJaRnGEdjik3NLR8B9AKY1pKVFYcxvw7c"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 # 
 [scripts]
@@ -42,6 +42,8 @@ setup_oapp = "yarn run ts-node scripts/01setup_oapp.ts"
 setup_vault = "yarn run ts-node scripts/04setup_vault.ts"
 test = "yarn run ts-mocha -b -p ./tsconfig.json -t 1000000 tests/**/*.test.ts"
 transfer_admin = "yarn run ts-node scripts/transfer_admin.ts"
+set_broker_manager = "yarn run ts-node scripts/set_broker_manager.ts"
+set_token_manager = "yarn run ts-node scripts/set_token_manager.ts"
 
 [test]
 startup_wait = 5000

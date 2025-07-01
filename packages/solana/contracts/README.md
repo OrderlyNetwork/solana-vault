@@ -54,6 +54,30 @@ anchor build
 anchor deploy -p solana-vault
 ```
 
+### Upgrade
+
+To upgrade the Vault program, run the following command:
+
+```
+anchor build
+solana program write-buffer ./target/deploy/solana_vault.so
+```
+
+And check this [SOP](https://wootraders.atlassian.net/wiki/spaces/ORDER/pages/832143609/SOP+Squads+upgrade+contract) to execute the upgrade flow with Squads
+
+```
+solana program set-buffer-authority BUFFER --new-buffer-authority $MULTISIG_PDA
+```
+
+### Init and Upgrade IDL
+
+To init the IDL, please run the following command:
+
+```
+anchor idl init --filepath target/idl/solana_vault.json PROGRAM_ID
+anchor idl upgrade --filepath target/idl/solana_vault.json PROGRAM_ID            
+```
+
 ## Setup
 
 The Solana Vault program consists of two parts:

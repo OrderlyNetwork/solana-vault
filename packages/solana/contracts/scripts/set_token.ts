@@ -14,7 +14,7 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider);
 
 async function setBroker() {
     const multisig = utils.getMultisig(ENV);
-    const useMultisig = true;
+    const useMultisig = false;
     const tokenSymble = "USDC";
     const tokenHash = utils.getTokenHash(tokenSymble);
     console.log("Token Hash:", tokenHash);
@@ -26,18 +26,24 @@ async function setBroker() {
 
     const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
 
+    const tokenManagerRole = utils.getManagerRoleHash(constants.TOKEN_MANAGER_ROLE)
+    const codedTokenManagerRole = Array.from(Buffer.from(tokenManagerRole.slice(2), 'hex'));
+    const tokenManagerRolePda = utils.getManagerRolePdaWithBuf(OAPP_PROGRAM_ID, codedTokenManagerRole, wallet.publicKey)
+
     const allowed = true;
-    const setTokenParams = {
+    let setTokenParams = {
+        tokenManagerRole: codedTokenManagerRole,
         mintAccount: mintAccount,
         tokenHash: codedTokenHash,
         allowed: allowed,
     };
     // console.log("Set Token Params:", setTokenParams);
     const setTokenAccounts = {
-        admin: useMultisig ? multisig : wallet.publicKey,
-        allowedToken: tokenPda,
-        oappConfig: oappConfigPda,
+        tokenManager: useMultisig ? multisig : wallet.publicKey,
         mintAccount: mintAccount,
+        allowedToken: tokenPda,
+        managerRole: tokenManagerRolePda,
+        systemProgram: SystemProgram.programId,
     }
     // console.log("Set Token Accounts:", setTokenAccounts);
     const ixSetToken = await OAppProgram.methods.setToken(setTokenParams).accounts(setTokenAccounts).instruction();
