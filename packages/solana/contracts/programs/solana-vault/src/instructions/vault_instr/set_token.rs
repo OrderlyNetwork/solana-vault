@@ -1,7 +1,7 @@
 use crate::errors::VaultError;
 use crate::events::{ResetAllowedToken, SetAllowedToken};
 use crate::instructions::{bytes32_to_hex, ACCESS_CONTROL_SEED, TOKEN_SEED};
-use crate::state::{AllowedToken, OAppConfig, ManagerRole};
+use crate::state::{AllowedToken, ManagerRole};
 use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
 
