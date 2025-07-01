@@ -199,10 +199,43 @@ export type SolanaVault = {
       ]
     },
     {
+      "name": "setManagerRole",
+      "accounts": [
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "vaultAuthority",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "managerRole",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": "SetManagerRoleParams"
+          }
+        }
+      ]
+    },
+    {
       "name": "setBroker",
       "accounts": [
         {
-          "name": "admin",
+          "name": "brokerManager",
           "isMut": true,
           "isSigner": true
         },
@@ -212,7 +245,7 @@ export type SolanaVault = {
           "isSigner": false
         },
         {
-          "name": "oappConfig",
+          "name": "managerRole",
           "isMut": false,
           "isSigner": false
         },
@@ -235,7 +268,7 @@ export type SolanaVault = {
       "name": "setToken",
       "accounts": [
         {
-          "name": "admin",
+          "name": "tokenManager",
           "isMut": true,
           "isSigner": true
         },
@@ -245,7 +278,7 @@ export type SolanaVault = {
           "isSigner": false
         },
         {
-          "name": "oappConfig",
+          "name": "managerRole",
           "isMut": false,
           "isSigner": false
         },
@@ -381,7 +414,10 @@ export type SolanaVault = {
         {
           "name": "receiverTokenAccount",
           "isMut": true,
-          "isSigner": false
+          "isSigner": false,
+          "docs": [
+            "UNCHECKED"
+          ]
         },
         {
           "name": "vaultAuthority",
@@ -395,6 +431,16 @@ export type SolanaVault = {
         },
         {
           "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
           "isMut": false,
           "isSigner": false
         },
@@ -756,6 +802,31 @@ export type SolanaVault = {
       }
     },
     {
+      "name": "managerRole",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "roleHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "vaultAuthority",
       "type": {
         "kind": "struct",
@@ -938,15 +1009,6 @@ export type SolanaVault = {
         "kind": "struct",
         "fields": [
           {
-            "name": "accountId",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
             "name": "sender",
             "type": {
               "array": [
@@ -966,15 +1028,6 @@ export type SolanaVault = {
           },
           {
             "name": "brokerHash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "tokenHash",
             "type": {
               "array": [
                 "u8",
@@ -1273,6 +1326,15 @@ export type SolanaVault = {
         "kind": "struct",
         "fields": [
           {
+            "name": "brokerManagerRole",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
             "name": "brokerHash",
             "type": {
               "array": [
@@ -1280,6 +1342,31 @@ export type SolanaVault = {
                 32
               ]
             }
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SetManagerRoleParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "roleHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "managerAddress",
+            "type": "publicKey"
           },
           {
             "name": "allowed",
@@ -1309,6 +1396,15 @@ export type SolanaVault = {
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "tokenManagerRole",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
           {
             "name": "mintAccount",
             "type": "publicKey"
@@ -1413,6 +1509,12 @@ export type SolanaVault = {
           },
           {
             "name": "InvalidInboundNonce"
+          },
+          {
+            "name": "InvalidReceiverTokenAccount"
+          },
+          {
+            "name": "InvalidAdminTokenAccount"
           }
         ]
       }
@@ -1534,6 +1636,46 @@ export type SolanaVault = {
         },
         {
           "name": "amount",
+          "type": "u64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "CreatedATA",
+      "fields": [
+        {
+          "name": "accountId",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "receiver",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "receiverTokenAccount",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "withdrawNonce",
           "type": "u64",
           "index": false
         }
@@ -1820,6 +1962,11 @@ export type SolanaVault = {
       "code": 6005,
       "name": "InvalidVaultOwner",
       "msg": "Vault owner is not the same as the payer"
+    },
+    {
+      "code": 6006,
+      "name": "ManagerRoleNotAllowed",
+      "msg": "Manager role is not allowed"
     }
   ]
 };
@@ -2025,10 +2172,43 @@ export const IDL: SolanaVault = {
       ]
     },
     {
+      "name": "setManagerRole",
+      "accounts": [
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "vaultAuthority",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "managerRole",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": "SetManagerRoleParams"
+          }
+        }
+      ]
+    },
+    {
       "name": "setBroker",
       "accounts": [
         {
-          "name": "admin",
+          "name": "brokerManager",
           "isMut": true,
           "isSigner": true
         },
@@ -2038,7 +2218,7 @@ export const IDL: SolanaVault = {
           "isSigner": false
         },
         {
-          "name": "oappConfig",
+          "name": "managerRole",
           "isMut": false,
           "isSigner": false
         },
@@ -2061,7 +2241,7 @@ export const IDL: SolanaVault = {
       "name": "setToken",
       "accounts": [
         {
-          "name": "admin",
+          "name": "tokenManager",
           "isMut": true,
           "isSigner": true
         },
@@ -2071,7 +2251,7 @@ export const IDL: SolanaVault = {
           "isSigner": false
         },
         {
-          "name": "oappConfig",
+          "name": "managerRole",
           "isMut": false,
           "isSigner": false
         },
@@ -2207,7 +2387,10 @@ export const IDL: SolanaVault = {
         {
           "name": "receiverTokenAccount",
           "isMut": true,
-          "isSigner": false
+          "isSigner": false,
+          "docs": [
+            "UNCHECKED"
+          ]
         },
         {
           "name": "vaultAuthority",
@@ -2221,6 +2404,16 @@ export const IDL: SolanaVault = {
         },
         {
           "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
           "isMut": false,
           "isSigner": false
         },
@@ -2582,6 +2775,31 @@ export const IDL: SolanaVault = {
       }
     },
     {
+      "name": "managerRole",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "roleHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "vaultAuthority",
       "type": {
         "kind": "struct",
@@ -2764,15 +2982,6 @@ export const IDL: SolanaVault = {
         "kind": "struct",
         "fields": [
           {
-            "name": "accountId",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
             "name": "sender",
             "type": {
               "array": [
@@ -2792,15 +3001,6 @@ export const IDL: SolanaVault = {
           },
           {
             "name": "brokerHash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "tokenHash",
             "type": {
               "array": [
                 "u8",
@@ -3099,6 +3299,15 @@ export const IDL: SolanaVault = {
         "kind": "struct",
         "fields": [
           {
+            "name": "brokerManagerRole",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
             "name": "brokerHash",
             "type": {
               "array": [
@@ -3106,6 +3315,31 @@ export const IDL: SolanaVault = {
                 32
               ]
             }
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SetManagerRoleParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "roleHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "managerAddress",
+            "type": "publicKey"
           },
           {
             "name": "allowed",
@@ -3135,6 +3369,15 @@ export const IDL: SolanaVault = {
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "tokenManagerRole",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
           {
             "name": "mintAccount",
             "type": "publicKey"
@@ -3239,6 +3482,12 @@ export const IDL: SolanaVault = {
           },
           {
             "name": "InvalidInboundNonce"
+          },
+          {
+            "name": "InvalidReceiverTokenAccount"
+          },
+          {
+            "name": "InvalidAdminTokenAccount"
           }
         ]
       }
@@ -3360,6 +3609,46 @@ export const IDL: SolanaVault = {
         },
         {
           "name": "amount",
+          "type": "u64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "CreatedATA",
+      "fields": [
+        {
+          "name": "accountId",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "receiver",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "receiverTokenAccount",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "withdrawNonce",
           "type": "u64",
           "index": false
         }
@@ -3646,6 +3935,11 @@ export const IDL: SolanaVault = {
       "code": 6005,
       "name": "InvalidVaultOwner",
       "msg": "Vault owner is not the same as the payer"
+    },
+    {
+      "code": 6006,
+      "name": "ManagerRoleNotAllowed",
+      "msg": "Manager role is not allowed"
     }
   ]
 };

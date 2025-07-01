@@ -60,7 +60,7 @@ async function deposit() {
         brokerHash: codedBrokerHash,
         tokenHash:  codedTokenHash,
         userAddress: Array.from(receiverAddress.toBuffer()),
-        tokenAmount: new anchor.BN(4_000_000),
+        tokenAmount: new anchor.BN(5_000_000),
     };
 
 
@@ -111,15 +111,16 @@ async function deposit() {
         microLamports: 40000, // set the total priority fee
       });
     
-    await utils.createAndSendV0TxWithTable(
+    const sigSend = await utils.createAndSendV0TxWithTable(
         [ixDepositEntry, ixAddComputeBudget, computeBudgetIx],
         provider,
         wallet,
         lookupTableList,
         ENV
     );
-    
-    
+
+    console.log("LayerZero Scan Link:", utils.getLayerZeroScanLink(sigSend));
+    console.log("Explorer Link:", utils.getExplorerTxLink(sigSend)); 
 }
 
 deposit();

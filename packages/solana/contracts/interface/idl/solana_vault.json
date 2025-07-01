@@ -199,10 +199,43 @@
       ]
     },
     {
+      "name": "setManagerRole",
+      "accounts": [
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "vaultAuthority",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "managerRole",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": "SetManagerRoleParams"
+          }
+        }
+      ]
+    },
+    {
       "name": "setBroker",
       "accounts": [
         {
-          "name": "admin",
+          "name": "brokerManager",
           "isMut": true,
           "isSigner": true
         },
@@ -212,7 +245,7 @@
           "isSigner": false
         },
         {
-          "name": "oappConfig",
+          "name": "managerRole",
           "isMut": false,
           "isSigner": false
         },
@@ -235,7 +268,7 @@
       "name": "setToken",
       "accounts": [
         {
-          "name": "admin",
+          "name": "tokenManager",
           "isMut": true,
           "isSigner": true
         },
@@ -245,7 +278,7 @@
           "isSigner": false
         },
         {
-          "name": "oappConfig",
+          "name": "managerRole",
           "isMut": false,
           "isSigner": false
         },
@@ -381,7 +414,10 @@
         {
           "name": "receiverTokenAccount",
           "isMut": true,
-          "isSigner": false
+          "isSigner": false,
+          "docs": [
+            "UNCHECKED"
+          ]
         },
         {
           "name": "vaultAuthority",
@@ -395,6 +431,16 @@
         },
         {
           "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
           "isMut": false,
           "isSigner": false
         },
@@ -756,6 +802,31 @@
       }
     },
     {
+      "name": "ManagerRole",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "roleHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "VaultAuthority",
       "type": {
         "kind": "struct",
@@ -938,15 +1009,6 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "accountId",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
             "name": "sender",
             "type": {
               "array": [
@@ -966,15 +1028,6 @@
           },
           {
             "name": "brokerHash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "tokenHash",
             "type": {
               "array": [
                 "u8",
@@ -1273,6 +1326,15 @@
         "kind": "struct",
         "fields": [
           {
+            "name": "brokerManagerRole",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
             "name": "brokerHash",
             "type": {
               "array": [
@@ -1280,6 +1342,31 @@
                 32
               ]
             }
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SetManagerRoleParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "roleHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "managerAddress",
+            "type": "publicKey"
           },
           {
             "name": "allowed",
@@ -1309,6 +1396,15 @@
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "tokenManagerRole",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
           {
             "name": "mintAccount",
             "type": "publicKey"
@@ -1413,6 +1509,12 @@
           },
           {
             "name": "InvalidInboundNonce"
+          },
+          {
+            "name": "InvalidReceiverTokenAccount"
+          },
+          {
+            "name": "InvalidAdminTokenAccount"
           }
         ]
       }
@@ -1534,6 +1636,46 @@
         },
         {
           "name": "amount",
+          "type": "u64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "CreatedATA",
+      "fields": [
+        {
+          "name": "accountId",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "receiver",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "receiverTokenAccount",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "withdrawNonce",
           "type": "u64",
           "index": false
         }
@@ -1820,9 +1962,11 @@
       "code": 6005,
       "name": "InvalidVaultOwner",
       "msg": "Vault owner is not the same as the payer"
+    },
+    {
+      "code": 6006,
+      "name": "ManagerRoleNotAllowed",
+      "msg": "Manager role is not allowed"
     }
-  ],
-  "metadata": {
-    "address": "9shwxWDUNhtwkHocsUAmrNAQfBH2DHh4njdAEdHZZkF2"
-  }
+  ]
 }

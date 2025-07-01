@@ -11,8 +11,27 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider);
 
 async function setBroker() {
     const multisig = utils.getMultisig(ENV);
-    const useMultisig = true;
+    const useMultisig = false;
     const allowedBrokerList = utils.getBrokerList(ENV);
+
+    const brokerManager = useMultisig ? multisig : wallet.publicKey;
+
+    const brokerManagerRoleHash = utils.getManagerRoleHash(constants.BROKER_MANAGER_ROLE)
+    const codedBrokerManagerRoleHash = Array.from(Buffer.from(brokerManagerRoleHash.slice(2), 'hex'));
+    const brokerManagerRolePda = utils.getManagerRolePdaWithBuf(OAPP_PROGRAM_ID, codedBrokerManagerRoleHash, brokerManager)
+
+    let setBrokerParams = {
+        brokerManagerRole: codedBrokerManagerRoleHash,
+        brokerHash: undefined,
+        allowed: undefined,
+    }
+    let setBrokerAccounts = {
+        brokerManager: useMultisig ? multisig : wallet.publicKey,
+        allowedBroker: undefined,
+        managerRole: brokerManagerRolePda,
+        systemProgram: SystemProgram.programId,
+    }
+
     console.log("Setting up Brokers...");
     let txSetBroker = new Transaction();
     for (const brokerId of allowedBrokerList) {
@@ -22,7 +41,6 @@ async function setBroker() {
         const codedBrokerHash = Array.from(Buffer.from(brokerHash.slice(2), 'hex'));
         const brokerPda = utils.getBrokerPda(OAPP_PROGRAM_ID, brokerHash);
         console.log("BrokerPda", brokerPda.toBase58());
-        const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
 
         try {
             const brokerStatus = await OAppProgram.account.allowedBroker.fetch(brokerPda);
@@ -36,24 +54,17 @@ async function setBroker() {
         }
 
         const allowed = true;
-        const setBrokerParams = {
-            brokerHash: codedBrokerHash,
-            allowed: allowed,
-        };
-        const setBrokerAccounts = {
-            admin: useMultisig? multisig : wallet.publicKey,
-            allowedBroker: brokerPda,
-            oappConfig: oappConfigPda,
-        }
+        setBrokerParams.allowed = allowed;
+        setBrokerParams.brokerHash = codedBrokerHash;
+        setBrokerAccounts.allowedBroker = brokerPda;
         const ixSetBroker = await OAppProgram.methods.setBroker(setBrokerParams).accounts(setBrokerAccounts).instruction();
 
-        // const txSetBroker = new Transaction().add(ixSetBroker);
         txSetBroker.add(ixSetBroker);   
-        console.log(`Accounts to add broker ${brokerId}: `); 
-        console.log(`   Admin: `, setBrokerAccounts.admin.toBase58());
-        console.log(`   Allowed Broker PDA: `, setBrokerAccounts.allowedBroker.toBase58());
-        console.log(`   OApp Config PDA: `, setBrokerAccounts.oappConfig.toBase58()); 
-        console.log(`Params to add broker ${brokerId}: `, setBrokerParams); 
+        // console.log(`Accounts to add broker ${brokerId}: `); 
+        // console.log(`   Broker Manager: `, setBrokerAccounts.brokerManager.toBase58());
+        // console.log(`   Allowed Broker PDA: `, setBrokerAccounts.allowedBroker.toBase58());
+        // console.log(`   Manager Role PDA: `, setBrokerAccounts.managerRole.toBase58());
+        // console.log(`Params to add broker ${brokerId}: `, setBrokerParams); 
     }
 
 

@@ -210,6 +210,15 @@ export async function setAccountList(signer: Keypair, solanaVault: Program<Solan
     .rpc(confirmOptions)
 }
 
+export async function setManagerRole(signer: Keypair, solanaVault: Program<SolanaVault>, setManagerRoleParams: any, setManagerRoleAccounts: any) {
+    await solanaVault.methods
+    .setManagerRole(setManagerRoleParams)
+    .accounts(setManagerRoleAccounts)
+    .signers([signer])
+    .rpc(confirmOptions)
+}
+
+
 export async function setBroker(signer: Keypair, solanaVault: Program<SolanaVault>, setBrokerParams: any, setBrokerAccounts: any) {
 
     await solanaVault.methods
