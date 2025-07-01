@@ -211,8 +211,6 @@ export async function setAccountList(signer: Keypair, solanaVault: Program<Solan
 }
 
 export async function setManagerRole(signer: Keypair, solanaVault: Program<SolanaVault>, setManagerRoleParams: any, setManagerRoleAccounts: any) {
-    console.log("setManagerRoleParams", setManagerRoleParams)
-    console.log("setManagerRoleAccounts", setManagerRoleAccounts)
     await solanaVault.methods
     .setManagerRole(setManagerRoleParams)
     .accounts(setManagerRoleAccounts)

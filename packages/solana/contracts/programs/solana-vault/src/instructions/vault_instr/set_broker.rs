@@ -8,17 +8,17 @@ use anchor_lang::prelude::*;
 #[instruction(params: SetBrokerParams)]
 pub struct SetBroker<'info> {
     #[account(mut)]
-    pub manager: Signer<'info>,
+    pub broker_manager: Signer<'info>,
     #[account(
         init_if_needed,
-        payer = manager,
+        payer = broker_manager,
         space = 8 + AllowedBroker::INIT_SPACE,
         seeds = [BROKER_SEED, params.broker_hash.as_ref()],
         bump
     )]
     pub allowed_broker: Account<'info, AllowedBroker>,
     #[account(
-        seeds = [ACCESS_CONTROL_SEED, params.role_hash.as_ref(),  manager.key().as_ref()],
+        seeds = [ACCESS_CONTROL_SEED, params.broker_manager_role.as_ref(), broker_manager.key().as_ref()],
         bump = manager_role.bump,
         constraint = manager_role.allowed == true @VaultError::ManagerRoleNotAllowed,
     )]
@@ -50,7 +50,7 @@ impl SetBroker<'_> {
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct SetBrokerParams {
-    pub role_hash: [u8; 32],
+    pub broker_manager_role: [u8; 32],
     pub broker_hash: [u8; 32],
     pub allowed: bool,
 }

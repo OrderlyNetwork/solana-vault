@@ -225,30 +225,86 @@ describe('Test Solana-Vault configuration', function() {
         console.log("✅ Admin Set AccountList")
     })
 
+    it('Set token manager role', async () => {
+        const tokenManagerRoleHash = helper.getManagerRoleHash(constants.TOKEN_MANAGER_ROLE)
+       
+        const tokenManager = vaultOwner.publicKey
+        const tokenManagerRolePda = utils.getManagerRolePdaWithBuf(solanaVault.programId, tokenManagerRoleHash, tokenManager)
+       
+        const setManagerRoleParams = {
+            roleHash: tokenManagerRoleHash,
+            managerAddress: tokenManager,
+            allowed: true
+        }
+        const setManagerRoleAccounts = {
+            owner: vaultOwner.publicKey,
+            vaultAuthority: vaultAuthorityPda,
+            managerRole: tokenManagerRolePda,
+            systemProgram: SystemProgram.programId
+        }
+       
+        await setup.setManagerRole(vaultOwner, solanaVault, setManagerRoleParams, setManagerRoleAccounts)
+        const managerRole = await solanaVault.account.managerRole.fetch(tokenManagerRolePda)
+
+        assert.equal(managerRole.allowed, true)
+        assert.equal(managerRole.roleHash.toString(), tokenManagerRoleHash.toString())
+        console.log("✅ Set Token Manager Role")
+
+    })
+
     it('Set token', async () => {
         const allowedTokenPda = getTokenPdaWithBuf(solanaVault.programId, tokenHash)
+        const tokenManagerRoleHash = helper.getManagerRoleHash(constants.TOKEN_MANAGER_ROLE)
+        const tokenManagerRolePda = utils.getManagerRolePdaWithBuf(solanaVault.programId, tokenManagerRoleHash, vaultOwner.publicKey)
 
         console.log("🥷 Attacker trying to set Token")
+
+        const setManagerRoleParams = {
+            roleHash: tokenManagerRoleHash,
+            managerAddress: attacker.publicKey,
+            allowed: false
+        }
+        const attackerTokenManagerRolePda = utils.getManagerRolePdaWithBuf(solanaVault.programId, tokenManagerRoleHash, attacker.publicKey)
+
+        const setManagerRoleAccounts = {
+            owner: vaultOwner.publicKey,
+            vaultAuthority: vaultAuthorityPda,
+            managerRole: attackerTokenManagerRolePda,
+            systemProgram: SystemProgram.programId
+        }
+
+        await setup.setManagerRole(vaultOwner, solanaVault, setManagerRoleParams, setManagerRoleAccounts)
+
+        const attackerBrokerManagerRole = await solanaVault.account.managerRole.fetch(attackerTokenManagerRolePda)
+        assert.equal(attackerBrokerManagerRole.allowed, false)
+        assert.equal(attackerBrokerManagerRole.roleHash.toString(), tokenManagerRoleHash.toString())
+        console.log("✅ Set Attacker Token Manager Role as False")
+
+
         let setTokenParams, setTokenAccounts
         try {
             setTokenParams = {
+                tokenManagerRole: tokenManagerRoleHash,
                 mintAccount: USDC_MINT,
                 tokenHash: tokenHash,
                 allowed: true
             }
             setTokenAccounts = {
-                admin:attacker.publicKey,
-                allowedToken: allowedTokenPda,
+                tokenManager:attacker.publicKey,
                 mintAccount: USDC_MINT,
-                oappConfig: oappConfigPda
+                allowedToken: allowedTokenPda,
+                managerRole: attackerTokenManagerRolePda,
+                systemProgram: SystemProgram.programId
             }
             await setup.setToken(attacker, solanaVault, setTokenParams, setTokenAccounts)
         } catch(e) {
-            assert.equal(e.error.errorCode.code, "Unauthorized");
+            console.log(e)
+            assert.equal(e.error.errorCode.code, "ManagerRoleNotAllowed");
             console.log("🥷 Attacker failed to set Token")
         }
 
-        setTokenAccounts.admin = wallet.publicKey
+        setTokenAccounts.tokenManager = wallet.publicKey
+        setTokenAccounts.managerRole = tokenManagerRolePda
         await setup.setToken(wallet.payer, solanaVault, setTokenParams, setTokenAccounts)
         const allowedToken = await solanaVault.account.allowedToken.fetch(allowedTokenPda)
         assert.equal(allowedToken.mintAccount.toString(), USDC_MINT.toString())
@@ -321,12 +377,12 @@ describe('Test Solana-Vault configuration', function() {
         try {
             
             setBrokerParams = {
+                brokerManagerRole: brokerManagerRoleHash,
                 brokerHash: brokerHash,
-                roleHash: brokerManagerRoleHash,
                 allowed: true
             }
             setBrokerAccounts = {
-                manager:attacker.publicKey,
+                brokerManager:attacker.publicKey,
                 allowedBroker: allowedBrokerPda,
                 managerRole: attackerBrokerManagerRolePda,
                 systemProgram: SystemProgram.programId
@@ -337,7 +393,7 @@ describe('Test Solana-Vault configuration', function() {
             assert.equal(e.error.errorCode.code, "ManagerRoleNotAllowed")
             console.log("🥷 Attacker failed to set Broker")
         }
-        setBrokerAccounts.manager = vaultOwner.publicKey
+        setBrokerAccounts.brokerManager = vaultOwner.publicKey
         setBrokerAccounts.managerRole = brokerManagerRolePda
         await setup.setBroker(vaultOwner, solanaVault, setBrokerParams, setBrokerAccounts)
         const allowedBroker = await solanaVault.account.allowedBroker.fetch(allowedBrokerPda)
