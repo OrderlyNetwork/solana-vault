@@ -7,23 +7,12 @@ import endpointIdl from './idl/endpoint.json'
 import { MainnetV2EndpointId } from '@layerzerolabs/lz-definitions'
 import { ConfirmOptions, Connection, Keypair, PublicKey, SystemProgram, Transaction } from '@solana/web3.js'
 import {
-    TOKEN_PROGRAM_ID,
-    getOrCreateAssociatedTokenAccount,
-    createMint,
     mintTo,
     getAccount,
-    Account,
-    ASSOCIATED_TOKEN_PROGRAM_ID, 
-    freezeAccount,
-    thawAccount,
-    transfer,
-    closeAccount,
-    setAuthority,
   } from '@solana/spl-token'
 import { confirmOptions } from './setup'
 
 import * as utils from '../scripts/utils'
-import { getEnv } from '../scripts/utils'
 
 
 // constants
@@ -41,6 +30,10 @@ export function getTokenHash(tokenSymbol: string) {
 }
 export function getBrokerHash(brokerId: string) {
     return Array.from(Buffer.from(utils.getBrokerHash(brokerId).slice(2), 'hex'))
+}
+
+export function getManagerRoleHash(managerRole: string) {
+    return Array.from(Buffer.from(utils.getManagerRoleHash(managerRole).slice(2), 'hex'))
 }
 
 // Get the balance of a token account

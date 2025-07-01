@@ -18,7 +18,7 @@ pub struct SetBroker<'info> {
     )]
     pub allowed_broker: Account<'info, AllowedBroker>,
     #[account(
-        seeds = [ACCESS_CONTROL_SEED, params.role_hash.as_ref(), &manager.as_ref().key.to_bytes()],
+        seeds = [ACCESS_CONTROL_SEED, params.role_hash.as_ref(),  manager.key().as_ref()],
         bump = manager_role.bump,
         constraint = manager_role.allowed == true @VaultError::ManagerRoleNotAllowed,
     )]

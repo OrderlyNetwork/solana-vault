@@ -5,6 +5,7 @@ import { Keypair, PublicKey, SystemProgram, sendAndConfirmTransaction } from '@s
 import { assert } from 'chai'
 import { OftTools } from '@layerzerolabs/lz-solana-sdk-v2'
 import * as utils from '../scripts/utils'
+import * as constants from '../scripts/constants'
 import {
     getBrokerPdaWithBuf,
     getEnforcedOptionsPda,
@@ -28,6 +29,8 @@ describe('Test Solana-Vault configuration', function() {
     // Create a mint authority for USDC
     const usdcMintAuthority = Keypair.generate()
     const endpointAdmin = wallet.payer
+    const vaultOwner = wallet.payer
+    const oappAdmin = wallet.payer
     const ORDERLY_EID = helper.ORDERLY_EID
     const DST_EID = ORDERLY_EID
     const PEER_ADDRESS = Array.from(helper.PEER_ADDRESS)
@@ -35,7 +38,7 @@ describe('Test Solana-Vault configuration', function() {
     let oappConfigPda: PublicKey
     const vaultAuthorityPda = getVaultAuthorityPda(solanaVault.programId)
     const newVaultOwner = Keypair.generate();
-    const tokenHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    const tokenHash = helper.getTokenHash(helper.USDC_SYMBOL)
     const brokerHash = tokenHash
     let USDC_MINT: PublicKey
 
@@ -185,8 +188,8 @@ describe('Test Solana-Vault configuration', function() {
 
         const lzReceiveTypesPda = getLzReceiveTypesPda(solanaVault.programId, oappConfigPda)
         const accountListPda = getAccountListPda(solanaVault.programId, oappConfigPda)
-        const tokenPda = getTokenPdaWithBuf(solanaVault.programId, tokenHash)
-        const brokerPda = getBrokerPdaWithBuf(solanaVault.programId, brokerHash)
+        const tokenPda = getTokenPdaWithBuf(solanaVault.programId, Array.from(Buffer.from(tokenHash.slice(2), 'hex')))
+        const brokerPda = getBrokerPdaWithBuf(solanaVault.programId, Array.from(Buffer.from(brokerHash.slice(2), 'hex')))
 
         console.log("🥷 Attacker trying to set AccountList")
         let setAccountListParams, setAccountListAccounts
@@ -220,40 +223,6 @@ describe('Test Solana-Vault configuration', function() {
         assert.equal(accountListData.usdcMint.toString(), USDC_MINT.toString())
         assert.equal(accountListData.woofiProPda.toString(), brokerPda.toString())
         console.log("✅ Admin Set AccountList")
-    })
-
-
-    
-    it('Set broker', async () => {
-        const brokerHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        const allowedBrokerPda = getBrokerPdaWithBuf(solanaVault.programId, brokerHash)
-
-        console.log("🥷 Attacker trying to set Broker")
-        let setBrokerParams, setBrokerAccounts
-        try {
-            setBrokerParams = {
-                brokerHash: brokerHash,
-                allowed: true
-            }
-            setBrokerAccounts = {
-                admin:attacker.publicKey,
-                allowedBroker: allowedBrokerPda,
-                oappConfig: oappConfigPda,
-                systemProgram: SystemProgram.programId
-            }
-            await setup.setBroker(attacker, solanaVault, setBrokerParams, setBrokerAccounts)
-        } catch(e) {
-            assert.equal(e.error.errorCode.code, "Unauthorized")
-            console.log("🥷 Attacker failed to set Broker")
-        }
-
-        setBrokerAccounts.admin = wallet.publicKey
-        await setup.setBroker(wallet.payer, solanaVault, setBrokerParams, setBrokerAccounts)
-        const allowedBroker = await solanaVault.account.allowedBroker.fetch(allowedBrokerPda)
-        assert.equal(allowedBroker.allowed, true)
-        assert.deepEqual(allowedBroker.brokerHash, brokerHash)
-        assert.isOk(allowedBroker.bump)
-        console.log("✅ Set Broker")
     })
 
     it('Set token', async () => {
@@ -290,6 +259,95 @@ describe('Test Solana-Vault configuration', function() {
         console.log("✅ Set Token")
         
     })
+
+    it('Set broker manager role', async () => {
+        const brokerManagerRoleHash = helper.getManagerRoleHash(constants.BROKER_MANAGER_ROLE)
+       
+        const brokerManager = vaultOwner.publicKey
+        const brokerManagerRolePda = utils.getManagerRolePdaWithBuf(solanaVault.programId, brokerManagerRoleHash, brokerManager)
+       
+        const setManagerRoleParams = {
+            roleHash: brokerManagerRoleHash,
+            managerAddress: brokerManager,
+            allowed: true
+        }
+        const setManagerRoleAccounts = {
+            owner: vaultOwner.publicKey,
+            vaultAuthority: vaultAuthorityPda,
+            managerRole: brokerManagerRolePda,
+            systemProgram: SystemProgram.programId
+        }
+       
+        await setup.setManagerRole(vaultOwner, solanaVault, setManagerRoleParams, setManagerRoleAccounts)
+        const managerRole = await solanaVault.account.managerRole.fetch(brokerManagerRolePda)
+
+        assert.equal(managerRole.allowed, true)
+        assert.equal(managerRole.roleHash.toString(), brokerManagerRoleHash.toString())
+        console.log("✅ Set Broker Manager Role")
+
+    })
+
+    
+    it('Set broker', async () => {
+        const brokerHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        const allowedBrokerPda = getBrokerPdaWithBuf(solanaVault.programId, brokerHash)
+        const brokerManagerRoleHash = helper.getManagerRoleHash(constants.BROKER_MANAGER_ROLE)
+        const brokerManagerRolePda = utils.getManagerRolePdaWithBuf(solanaVault.programId, brokerManagerRoleHash, vaultOwner.publicKey)
+        console.log("🥷 Attacker trying to set Broker")
+        
+        const setManagerRoleParams = {
+            roleHash: brokerManagerRoleHash,
+            managerAddress: attacker.publicKey,
+            allowed: false
+        }
+        const attackerBrokerManagerRolePda = utils.getManagerRolePdaWithBuf(solanaVault.programId, brokerManagerRoleHash, attacker.publicKey)
+
+        const setManagerRoleAccounts = {
+            owner: vaultOwner.publicKey,
+            vaultAuthority: vaultAuthorityPda,
+            managerRole: attackerBrokerManagerRolePda,
+            systemProgram: SystemProgram.programId
+        }
+
+        await setup.setManagerRole(vaultOwner, solanaVault, setManagerRoleParams, setManagerRoleAccounts)
+
+        const attackerBrokerManagerRole = await solanaVault.account.managerRole.fetch(attackerBrokerManagerRolePda)
+        assert.equal(attackerBrokerManagerRole.allowed, false)
+        assert.equal(attackerBrokerManagerRole.roleHash.toString(), brokerManagerRoleHash.toString())
+        console.log("✅ Set Attacker Broker Manager Role as False")
+
+        let setBrokerParams, setBrokerAccounts
+        
+        try {
+            
+            setBrokerParams = {
+                brokerHash: brokerHash,
+                roleHash: brokerManagerRoleHash,
+                allowed: true
+            }
+            setBrokerAccounts = {
+                manager:attacker.publicKey,
+                allowedBroker: allowedBrokerPda,
+                managerRole: attackerBrokerManagerRolePda,
+                systemProgram: SystemProgram.programId
+            }
+            await setup.setBroker(attacker, solanaVault, setBrokerParams, setBrokerAccounts)
+        } catch(e) {
+            // console.log(e)
+            assert.equal(e.error.errorCode.code, "ManagerRoleNotAllowed")
+            console.log("🥷 Attacker failed to set Broker")
+        }
+        setBrokerAccounts.manager = vaultOwner.publicKey
+        setBrokerAccounts.managerRole = brokerManagerRolePda
+        await setup.setBroker(vaultOwner, solanaVault, setBrokerParams, setBrokerAccounts)
+        const allowedBroker = await solanaVault.account.allowedBroker.fetch(allowedBrokerPda)
+        assert.equal(allowedBroker.allowed, true)
+        assert.deepEqual(allowedBroker.brokerHash, brokerHash)
+        assert.isOk(allowedBroker.bump)
+        console.log("✅ Set Broker")
+    })
+
+
 
     it('Set order delivery', async () => {
         

@@ -25,6 +25,7 @@ import { MainnetV2EndpointId } from '@layerzerolabs/lz-definitions'
 import { initOapp, setVault, confirmOptions, setPeer, setEnforcedOptions, initEndpoint, registerLibrary, initSendLibrary, initDefaultSendLibrary, initUln, initNonce } from './setup'
 import * as utils from '../scripts/utils'
 import * as setup from './setup'
+import * as constants from '../scripts/constants'
 
 
 
@@ -180,15 +181,18 @@ describe('Test OAPP messaging', function() {
         console.log("✅ Set USDC Token")
 
         const allowedBrokerPda = utils.getBrokerPdaWithBuf(solanaVault.programId, woofiProBrokerHash)
-
+        const brokerManagerRoleHash = helper.getManagerRoleHash(constants.BROKER_MANAGER_ROLE)
+        const brokerManagerRolePda = utils.getManagerRolePdaWithBuf(solanaVault.programId, brokerManagerRoleHash, wallet.publicKey)
         const setBrokerParams = {
             brokerHash: woofiProBrokerHash,
+            roleHash: brokerManagerRoleHash,
             allowed: true
         }
 
         const setBrokerAccounts = {
             admin: wallet.publicKey,
             allowedBroker: allowedBrokerPda,
+            managerRole: brokerManagerRolePda,
             oappConfig: oappConfigPda,
             systemProgram: SystemProgram.programId
         }
@@ -356,12 +360,14 @@ describe('Test OAPP messaging', function() {
 
             const setBrokerParams = {
                 brokerHash: invalidBrokerHash,
+                roleHash: brokerManagerRoleHash,
                 allowed: false
             }
 
             const setBrokerAccounts = {
                 admin: wallet.publicKey,
                 allowedBroker: invalidBrokerPda,
+                managerRole: brokerManagerRolePda,
                 oappConfig: oappConfigPda,
                 systemProgram: SystemProgram.programId
             }
@@ -407,14 +413,6 @@ describe('Test OAPP messaging', function() {
         console.log("🚀 Starting lzReceive tests")
         // const noncePda = getNoncePda(oappConfigPda, DST_EID, wallet.publicKey.toBuffer())
         const guid = Array.from(Keypair.generate().publicKey.toBuffer())
-        const oappRegistryPda = utils.getOAppRegistryPda(oappConfigPda)
-        const eventAuthorityPda = utils.getEventAuthorityPda()
-        const pendingInboundNoncePda = utils.getPendingInboundNoncePda(oappConfigPda, DST_EID, peerAddress)
-        const endpointPda = utils.getEndpointSettingPda(endpointProgram.programId)
-        const receiveLibraryConfigPda = utils.getReceiveLibConfigPda(oappConfigPda, DST_EID)
-        const defaultReceiveLibraryConfigPda = utils.getDefaultReceiveLibConfigPda(DST_EID)
-        const messageLibPda = utils.getMessageLibPda(ulnProgram.programId)
-        const messageLibInfoPda = utils.getMessageLibInfoPda(messageLibPda)
         // const msgSender = wallet.publicKey   // placeholder as an OAPP sender
 
         let nonce, msg, payload, params, accounts
@@ -570,7 +568,6 @@ describe('Test OAPP messaging', function() {
                 receiverTokenAccount: userMEMEAccount.address,
                 vaultAuthority: vaultAuthorityPda,
                 vaultTokenAccount: vaultMEMEAccount.address,
-                // adminTokenAccount: adminUSDCAccount.address,
                 tokenProgram: TOKEN_PROGRAM_ID,  
             }
             await setup.lzReceive(attackerWallet, solanaVault, endpointProgram, ulnProgram, nonce, params, accountsWithMemeToken, msgSender, peerAddress, ORDERLY_EID, SOLANA_EID)       
@@ -581,16 +578,19 @@ describe('Test OAPP messaging', function() {
         }
 
         // try to execute the lzReceive USDC with not allowed broker
+        const brokerManagerRoleHash = helper.getManagerRoleHash(constants.BROKER_MANAGER_ROLE)
+        const brokerManagerRolePda = utils.getManagerRolePdaWithBuf(solanaVault.programId, brokerManagerRoleHash, wallet.publicKey)
         try {
             await solanaVault.methods
             .setBroker({
                 brokerHash: woofiProBrokerHash,
+                roleHash: brokerManagerRoleHash,
                 allowed: false
             })
             .accounts({
-                admin: wallet.publicKey,
+                manager: wallet.publicKey,
                 allowedBroker: brokerPda,
-                oappConfig: oappConfigPda,
+                managerRole: brokerManagerRolePda,
             }).signers([endpointAdmin]).rpc(confirmOptions);
     
             console.log("✅ Set Broker to not allowed")
@@ -629,12 +629,13 @@ describe('Test OAPP messaging', function() {
         await solanaVault.methods
         .setBroker({
             brokerHash: woofiProBrokerHash,
+            roleHash: brokerManagerRoleHash,
             allowed: true
         })
         .accounts({
-            admin: wallet.publicKey,
+            manager: wallet.publicKey,
             allowedBroker: brokerPda,
-            oappConfig: oappConfigPda,
+            managerRole: brokerManagerRolePda,
         }).signers([endpointAdmin]).rpc(confirmOptions);
 
         console.log("✅ Set Broker allowed")
@@ -797,7 +798,6 @@ describe('Test OAPP messaging', function() {
             receiverTokenAccount: userUSDCAccount.address,
             vaultAuthority: vaultAuthorityPda,
             vaultTokenAccount: vaultUSDCAccount.address,
-            // adminTokenAccount: adminUSDCAccount.address,
             tokenProgram: TOKEN_PROGRAM_ID,
         }
         await setup.lzReceive(wallet.payer, solanaVault, endpointProgram, ulnProgram, nonce, params, accounts, msgSender, peerAddress, ORDERLY_EID, SOLANA_EID)

@@ -21,10 +21,11 @@ pub struct SetManagerRole<'info> {
         init_if_needed,
         payer = owner,
         space = 8 + ManagerRole::INIT_SPACE,
-        seeds = [ACCESS_CONTROL_SEED, params.role_hash.as_ref(), &params.manager_address.to_bytes()],
+        seeds = [ACCESS_CONTROL_SEED, params.role_hash.as_ref(), params.manager_address.key().as_ref()], 
         bump
     )]
     pub manager_role: Account<'info, ManagerRole>,
+    
     pub system_program: Program<'info, System>,
 }
 
@@ -45,6 +46,5 @@ pub struct SetManagerRoleParams {
     pub role_hash: [u8; 32],
     pub manager_address: Pubkey,
     pub allowed: bool,
-
 }
 
