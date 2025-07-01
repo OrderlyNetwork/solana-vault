@@ -1,7 +1,7 @@
 use crate::errors::{OAppError, VaultError};
 use crate::events::{CreatedATA, FrozenWithdrawn, VaultWithdrawn};
 use crate::get_account_id;
-use crate::instructions::{to_bytes32, OAppLzReceiveParams};
+use crate::instructions::{get_usdc_hash, to_bytes32, OAppLzReceiveParams};
 use crate::instructions::{
     LzMessage, MsgType, BROKER_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED,
 };
@@ -123,7 +123,7 @@ impl<'info> OAppLzReceive<'info> {
 
             // check if the token is allowed and the mint is correct
             let (allowed_token, _) = Pubkey::find_program_address(
-                &[TOKEN_SEED, &withdraw_params.token_hash.as_ref()],
+                &[TOKEN_SEED, get_usdc_hash().as_ref()],
                 ctx.program_id,
             );
             if allowed_token.key() != ctx.accounts.token_pda.key()
@@ -131,7 +131,7 @@ impl<'info> OAppLzReceive<'info> {
             {
                 return Err(VaultError::TokenNotAllowed.into());
             }
-            if withdraw_params.token_hash == ctx.accounts.token_pda.token_hash {
+            if get_usdc_hash() == ctx.accounts.token_pda.token_hash {
                 require!(
                     ctx.accounts.token_pda.mint_account.key() == ctx.accounts.token_mint.key(),
                     VaultError::TokenNotAllowed
@@ -216,7 +216,7 @@ pub struct AccountWithdrawSol {
     pub sender: [u8; 32],
     pub receiver: [u8; 32],
     pub broker_hash: [u8; 32],
-    pub token_hash: [u8; 32],
+    // pub token_hash: [u8; 32],
     pub token_amount: u64,
     pub fee: u64,
     pub chain_id: u64,
@@ -231,7 +231,7 @@ impl AccountWithdrawSol {
         encoded.extend_from_slice(&self.sender);
         encoded.extend_from_slice(&self.receiver);
         encoded.extend_from_slice(&self.broker_hash);
-        encoded.extend_from_slice(&self.token_hash);
+        // encoded.extend_from_slice(&self.token_hash);
         encoded.extend_from_slice(&to_bytes32(&self.token_amount.to_be_bytes()));
         encoded.extend_from_slice(&to_bytes32(&self.fee.to_be_bytes()));
         encoded.extend_from_slice(&to_bytes32(&self.chain_id.to_be_bytes()));
@@ -267,7 +267,7 @@ impl AccountWithdrawSol {
         encoded.extend_from_slice(&self.sender);
         encoded.extend_from_slice(&self.receiver);
         encoded.extend_from_slice(&self.broker_hash);
-        encoded.extend_from_slice(&self.token_hash);
+        // encoded.extend_from_slice(&self.token_hash);
         encoded.extend_from_slice(&self.token_amount.to_be_bytes());
         encoded.extend_from_slice(&self.fee.to_be_bytes());
         encoded.extend_from_slice(&self.chain_id.to_be_bytes());
@@ -285,8 +285,8 @@ impl AccountWithdrawSol {
         offset += 32;
         let broker_hash = encoded[offset..offset + 32].try_into().unwrap();
         offset += 32;
-        let token_hash = encoded[offset..offset + 32].try_into().unwrap();
-        offset += 32;
+        // let token_hash = encoded[offset..offset + 32].try_into().unwrap();
+        // offset += 32;
         // higher 128 bits of the token amount
         let token_amount = u64::from_be_bytes(encoded[offset..offset + 8].try_into().unwrap());
         offset += 8;
@@ -300,7 +300,7 @@ impl AccountWithdrawSol {
             sender,
             receiver,
             broker_hash,
-            token_hash,
+            // token_hash,
             token_amount,
             fee,
             chain_id,
@@ -318,8 +318,8 @@ impl AccountWithdrawSol {
         offset += 32;
         let broker_hash = encoded[offset..offset + 32].try_into().unwrap();
         offset += 32;
-        let token_hash = encoded[offset..offset + 32].try_into().unwrap();
-        offset += 32;
+        // let token_hash = encoded[offset..offset + 32].try_into().unwrap();
+        // offset += 32;
         // higher 128 bits of the token amount
         let token_amount =
             u64::from_be_bytes(encoded[offset + 24..offset + 32].try_into().unwrap());
@@ -335,7 +335,7 @@ impl AccountWithdrawSol {
             sender,
             receiver,
             broker_hash,
-            token_hash,
+            // token_hash,
             token_amount,
             fee,
             chain_id,
@@ -354,7 +354,7 @@ impl From<AccountWithdrawSol> for VaultWithdrawParams {
             sender: account_withdraw_sol.sender,
             receiver: account_withdraw_sol.receiver,
             broker_hash: account_withdraw_sol.broker_hash,
-            token_hash: account_withdraw_sol.token_hash,
+            token_hash: get_usdc_hash(),
             token_amount: account_withdraw_sol.token_amount as u64,
             fee: account_withdraw_sol.fee as u128,
             chain_id: account_withdraw_sol.chain_id as u128,
