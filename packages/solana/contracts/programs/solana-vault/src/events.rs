@@ -25,6 +25,13 @@ pub struct ResetAllowedToken {
 }
 
 #[event]
+pub struct SetManager {
+    pub role_hash: [u8; 32],
+    pub manager_address: Pubkey,
+    pub allowed: bool,
+}
+
+#[event]
 pub struct Deposited {
     pub user: Pubkey,
     pub amount: u64,

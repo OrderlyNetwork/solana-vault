@@ -3,7 +3,7 @@ use crate::instructions::VAULT_AUTHORITY_SEED;
 use crate::state::{VaultAuthority, ManagerRole};
 use anchor_lang::prelude::*;
 use crate::instructions::{ACCESS_CONTROL_SEED};
-
+use crate::events::SetManager;
 
 #[derive(Accounts)]
 #[instruction(params: SetManagerRoleParams)]
@@ -37,6 +37,11 @@ impl SetManagerRole<'_> {
         ctx.accounts.manager_role.role_hash = params.role_hash;
         ctx.accounts.manager_role.allowed = params.allowed;
         ctx.accounts.manager_role.bump = ctx.bumps.manager_role;
+        emit!(SetManager {
+            role_hash: params.role_hash,
+            manager_address: params.manager_address,
+            allowed: params.allowed,
+        });
        Ok(())
     }
 }
