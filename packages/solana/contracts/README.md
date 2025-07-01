@@ -69,6 +69,11 @@ And check this [SOP](https://wootraders.atlassian.net/wiki/spaces/ORDER/pages/83
 solana program set-buffer-authority BUFFER --new-buffer-authority $MULTISIG_PDA
 ```
 
+Resume the buffer deployment, please run the following command:
+```
+solana program write-buffer ./target/deploy/solana_vault.so --buffer BUFFER_ADDRESS --buffer-authority ~/.config/solana/id.json
+```
+
 ### Init and Upgrade IDL
 
 To init the IDL, please run the following command:
