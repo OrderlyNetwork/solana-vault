@@ -83,6 +83,14 @@ anchor idl init --filepath target/idl/solana_vault.json PROGRAM_ID
 anchor idl upgrade --filepath target/idl/solana_vault.json PROGRAM_ID            
 ```
 
+### Anchor Test
+
+To run the anchor test, please change the cluster to `localnet` in the `Anchor.toml` file, and run the following command:
+
+```
+anchor test
+```
+
 ## Setup
 
 The Solana Vault program consists of two parts:

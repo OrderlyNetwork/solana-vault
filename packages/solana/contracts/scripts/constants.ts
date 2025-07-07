@@ -44,7 +44,7 @@ export const ACCESS_CONTROL_SEED = "AccessControl";
 export const BROKER_MANAGER_ROLE = "BrokerManagerRole";
 export const TOKEN_MANAGER_ROLE = "TokenManagerRole";
 
-export const ENV: "DEV" | "QA" | "STAGING" | "MAIN" = "QA";
+export const ENV: "DEV" | "QA" | "STAGING" | "MAIN" = "DEV";
 export const MOCK_OAPP_PROGRAM_ID = new PublicKey("EFLrsQmcfYTSvVrUiP4qruDhbYBtjbQNAhC6tkLJbBtQ");
 export const DEV_OAPP_PROGRAM_ID = new PublicKey("EYJq9eU4GMRUriUJBgGoZ8YLQBXcWaciXuSsEXE7ieQS");
 export const QA_OAPP_PROGRAM_ID = new PublicKey("5zBjLor7vEraAt4zp2H82sy9MSqFoDnNa1Lx6EYKTYRZ");
@@ -263,5 +263,16 @@ export const MAIN_BROKERS = [
     //"aden",
     "eolas"
 ]
+
+// The token index is used to identify the token
+// Native tokens are indexed counter-down from 255
+// ERC20/SPL tokens are indexed counter-up from 1
+export const TOKEN_INDEX = {
+    "PLACEHOLDER": 0,
+    "USDC": 1,
+    "USDT": 2,
+    "ETH": 255,
+    "SOL": 254
+}
 
 

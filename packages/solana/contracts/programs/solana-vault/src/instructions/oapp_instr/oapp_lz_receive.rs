@@ -216,7 +216,7 @@ pub struct AccountWithdrawSol {
     pub sender: [u8; 32],
     pub receiver: [u8; 32],
     pub broker_hash: [u8; 32],
-    // pub token_hash: [u8; 32],
+    pub token_index: u8,
     pub token_amount: u64,
     pub fee: u64,
     pub chain_id: u64,
@@ -285,8 +285,8 @@ impl AccountWithdrawSol {
         offset += 32;
         let broker_hash = encoded[offset..offset + 32].try_into().unwrap();
         offset += 32;
-        // let token_hash = encoded[offset..offset + 32].try_into().unwrap();
-        // offset += 32;
+        let token_index = encoded[offset..offset + 1].try_into().unwrap();
+        offset += 1;
         // higher 128 bits of the token amount
         let token_amount = u64::from_be_bytes(encoded[offset..offset + 8].try_into().unwrap());
         offset += 8;
@@ -300,7 +300,7 @@ impl AccountWithdrawSol {
             sender,
             receiver,
             broker_hash,
-            // token_hash,
+            token_index,
             token_amount,
             fee,
             chain_id,
@@ -318,8 +318,8 @@ impl AccountWithdrawSol {
         offset += 32;
         let broker_hash = encoded[offset..offset + 32].try_into().unwrap();
         offset += 32;
-        // let token_hash = encoded[offset..offset + 32].try_into().unwrap();
-        // offset += 32;
+        let token_index = encoded[offset..offset + 1].try_into().unwrap();
+        offset += 1;
         // higher 128 bits of the token amount
         let token_amount =
             u64::from_be_bytes(encoded[offset + 24..offset + 32].try_into().unwrap());
@@ -335,7 +335,7 @@ impl AccountWithdrawSol {
             sender,
             receiver,
             broker_hash,
-            // token_hash,
+            token_index,
             token_amount,
             fee,
             chain_id,

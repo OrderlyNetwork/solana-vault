@@ -17,7 +17,7 @@ uln = "279tDX6wTFgrJaRnGEdjik3NLR8B9AKY1pKVFYcxvw7c"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 # 
 [scripts]

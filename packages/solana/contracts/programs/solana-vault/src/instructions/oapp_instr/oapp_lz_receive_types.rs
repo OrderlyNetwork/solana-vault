@@ -96,6 +96,7 @@ impl OAppLzReceiveTypes<'_> {
             );
 
             // account 4
+            let token_index = withdraw_params.token_index;
             let (token_pda, _) = Pubkey::find_program_address(
                 &[TOKEN_SEED, get_usdc_hash().as_ref()],
                 ctx.program_id,
