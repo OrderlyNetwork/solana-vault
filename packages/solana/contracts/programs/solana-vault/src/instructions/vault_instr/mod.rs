@@ -4,6 +4,7 @@ pub mod set_order_delivery;
 pub mod set_token;
 pub mod set_vault;
 pub mod set_manager_role;
+pub mod set_withdraw_token;
 
 pub use deposit::*;
 pub use set_broker::*;
@@ -11,3 +12,4 @@ pub use set_order_delivery::*;
 pub use set_token::*;
 pub use set_vault::*;
 pub use set_manager_role::*;
+pub use set_withdraw_token::*;

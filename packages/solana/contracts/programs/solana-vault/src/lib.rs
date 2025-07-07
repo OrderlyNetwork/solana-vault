@@ -9,7 +9,7 @@ use instructions::*;
 
 use oapp::endpoint::MessagingReceipt;
 
-declare_id!("5zBjLor7vEraAt4zp2H82sy9MSqFoDnNa1Lx6EYKTYRZ");
+declare_id!("EYJq9eU4GMRUriUJBgGoZ8YLQBXcWaciXuSsEXE7ieQS");
 
 #[program]
 pub mod solana_vault {
@@ -48,6 +48,10 @@ pub mod solana_vault {
 
     pub fn set_token(mut ctx: Context<SetToken>, params: SetTokenParams) -> Result<()> {
         SetToken::apply(&mut ctx, &params)
+    }
+
+    pub fn set_withdraw_token(mut ctx: Context<SetWithdrawToken>, params: SetWithdrawTokenParams) -> Result<()> {
+        SetWithdrawToken::apply(&mut ctx, &params)
     }
 
     pub fn set_order_delivery(

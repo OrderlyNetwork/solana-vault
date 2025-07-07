@@ -25,6 +25,20 @@ pub struct ResetAllowedToken {
 }
 
 #[event]
+pub struct SetWithdrawTokenIndex {
+    pub token_index: u8,
+    pub token_hash: [u8; 32],
+    pub mint_account: Pubkey,
+}
+
+#[event]
+pub struct ResetWithdrawTokenIndex {
+    pub token_index: u8,
+    pub token_hash: [u8; 32],
+    pub mint_account: Pubkey,
+}
+
+#[event]
 pub struct SetManager {
     pub role_hash: [u8; 32],
     pub manager_address: Pubkey,
