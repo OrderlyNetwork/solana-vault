@@ -15,6 +15,8 @@ pub enum VaultError {
     InvalidAccountId,
     #[msg("Vault owner is not the same as the payer")]
     InvalidVaultOwner,
+    #[msg("Manager role is not allowed")]
+    ManagerRoleNotAllowed,
 }
 
 // OApp errors

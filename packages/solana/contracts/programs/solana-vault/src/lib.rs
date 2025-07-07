@@ -9,7 +9,7 @@ use instructions::*;
 
 use oapp::endpoint::MessagingReceipt;
 
-declare_id!("ErBmAD61mGFKvrFNaTJuxoPwqrS8GgtwtqJTJVjFWx9Q");
+declare_id!("5zBjLor7vEraAt4zp2H82sy9MSqFoDnNa1Lx6EYKTYRZ");
 
 #[program]
 pub mod solana_vault {
@@ -36,6 +36,10 @@ pub mod solana_vault {
         params: SetAccountListParams,
     ) -> Result<()> {
         SetAccountList::apply(&mut ctx, &params)
+    }
+
+    pub fn set_manager_role(mut ctx: Context<SetManagerRole>, params: SetManagerRoleParams) -> Result<()> {
+        SetManagerRole::apply(&mut ctx, &params)
     }
 
     pub fn set_broker(mut ctx: Context<SetBroker>, params: SetBrokerParams) -> Result<()> {

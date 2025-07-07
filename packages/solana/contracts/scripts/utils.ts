@@ -364,6 +364,8 @@ export async function createAndSendV0TxWithTable(txInstructions: TransactionInst
     console.log("Send transaction confirmed:", sigSend);
     await sleep(2);
 
+    return sigSend
+
 }
 
 // export async function getLookupTableAddress(provider: anchor.AnchorProvider, wallet: anchor.Wallet, rpc: string, OAPP_PROGRAM_ID: PublicKey): Promise<PublicKey> {
@@ -462,10 +464,25 @@ export function getTokenHash(tokenSymbol: string): string {
     return solidityPackedKeccak256(['string'], [tokenSymbol])
 }
 
+export function getManagerRoleHash(managerRole: string): string {
+    return solidityPackedKeccak256(['string'], [managerRole])
+}
+
+
 export function getBrokerPda(VAULT_PROGRAM_ID: PublicKey, brokerHash: string): PublicKey {
     const hash = Array.from(Buffer.from(brokerHash.slice(2), 'hex'));
     return PublicKey.findProgramAddressSync(
         [Buffer.from(constants.BROKER_SEED, "utf8"), Buffer.from(hash)],
+        VAULT_PROGRAM_ID
+    )[0];
+}
+
+export function getManagerRolePda(VAULT_PROGRAM_ID: PublicKey, managerRoleHash: string, managerAddress: PublicKey): PublicKey {
+    const hash = Array.from(Buffer.from(managerRoleHash.slice(2), 'hex'));
+    console.log("hash", hash)
+    console.log("managerAddress", managerAddress.toBytes())
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from(constants.ACCESS_CONTROL_SEED, "utf8"), managerAddress.toBuffer()], //, Buffer.from(hash) , managerAddress.toBytes()
         VAULT_PROGRAM_ID
     )[0];
 }
@@ -491,6 +508,13 @@ export function getTokenPdaWithBuf(VAULT_PROGRAM_ID: PublicKey, tokenHash: numbe
         VAULT_PROGRAM_ID
     )[0];
 }
+
+export function getManagerRolePdaWithBuf(VAULT_PROGRAM_ID: PublicKey, roleHash: number[], managerAddress: PublicKey): PublicKey {
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from(constants.ACCESS_CONTROL_SEED, "utf8"), Buffer.from(roleHash), managerAddress.toBuffer()], // , Buffer.from(roleHash)
+        VAULT_PROGRAM_ID
+    )[0];
+}
      
 export function getSolAccountId(userAccount: PublicKey, brokerId: string): string{
         // base58 => bytes
@@ -498,8 +522,6 @@ export function getSolAccountId(userAccount: PublicKey, brokerId: string): strin
         const abicoder = AbiCoder.defaultAbiCoder()
     return keccak256(abicoder.encode(['bytes32', 'bytes32'], [decodedUserAccount, getBrokerHash(brokerId)]))
 }
-// base58 => bytes => hex => bytes32
-// const decodedUserAccount = hexToBytes((Buffer.from(userAccount.toBytes()).toString('hex')));
 
 export function getUSDCAddress(ENV: String): PublicKey {
     
@@ -999,4 +1021,13 @@ export async function delay(ENV: String) {
         // sleep for 5 seconds to wait for the lookup table to be updated
         await new Promise(resolve => setTimeout(resolve, 1000));
     }
+}
+
+
+export function getLayerZeroScanLink(hash: string, isTestnet = true){ 
+    return isTestnet ? `https://testnet.layerzeroscan.com/tx/${hash}` : `https://layerzeroscan.com/tx/${hash}`
+}
+
+export function getExplorerTxLink(hash: string, isTestnet = true){
+    return `https://explorer.solana.com/tx/${hash}?cluster=${isTestnet ? 'devnet' : 'mainnet-beta'}`
 }

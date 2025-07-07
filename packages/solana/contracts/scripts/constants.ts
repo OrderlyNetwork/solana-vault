@@ -40,8 +40,11 @@ export const BROKER_SEED = "Broker";
 export const TOKEN_SEED = "Token";
 export const OWNER_SEED = "Owner";
 export const ACCOUNT_LIST_SEED = "AccountList";
+export const ACCESS_CONTROL_SEED = "AccessControl";
+export const BROKER_MANAGER_ROLE = "BrokerManagerRole";
+export const TOKEN_MANAGER_ROLE = "TokenManagerRole";
 
-export const ENV: "DEV" | "QA" | "STAGING" | "MAIN" = "MAIN";
+export const ENV: "DEV" | "QA" | "STAGING" | "MAIN" = "QA";
 export const MOCK_OAPP_PROGRAM_ID = new PublicKey("EFLrsQmcfYTSvVrUiP4qruDhbYBtjbQNAhC6tkLJbBtQ");
 export const DEV_OAPP_PROGRAM_ID = new PublicKey("EYJq9eU4GMRUriUJBgGoZ8YLQBXcWaciXuSsEXE7ieQS");
 export const QA_OAPP_PROGRAM_ID = new PublicKey("5zBjLor7vEraAt4zp2H82sy9MSqFoDnNa1Lx6EYKTYRZ");
@@ -58,7 +61,7 @@ export const QA_LOOKUP_TABLE_ADDRESS = new PublicKey("BswrQQoPKAFojTuJutZcBMtigA
 export const STAGING_LOOKUP_TABLE_ADDRESS = new PublicKey("BbGKfxuPwDmu58BjPpd7PMG69TqnZjSpKaLDMgf9E9Dr");
 export const MAIN_LOOKUP_TABLE_ADDRESS = new PublicKey("8iq7xCQt3bLdRRn4A46d5GuaXYinBoiAhbe2sUmZVzwg");  
 
-export const DEV_BROKERS = ["woofi_pro", "vooi", "orderly", "root"];
+export const DEV_BROKERS = ["woofi_pro"];
 export const QA_BROKERS = ["woofi_pro", "vooi"];
 export const STAGING_BROKERS = [
     // "root",
@@ -153,7 +156,8 @@ export const STAGING_BROKERS = [
     //"apolo_pay",
     //"ninco_fi",
     //"shitzu",
-    "degentics"
+    //"degentics",
+    "aden"
     ];
 export const MAIN_BROKERS = [
     // "root",
@@ -255,7 +259,9 @@ export const MAIN_BROKERS = [
     //"desk",
     //"ninco_fi",
     //"shitzu",
-    "degentics"
+    //"degentics"，
+    //"aden",
+    "eolas"
 ]
 
 
