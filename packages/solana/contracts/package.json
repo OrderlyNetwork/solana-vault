@@ -20,7 +20,6 @@
     "typescript": "^4.3.5"
   },
   "dependencies": {
-    "@layerzerolabs/oft": "workspace:^",
     "@layerzerolabs/oft-v2-solana-sdk": "^3.0.7",
     "@solana-developers/helpers": "^2.5.2",
     "ethereum-cryptography": "^2.2.1",
