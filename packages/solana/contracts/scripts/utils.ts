@@ -509,6 +509,19 @@ export function getTokenPdaWithBuf(VAULT_PROGRAM_ID: PublicKey, tokenHash: numbe
     )[0];
 }
 
+export function getWithdrawTokenPda(VAULT_PROGRAM_ID: PublicKey, tokenIndex: number): PublicKey {
+
+    // console.log("tokenIndex", tokenIndex)
+    const bufferIndex = Buffer.alloc(1);
+    bufferIndex.writeUInt8(tokenIndex);
+    // console.log("bufferIndex", bufferIndex)
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from(constants.TOKEN_SEED, "utf8"), bufferIndex],
+        VAULT_PROGRAM_ID
+    )[0];
+}
+
+
 export function getManagerRolePdaWithBuf(VAULT_PROGRAM_ID: PublicKey, roleHash: number[], managerAddress: PublicKey): PublicKey {
     return PublicKey.findProgramAddressSync(
         [Buffer.from(constants.ACCESS_CONTROL_SEED, "utf8"), Buffer.from(roleHash), managerAddress.toBuffer()], // , Buffer.from(roleHash)

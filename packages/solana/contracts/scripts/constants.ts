@@ -39,7 +39,7 @@ export const VAULT_AUTHORITY_SEED = "VaultAuthority";
 export const BROKER_SEED = "Broker";
 export const TOKEN_SEED = "Token";
 export const OWNER_SEED = "Owner";
-export const ACCOUNT_LIST_SEED = "AccountList";
+export const ACCOUNT_LIST_SEED = "AccountListMultiCollateral";
 export const ACCESS_CONTROL_SEED = "AccessControl";
 export const BROKER_MANAGER_ROLE = "BrokerManagerRole";
 export const TOKEN_MANAGER_ROLE = "TokenManagerRole";
@@ -273,6 +273,12 @@ export const TOKEN_INDEX = {
     "USDT": 2,
     "ETH": 255,
     "SOL": 254
+}
+
+export const TOKEN_DECIMALS = {
+    "USDC": 6,
+    "USDT": 6,
+    "SOL": 9
 }
 
 

@@ -32,4 +32,6 @@ pub enum OAppError {
     InvalidInboundNonce,
     InvalidReceiverTokenAccount,
     InvalidAdminTokenAccount,
+    InvalidMessageType,
+    InvalidTokenIndex,
 }

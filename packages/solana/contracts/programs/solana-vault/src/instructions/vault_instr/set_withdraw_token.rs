@@ -14,7 +14,7 @@ pub struct SetWithdrawToken<'info> {
         init_if_needed,
         payer = token_manager,
         space = 8 + WithdrawToken::INIT_SPACE,
-        seeds = [TOKEN_SEED, params.token_index.to_be_bytes().as_ref()], // mint_account.key().as_ref(), 
+        seeds = [TOKEN_SEED, &params.token_index.to_be_bytes()],
         bump
     )]
     pub withdraw_token: Account<'info, WithdrawToken>,

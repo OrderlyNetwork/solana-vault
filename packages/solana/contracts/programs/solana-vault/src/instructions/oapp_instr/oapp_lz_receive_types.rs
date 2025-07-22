@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use crate::constants::{TOKEN_INDEX_USDC, TOKEN_INDEX_USDT};
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program;
@@ -6,9 +6,10 @@ use anchor_spl::associated_token::{get_associated_token_address, ID as ASSOCIATE
 use anchor_spl::token::ID as TOKEN_PROGRAM_ID;
 use oapp::endpoint_cpi::LzAccount;
 
+use crate::errors::OAppError;
 use crate::instructions::AccountWithdrawSol;
 use crate::instructions::{
-    get_usdc_hash, LzMessage, MsgType, ACCOUNT_LIST_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED,
+    LzMessage, MsgType, ACCOUNT_LIST_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED,
     VAULT_AUTHORITY_SEED,
 };
 use crate::state::{AccountList, OAppConfig};
@@ -20,7 +21,7 @@ use crate::BROKER_SEED;
 // 1: peer
 // 2: oapp_config
 // 3: broker_pda
-// 4: token_pda
+// 4: withdraw_token_pda
 // 5: token_mint
 // 6: receiver
 // 7: receiver_token_account
@@ -97,17 +98,19 @@ impl OAppLzReceiveTypes<'_> {
 
             // account 4
             let token_index = withdraw_params.token_index;
-            let (token_pda, _) = Pubkey::find_program_address(
-                &[TOKEN_SEED, get_usdc_hash().as_ref()],
+            let (withdraw_token_pda, _) = Pubkey::find_program_address(
+                &[TOKEN_SEED, &token_index.to_be_bytes()],
                 ctx.program_id,
             );
 
             // account 5
             let token_mint;
-            if token_pda == ctx.accounts.account_list.usdc_pda {
+            if token_index == TOKEN_INDEX_USDC {
                 token_mint = ctx.accounts.account_list.usdc_mint;
+            } else if token_index == TOKEN_INDEX_USDT {
+                token_mint = ctx.accounts.account_list.usdt_mint;
             } else {
-                token_mint = Pubkey::from_str("0x0000").unwrap();
+                return Err(OAppError::InvalidTokenIndex.into());
             }
 
             // account 6
@@ -144,7 +147,7 @@ impl OAppLzReceiveTypes<'_> {
                     is_writable: false,
                 }, // 3
                 LzAccount {
-                    pubkey: token_pda,
+                    pubkey: withdraw_token_pda,
                     is_signer: false,
                     is_writable: false,
                 }, // 4

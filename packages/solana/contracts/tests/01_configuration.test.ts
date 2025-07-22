@@ -27,7 +27,8 @@ describe('Test Solana-Vault configuration', function() {
     anchor.setProvider(provider)
     const attacker = Keypair.generate()
     // Create a mint authority for USDC
-    const usdcMintAuthority = Keypair.generate()
+    const tokenMintAuthority = wallet.payer
+    const tokenFreezeAuthority = wallet.payer
     const endpointAdmin = wallet.payer
     const vaultOwner = wallet.payer
     const oappAdmin = wallet.payer
@@ -38,9 +39,11 @@ describe('Test Solana-Vault configuration', function() {
     let oappConfigPda: PublicKey
     const vaultAuthorityPda = getVaultAuthorityPda(solanaVault.programId)
     const newVaultOwner = Keypair.generate();
-    const tokenHash = helper.getTokenHash(helper.USDC_SYMBOL)
-    const brokerHash = tokenHash
+    const usdcTokenHash = helper.getTokenHash(helper.USDC_SYMBOL)
+    const usdtTokenHash = helper.getTokenHash(helper.USDT_SYMBOL)
+    const woofiBrokerHash = helper.getBrokerHash(helper.WOOFI_PRO_BROKER_ID)
     let USDC_MINT: PublicKey
+    let USDT_MINT: PublicKey
 
     before(async () => {
 
@@ -49,13 +52,24 @@ describe('Test Solana-Vault configuration', function() {
         USDC_MINT = await createMint(
             provider.connection,
             wallet.payer,
-            usdcMintAuthority.publicKey,
-            null,
-            6,
-            Keypair.generate(),
+            tokenMintAuthority.publicKey,
+            tokenFreezeAuthority.publicKey,
+            constants.TOKEN_DECIMALS.USDC,
+            helper.USDC_KEY,
             setup.confirmOptions
         )
         console.log("✅ Deploy USDC coin")
+
+        USDT_MINT = await createMint(
+            provider.connection,
+            wallet.payer,
+            tokenMintAuthority.publicKey,
+            tokenFreezeAuthority.publicKey,
+            constants.TOKEN_DECIMALS.USDT,
+            helper.USDT_KEY,
+            setup.confirmOptions
+        )
+        console.log("✅ Deploy USDT coin")
 
         oappConfigPda = (await setup.initOapp(wallet, solanaVault, endpointProgram)).oappConfigPda
         console.log("✅ Init Oapp")
@@ -132,9 +146,10 @@ describe('Test Solana-Vault configuration', function() {
                 oappConfig: oappConfigPda,
             }
             await setup.setVault(attacker, solanaVault, setVaultParams, setVaultAccounts)
+            console.log("❌ Attacker successfully set Vault Authority")
         } catch(e) {
             assert.equal(e.error.errorCode.code, "Unauthorized")
-            console.log("🥷 Attacker failed to set Vault Authority")
+            console.log("👌 Attacker failed to set Vault Authority")
         }
         
         // Admin trying to set Vault Authority
@@ -186,20 +201,23 @@ describe('Test Solana-Vault configuration', function() {
 
     it('Set account list', async () => {
 
+        const USDC_INDEX = constants.TOKEN_INDEX.USDC
         const lzReceiveTypesPda = getLzReceiveTypesPda(solanaVault.programId, oappConfigPda)
         const accountListPda = getAccountListPda(solanaVault.programId, oappConfigPda)
-        const tokenPda = getTokenPdaWithBuf(solanaVault.programId, Array.from(Buffer.from(tokenHash.slice(2), 'hex')))
-        const brokerPda = getBrokerPdaWithBuf(solanaVault.programId, Array.from(Buffer.from(brokerHash.slice(2), 'hex')))
+        const withdrawUsdcPda = utils.getWithdrawTokenPda(solanaVault.programId, USDC_INDEX)
+        const withdrawUsdtPda = utils.getWithdrawTokenPda(solanaVault.programId, constants.TOKEN_INDEX.USDT)
+        const brokerPda = getBrokerPdaWithBuf(solanaVault.programId, Array.from(Buffer.from(woofiBrokerHash.slice(2), 'hex')))
 
         console.log("🥷 Attacker trying to set AccountList")
         let setAccountListParams, setAccountListAccounts
         
         try {
             setAccountListParams = {
-                accountList: accountListPda,
-                usdcPda: tokenPda,
+                withdrawUsdcPda: withdrawUsdcPda,
                 usdcMint: USDC_MINT,
-                woofiProPda: brokerPda
+                woofiProPda: brokerPda,
+                withdrawUsdtPda: withdrawUsdtPda,
+                usdtMint: USDT_MINT,
             }
             setAccountListAccounts = {
                 admin:attacker.publicKey,
@@ -209,9 +227,10 @@ describe('Test Solana-Vault configuration', function() {
                 systemProgram: SystemProgram.programId
             }
             await setup.setAccountList(attacker, solanaVault, setAccountListParams, setAccountListAccounts)
+            console.log("❌ Attacker successfully set AccountList")
         } catch(e) {
             assert.equal(e.error.errorCode.code, "Unauthorized")
-            console.log("🥷 Attacker failed to set AccountList")
+            console.log("👌 Attacker failed to set AccountList")
             // console.log(e)
         }
 
@@ -219,8 +238,10 @@ describe('Test Solana-Vault configuration', function() {
         setAccountListAccounts.admin = wallet.publicKey
         await setup.setAccountList(wallet.payer, solanaVault, setAccountListParams, setAccountListAccounts)
         const accountListData = await solanaVault.account.accountList.fetch(accountListPda)
-        assert.equal(accountListData.usdcPda.toString(), tokenPda.toString())
+        assert.equal(accountListData.withdrawUsdcPda.toString(), withdrawUsdcPda.toString())
         assert.equal(accountListData.usdcMint.toString(), USDC_MINT.toString())
+        assert.equal(accountListData.withdrawUsdtPda.toString(), withdrawUsdtPda.toString())
+        assert.equal(accountListData.usdtMint.toString(), USDT_MINT.toString())
         assert.equal(accountListData.woofiProPda.toString(), brokerPda.toString())
         console.log("✅ Admin Set AccountList")
     })
@@ -252,12 +273,12 @@ describe('Test Solana-Vault configuration', function() {
 
     })
 
-    it('Set token', async () => {
-        const allowedTokenPda = getTokenPdaWithBuf(solanaVault.programId, tokenHash)
+    it('Set deposit token and withdraw token', async () => {
+        const allowedTokenPda = getTokenPdaWithBuf(solanaVault.programId, usdcTokenHash)
         const tokenManagerRoleHash = helper.getManagerRoleHash(constants.TOKEN_MANAGER_ROLE)
         const tokenManagerRolePda = utils.getManagerRolePdaWithBuf(solanaVault.programId, tokenManagerRoleHash, vaultOwner.publicKey)
 
-        console.log("🥷 Attacker trying to set Token")
+        
 
         const setManagerRoleParams = {
             roleHash: tokenManagerRoleHash,
@@ -280,13 +301,13 @@ describe('Test Solana-Vault configuration', function() {
         assert.equal(attackerBrokerManagerRole.roleHash.toString(), tokenManagerRoleHash.toString())
         console.log("✅ Set Attacker Token Manager Role as False")
 
-
+        console.log("🥷 Attacker trying to set Token")
         let setTokenParams, setTokenAccounts
         try {
             setTokenParams = {
                 tokenManagerRole: tokenManagerRoleHash,
                 mintAccount: USDC_MINT,
-                tokenHash: tokenHash,
+                tokenHash: usdcTokenHash,
                 allowed: true
             }
             setTokenAccounts = {
@@ -297,10 +318,10 @@ describe('Test Solana-Vault configuration', function() {
                 systemProgram: SystemProgram.programId
             }
             await setup.setToken(attacker, solanaVault, setTokenParams, setTokenAccounts)
+            console.log("❌ Attacker successfully set Token")
         } catch(e) {
-            console.log(e)
             assert.equal(e.error.errorCode.code, "ManagerRoleNotAllowed");
-            console.log("🥷 Attacker failed to set Token")
+            console.log("👌 Attacker failed to set Token")
         }
 
         setTokenAccounts.tokenManager = wallet.publicKey
@@ -308,13 +329,58 @@ describe('Test Solana-Vault configuration', function() {
         await setup.setToken(wallet.payer, solanaVault, setTokenParams, setTokenAccounts)
         const allowedToken = await solanaVault.account.allowedToken.fetch(allowedTokenPda)
         assert.equal(allowedToken.mintAccount.toString(), USDC_MINT.toString())
-        assert.deepEqual(allowedToken.tokenHash, tokenHash)
-        assert.equal(allowedToken.tokenDecimals, 6)
+        assert.deepEqual(allowedToken.tokenHash, usdcTokenHash)
+        assert.equal(allowedToken.tokenDecimals, constants.TOKEN_DECIMALS.USDC)
         assert.equal(allowedToken.allowed, true)
         assert.isOk(allowedToken.bump)
-        console.log("✅ Set Token")
+        console.log("✅ Set Deposit Token")
+
+        const usdcIndex = constants.TOKEN_INDEX.USDC
+        const withdrawUsdcPda = utils.getWithdrawTokenPda(solanaVault.programId, usdcIndex)
+
+        console.log("🥷 Attacker trying to set Withdraw Token")
+        let setWithdrawTokenParams, setWithdrawTokenAccounts
+        try {
+            setWithdrawTokenParams = {
+                tokenManagerRole: tokenManagerRoleHash,
+                mintAccount: USDC_MINT,
+                tokenHash: usdcTokenHash,
+                tokenIndex: usdcIndex,
+                allowed: true
+            }
+
+            setWithdrawTokenAccounts = {
+                tokenManager: attacker.publicKey,
+                withdrawToken: withdrawUsdcPda,
+                managerRole: attackerTokenManagerRolePda,
+                mintAccount: USDC_MINT,
+                // systemProgram: SystemProgram.programId
+            }
+            await setup.setWithdrawToken(attacker, solanaVault, setWithdrawTokenParams, setWithdrawTokenAccounts)
+            console.log("❌ Attacker successfully set Withdraw Token")
+        } catch (e) {
+            // console.log(e)
+            assert.equal(e.error.errorCode.code, "ManagerRoleNotAllowed");
+            console.log("👌 Attacker failed to set Withdraw Token")
+        }
+
+
+        setWithdrawTokenAccounts.tokenManager = wallet.publicKey
+        setWithdrawTokenAccounts.managerRole = tokenManagerRolePda
+        await setup.setWithdrawToken(wallet.payer, solanaVault, setWithdrawTokenParams, setWithdrawTokenAccounts)
+
+        const withdrawToken = await solanaVault.account.withdrawToken.fetch(withdrawUsdcPda)
+        assert.equal(withdrawToken.mintAccount.toString(), USDC_MINT.toString())
+        assert.deepEqual(withdrawToken.tokenHash, usdcTokenHash)
+        assert.equal(withdrawToken.tokenIndex, usdcIndex)
+        assert.equal(withdrawToken.tokenDecimals, constants.TOKEN_DECIMALS.USDC)
+        assert.equal(withdrawToken.allowed, true)
+        assert.isOk(withdrawToken.bump)
+        console.log("✅ Set Withdraw Token")        
         
     })
+
+    
 
     it('Set broker manager role', async () => {
         const brokerManagerRoleHash = helper.getManagerRoleHash(constants.BROKER_MANAGER_ROLE)
@@ -349,7 +415,7 @@ describe('Test Solana-Vault configuration', function() {
         const allowedBrokerPda = getBrokerPdaWithBuf(solanaVault.programId, brokerHash)
         const brokerManagerRoleHash = helper.getManagerRoleHash(constants.BROKER_MANAGER_ROLE)
         const brokerManagerRolePda = utils.getManagerRolePdaWithBuf(solanaVault.programId, brokerManagerRoleHash, vaultOwner.publicKey)
-        console.log("🥷 Attacker trying to set Broker")
+       
         
         const setManagerRoleParams = {
             roleHash: brokerManagerRoleHash,
@@ -371,7 +437,7 @@ describe('Test Solana-Vault configuration', function() {
         assert.equal(attackerBrokerManagerRole.allowed, false)
         assert.equal(attackerBrokerManagerRole.roleHash.toString(), brokerManagerRoleHash.toString())
         console.log("✅ Set Attacker Broker Manager Role as False")
-
+        console.log("🥷 Attacker trying to set Broker")
         let setBrokerParams, setBrokerAccounts
         
         try {
@@ -388,10 +454,11 @@ describe('Test Solana-Vault configuration', function() {
                 systemProgram: SystemProgram.programId
             }
             await setup.setBroker(attacker, solanaVault, setBrokerParams, setBrokerAccounts)
+            console.log("❌ Attacker successfully set Broker")
         } catch(e) {
             // console.log(e)
             assert.equal(e.error.errorCode.code, "ManagerRoleNotAllowed")
-            console.log("🥷 Attacker failed to set Broker")
+            console.log("👌 Attacker failed to set Broker")
         }
         setBrokerAccounts.brokerManager = vaultOwner.publicKey
         setBrokerAccounts.managerRole = brokerManagerRolePda
@@ -419,9 +486,10 @@ describe('Test Solana-Vault configuration', function() {
                 vaultAuthority: vaultAuthorityPda
             }
             await setup.setOrderDelivery(attacker, solanaVault, setOrderDeliveryParams, setOrderDeliveryAccounts)
+            console.log("❌ Attacker successfully set Order Delivery")
         } catch(e) {
             assert.equal(e.error.errorCode.code, "InvalidVaultOwner")
-            console.log("🥷 Attacker failed to set Order Delivery")
+            console.log("👌 Attacker failed to set Order Delivery")
         }
 
         setOrderDeliveryAccounts.owner = wallet.publicKey
@@ -455,10 +523,11 @@ describe('Test Solana-Vault configuration', function() {
                 systemProgram: SystemProgram.programId
             }
             await setup.setPeer(attacker, solanaVault, setPeerParams, setPeerAccounts)
+            console.log("❌ Attacker successfully set Peer")
         } catch(e) {
             // console.log(e)
             assert.equal(e.error.errorCode.code, "Unauthorized")
-            console.log("🥷 Attacker failed to set Peer")
+            console.log("👌 Attacker failed to set Peer")
         }
 
         setPeerAccounts.admin = wallet.publicKey
@@ -486,9 +555,10 @@ describe('Test Solana-Vault configuration', function() {
                 peer: peerPda
             }
             await setup.setRateLimit(attacker, solanaVault, setRateLimitParams, setRateLimitAccounts)
+            console.log("❌ Attacker successfully set Rate Limit")
         } catch(e) {
             assert.equal(e.error.errorCode.code, "Unauthorized")
-            console.log("🥷 Attacker failed to set Rate Limit")
+            console.log("👌 Attacker failed to set Rate Limit")
         }
 
         setRateLimitAccounts.admin = wallet.publicKey
@@ -520,9 +590,10 @@ describe('Test Solana-Vault configuration', function() {
                 systemProgram: SystemProgram.programId
             }
             await setup.setEnforcedOptions(attacker, solanaVault, setEnforcedOptionsParams, setEnforcedOptionsAccounts)
+            console.log("❌ Attacker successfully set Enforced Options")
         } catch(e) {
             assert.equal(e.error.errorCode.code, "Unauthorized")
-            console.log("🥷 Attacker failed to set EnforcedOptions")
+            console.log("👌 Attacker failed to set Enforced Options")
         }
 
         setEnforcedOptionsAccounts.admin = wallet.publicKey
@@ -551,9 +622,10 @@ describe('Test Solana-Vault configuration', function() {
         }
         try {
             await setup.setDelegate(attacker, solanaVault, endpointProgram, setDelegateParams, setDelegateAccounts)
+            console.log("❌ Attacker successfully set Delegate")
         } catch(e) {
             assert.equal(e.error.errorCode.code, "Unauthorized")
-            console.log("🥷 Attacker failed to set Delegate")
+            console.log("👌 Attacker failed to set Delegate")
         }
         
         setDelegateAccounts.admin = wallet.publicKey
@@ -593,10 +665,12 @@ describe('Test Solana-Vault configuration', function() {
                 admin: attacker.publicKey,
                 oappConfig: oappConfigPda
             }
+            await setup.transferAdmin(attacker, solanaVault, transferAdminParams, transferAdminAccounts)
+            console.log("❌ Attacker successfully transferred Admin")
         } catch(e) {
             // console.log(e)
             assert.equal(e.error.errorCode.code, "Unauthorized")
-            console.log("🥷 Attacker failed to transfer Admin")
+            console.log("👌 Attacker failed to transfer Admin")
         }
 
         transferAdminAccounts.admin = wallet.publicKey

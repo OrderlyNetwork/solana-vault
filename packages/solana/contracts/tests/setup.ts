@@ -243,6 +243,17 @@ export async function setToken(signer: Keypair, solanaVault: Program<SolanaVault
     return {allowedToken, allowedTokenPda}
 }
 
+export async function setWithdrawToken(signer: Keypair, solanaVault: Program<SolanaVault>, setWithdrawTokenParams: any, setWithdrawTokenAccounts: any) {
+    await solanaVault.methods
+        .setWithdrawToken(setWithdrawTokenParams)
+        .accounts(setWithdrawTokenAccounts)
+        .signers([signer])
+        .rpc(confirmOptions)
+    const withdrawTokenPda = setWithdrawTokenAccounts.withdrawToken
+    const withdrawToken = await solanaVault.account.withdrawToken.fetch(withdrawTokenPda)
+    return {withdrawToken, withdrawTokenPda}
+}
+
 export async function setOrderDelivery(signer: Keypair, solanaVault: Program<SolanaVault>, setOrderDeliveryParams: any, setOrderDeliveryAccounts: any) {
     await solanaVault.methods
         .setOrderDelivery(setOrderDeliveryParams)

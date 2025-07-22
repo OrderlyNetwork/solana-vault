@@ -39,11 +39,12 @@ describe('Test OAPP messaging', function() {
     const SOLANA_EID = MainnetV2EndpointId.SOLANA_V2_MAINNET
     anchor.setProvider(provider)
   
-    const usdcMintAuthority = Keypair.generate()
+    const usdcMintAuthority = wallet.payer
     const userWallet = Keypair.generate()
     const attackerWallet = Keypair.generate();
     const endpointAdmin = wallet.payer
     let USDC_MINT: PublicKey
+    let USDT_MINT: PublicKey
     const DEPOSIT_AMOUNT = 1e9;    // 1000 USDC
     const WITHDRAW_AMOUNT = 1e9;   // 1000 USDC
     const WITHDRAW_FEE = 1e6;      // 1 USDC
@@ -83,16 +84,8 @@ describe('Test OAPP messaging', function() {
     before("Preparing for tests", async () => {
         console.log("Start messaging test")
         // deploy a USDC mint
-        USDC_MINT = await createMint(
-            provider.connection,
-            wallet.payer,
-            usdcMintAuthority.publicKey,
-            usdcMintAuthority.publicKey,
-            6,  // USDC has 6 decimals
-            Keypair.generate(),
-            confirmOptions
-        )
-        console.log("✅ Deploy USDC coin")
+        USDC_MINT = helper.USDC_KEY.publicKey
+        USDT_MINT = helper.USDT_KEY.publicKey
 
         await provider.connection.requestAirdrop(userWallet.publicKey, 1e9)
         // Setup Wallets
@@ -311,10 +304,10 @@ describe('Test OAPP messaging', function() {
 
           
             await setup.deposit(attackerWallet, solanaVault, paramsWithdrawInvalidAccountId, feeParams, accountsWithInvalidAccountId, depositRemainingAccounts)
-
+            console.log("❌ Attacker successfully executed deposit with invalid account id")
         } catch(e) {
             assert.equal(e.error.errorCode.code, "InvalidAccountId")
-            console.log("🥷 Attacker failed to deposit with invalid account id")
+            console.log("👌 Attacker failed to deposit with invalid account id")
         }
         
         // try to deposit memecoin
@@ -348,9 +341,10 @@ describe('Test OAPP messaging', function() {
                 systemProgram: SystemProgram.programId
             }
             await setup.deposit(attackerWallet, solanaVault, depositParamsWithMemeCoin, feeParams, accountWithMemeCoin, depositRemainingAccounts)
+            console.log("❌ Attacker successfully executed deposit with MEME coin")
         } catch(e) {
             assert.equal(e.error.errorCode.code, "TokenNotAllowed")
-            console.log("🥷 Attacker failed to deposit MEME coin")
+            console.log("👌 Attacker failed to deposit MEME coin")
         }
 
 
@@ -406,10 +400,11 @@ describe('Test OAPP messaging', function() {
                 systemProgram: SystemProgram.programId
             }
             await setup.deposit(attackerWallet, solanaVault, depositParamsWithInvalidBroker, feeParams, accountWithInvalidBroker, depositRemainingAccounts)
+            console.log("❌ Attacker successfully executed deposit with not allowed broker")
     } catch(e) {
         // console.log(e)
         assert.equal(e.error.errorCode.code, "BrokerNotAllowed")
-        console.log("🥷 Attacker failed to deposit with unallowed broker")
+        console.log("👌 Attacker failed to deposit with not allowed broker")
     }  
     })
 
@@ -418,6 +413,8 @@ describe('Test OAPP messaging', function() {
         // const noncePda = getNoncePda(oappConfigPda, DST_EID, wallet.publicKey.toBuffer())
         const guid = Array.from(Keypair.generate().publicKey.toBuffer())
         // const msgSender = wallet.publicKey   // placeholder as an OAPP sender
+
+
 
         let nonce, msg, payload, params, accounts
 
@@ -445,9 +442,13 @@ describe('Test OAPP messaging', function() {
         const chainIdBuffer = Buffer.alloc(8)
         chainIdBuffer.writeBigUInt64BE(BigInt('1'))
 
+        const tokenIndexBuffer = Buffer.alloc(1)
+        tokenIndexBuffer.writeUint8(1)
+
         const withdrawNonceBuffer = Buffer.alloc(8)
         withdrawNonceBuffer.writeBigUInt64BE(BigInt('2'))
-        const tokenPda = utils.getTokenPdaWithBuf(solanaVault.programId, usdcHash)
+        const withdrawUsdcPda = utils.getWithdrawTokenPda(solanaVault.programId, constants.TOKEN_INDEX.USDC)
+        const withdrawUsdcPdaData = await solanaVault.account.withdrawToken.fetch(withdrawUsdcPda)
         const brokerPda = utils.getBrokerPdaWithBuf(solanaVault.programId, woofiProBrokerHash)
 
         const oappConfigPdaData = await solanaVault.account.oAppConfig.fetch(oappConfigPda);
@@ -465,7 +466,7 @@ describe('Test OAPP messaging', function() {
             wallet.publicKey.toBuffer(),  // sender     
             userWallet.publicKey.toBuffer(),  // receiver
             Buffer.from(woofiProBrokerHash), 
-            // Buffer.from(usdcHash), 
+            tokenIndexBuffer,
             tokenAmountBuffer,
             feeBuffer,
             chainIdBuffer,
@@ -518,7 +519,7 @@ describe('Test OAPP messaging', function() {
                 oappConfig: oappConfigPda,
                 peer: peerPda,
                 brokerPda: brokerPda,
-                tokenPda: tokenPda,
+                withdrawTokenPda: withdrawUsdcPda,
                 tokenMint: USDC_MINT,
                 receiver: attackerWallet.publicKey,
                 receiverTokenAccount: attackerDepositWallet.address,
@@ -528,9 +529,11 @@ describe('Test OAPP messaging', function() {
                 tokenProgram: TOKEN_PROGRAM_ID,
             } 
             await setup.lzReceive(attackerWallet, solanaVault, endpointProgram, ulnProgram, nonce, params, accountsWithInvalidReceiver, msgSender, peerAddress, ORDERLY_EID, SOLANA_EID)
+            console.log("❌ Attacker successfully executed withdrawal with invalid receiver")
         } catch(e) {
+            // console.log(e)
             assert.equal(e.error.errorCode.code, "InvalidReceiver")
-            console.log("🥷 Attacker failed to steal USDC")
+            console.log("👌 Attacker failed to steal USDC")
         }
         
         // try to exectue the lzReceive with memecoin withdraw
@@ -566,7 +569,7 @@ describe('Test OAPP messaging', function() {
                 oappConfig: oappConfigPda,
                 peer: peerPda,
                 brokerPda: brokerPda,
-                tokenPda: tokenPda,
+                withdrawTokenPda: withdrawUsdcPda,
                 tokenMint: MEME_MINT,
                 receiver: userWallet.publicKey,
                 receiverTokenAccount: userMEMEAccount.address,
@@ -575,10 +578,11 @@ describe('Test OAPP messaging', function() {
                 tokenProgram: TOKEN_PROGRAM_ID,  
             }
             await setup.lzReceive(attackerWallet, solanaVault, endpointProgram, ulnProgram, nonce, params, accountsWithMemeToken, msgSender, peerAddress, ORDERLY_EID, SOLANA_EID)       
+            console.log("❌ Attacker successfully executed withdrawal with meme coin")
         } catch(e) {
             
             assert.equal(e.error.errorCode.code, "TokenNotAllowed")
-            console.log("🥷 Attacker failed to execute withdrawal with meme coin")
+            console.log("👌 Attacker failed to execute withdrawal with meme coin")
         }
 
         // try to execute the lzReceive USDC with not allowed broker
@@ -617,7 +621,7 @@ describe('Test OAPP messaging', function() {
                 oappConfig: oappConfigPda,
                 peer: peerPda,
                 brokerPda: brokerPda,
-                tokenPda: tokenPda,
+                withdrawTokenPda: withdrawUsdcPda,
                 tokenMint: USDC_MINT,
                 receiver: userWallet.publicKey,
                 receiverTokenAccount: userUSDCAccount.address,
@@ -627,11 +631,12 @@ describe('Test OAPP messaging', function() {
                 tokenProgram: TOKEN_PROGRAM_ID,  
             }
             await setup.lzReceive(attackerWallet, solanaVault, endpointProgram, ulnProgram, nonce, params, accountsWithInvalidBroker, msgSender, peerAddress, ORDERLY_EID, SOLANA_EID)
+            console.log("❌ Attacker successfully executed withdrawal with not allowed broker")
         } catch(e)
         {   
             // console.log(e)
             assert.equal(e.error.errorCode.code, "BrokerNotAllowed")
-            console.log("🥷 Attacker failed to execute withdrawal with not allowed broker")
+            console.log("👌 Attacker failed to execute withdrawal with not allowed broker")
         }
 
         setBrokerParams.allowed = true
@@ -642,24 +647,25 @@ describe('Test OAPP messaging', function() {
         // try to execute the lzReceive USDC with not allowed token
         const tokenManagerRoleHash = helper.getManagerRoleHash(constants.TOKEN_MANAGER_ROLE)
         const tokenManagerRolePda = utils.getManagerRolePdaWithBuf(solanaVault.programId, tokenManagerRoleHash, wallet.publicKey)
-        let setTokenParams, setTokenAccounts
+        let setWithdrawTokenParams, setWithdrawTokenAccounts
         try {
 
-            setTokenParams = {
+            setWithdrawTokenParams = {
                 tokenManagerRole: tokenManagerRoleHash,
                 mintAccount: USDC_MINT,
                 tokenHash: usdcHash,
+                tokenIndex: constants.TOKEN_INDEX.USDC,
                 allowed: false
             }
-            setTokenAccounts = {
+            setWithdrawTokenAccounts = {
                 tokenManager: wallet.publicKey,
-                allowedToken: tokenPda,
+                withdrawToken: withdrawUsdcPda,
                 managerRole: tokenManagerRolePda,
                 mintAccount: USDC_MINT,
                 systemProgram: SystemProgram.programId
             }
 
-            await setup.setToken(wallet.payer, solanaVault, setTokenParams, setTokenAccounts)
+            await setup.setWithdrawToken(wallet.payer, solanaVault, setWithdrawTokenParams, setWithdrawTokenAccounts)
     
             console.log("✅ Set Token to not allowed")
 
@@ -677,7 +683,7 @@ describe('Test OAPP messaging', function() {
                 oappConfig: oappConfigPda,
                 peer: peerPda,
                 brokerPda: brokerPda,
-                tokenPda: tokenPda,
+                withdrawTokenPda: withdrawUsdcPda,
                 tokenMint: USDC_MINT,
                 receiver: userWallet.publicKey,
                 receiverTokenAccount: userUSDCAccount.address,
@@ -686,15 +692,16 @@ describe('Test OAPP messaging', function() {
                 tokenProgram: TOKEN_PROGRAM_ID,  
             }
             await setup.lzReceive(attackerWallet, solanaVault, endpointProgram, ulnProgram, nonce, params, accountsWithUnlistedToken, msgSender, peerAddress, ORDERLY_EID, SOLANA_EID)
+            console.log("❌ Attacker successfully executed withdrawal with not allowed token")
         } catch(e)
         {   
             // console.log(e)
             assert.equal(e.error.errorCode.code, "TokenNotAllowed")
-            console.log("🥷 Attacker failed to execute withdrawal with not allowed token")
+            console.log("👌 Attacker failed to execute withdrawal with not allowed token")
         }
 
-        setTokenParams.allowed = true
-        await setup.setToken(wallet.payer, solanaVault, setTokenParams, setTokenAccounts)
+        setWithdrawTokenParams.allowed = true
+        await setup.setWithdrawToken(wallet.payer, solanaVault, setWithdrawTokenParams, setWithdrawTokenAccounts)
         console.log("✅ Set token allowed")
 
         prevVaultUSDCBalance = await helper.getTokenBalance(provider.connection, vaultUSDCAccount.address)
@@ -735,7 +742,7 @@ describe('Test OAPP messaging', function() {
             oappConfig: oappConfigPda,
             peer: peerPda,
             brokerPda: brokerPda,
-            tokenPda: tokenPda,
+            withdrawTokenPda: withdrawUsdcPda,
             tokenMint: USDC_MINT,
             receiver: userWallet.publicKey,
             receiverTokenAccount: userUSDCAccount.address,
@@ -786,7 +793,7 @@ describe('Test OAPP messaging', function() {
             oappConfig: oappConfigPda,
             peer: peerPda,
             brokerPda: brokerPda,
-            tokenPda: tokenPda,
+            withdrawTokenPda: withdrawUsdcPda,
             tokenMint: USDC_MINT,
             receiver: userWallet.publicKey,
             receiverTokenAccount: userUSDCAccount.address,
@@ -862,7 +869,7 @@ describe('Test OAPP messaging', function() {
             oappConfig: oappConfigPda,
             peer: peerPda,
             brokerPda: brokerPda,
-            tokenPda: tokenPda,
+            withdrawTokenPda: withdrawUsdcPda,
             tokenMint: USDC_MINT,
             receiver: userWallet.publicKey,
             receiverTokenAccount: userUSDCAccount.address,
