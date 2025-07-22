@@ -417,11 +417,7 @@ describe('Test OAPP messaging', function() {
         accounts.allowedToken = wsolTokenPda
         accounts.allowedBroker = allowedBrokerPda
 
-        console.log(accounts)
-        console.log(depositParams)
-
         await setup.deposit(userWallet, solanaVault, depositParams, feeParams, accounts, depositRemainingAccounts)
-
 
         currUserWSOLAccountBalance = await helper.getTokenBalance(provider.connection, userWSOLAccount.address)
         assert.equal(currUserWSOLAccountBalance, 0)

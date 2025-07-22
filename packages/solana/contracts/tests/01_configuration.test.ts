@@ -1,6 +1,6 @@
 import * as anchor from '@coral-xyz/anchor'
 import { BN, Program, Idl } from '@coral-xyz/anchor'
-import { createMint } from '@solana/spl-token'
+import { createMint, NATIVE_MINT } from '@solana/spl-token'
 import { Keypair, PublicKey, SystemProgram, sendAndConfirmTransaction } from '@solana/web3.js'
 import { assert } from 'chai'
 import { OftTools } from '@layerzerolabs/lz-solana-sdk-v2'
@@ -207,6 +207,7 @@ describe('Test Solana-Vault configuration', function() {
         const withdrawUsdcPda = utils.getWithdrawTokenPda(solanaVault.programId, USDC_INDEX)
         const withdrawUsdtPda = utils.getWithdrawTokenPda(solanaVault.programId, constants.TOKEN_INDEX.USDT)
         const brokerPda = getBrokerPdaWithBuf(solanaVault.programId, Array.from(Buffer.from(woofiBrokerHash.slice(2), 'hex')))
+        const withdrawWsolPda = utils.getWithdrawTokenPda(solanaVault.programId, constants.TOKEN_INDEX.WSOL)
 
         console.log("🥷 Attacker trying to set AccountList")
         let setAccountListParams, setAccountListAccounts
@@ -218,6 +219,8 @@ describe('Test Solana-Vault configuration', function() {
                 woofiProPda: brokerPda,
                 withdrawUsdtPda: withdrawUsdtPda,
                 usdtMint: USDT_MINT,
+                withdrawWsolPda: withdrawWsolPda,
+                wsolMint: NATIVE_MINT,
             }
             setAccountListAccounts = {
                 admin:attacker.publicKey,
@@ -243,6 +246,8 @@ describe('Test Solana-Vault configuration', function() {
         assert.equal(accountListData.withdrawUsdtPda.toString(), withdrawUsdtPda.toString())
         assert.equal(accountListData.usdtMint.toString(), USDT_MINT.toString())
         assert.equal(accountListData.woofiProPda.toString(), brokerPda.toString())
+        assert.equal(accountListData.withdrawWsolPda.toString(), withdrawWsolPda.toString())
+        assert.equal(accountListData.wsolMint.toString(), NATIVE_MINT.toString())
         console.log("✅ Admin Set AccountList")
     })
 
