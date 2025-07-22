@@ -179,14 +179,14 @@ describe('Test OAPP messaging', function() {
         const oappConfigPda = utils.getOAppConfigPda(solanaVault.programId)
 
          
-        const setTokenParams = {
+        let setTokenParams = {
             tokenManagerRole: tokenManagerRoleHash,
             mintAccount: USDC_MINT,
             tokenHash: usdcHash,
             allowed: true
         }
         
-        const setTokenAccounts = {
+        let setTokenAccounts = {
             tokenManager: wallet.publicKey,
             allowedToken: allowedTokenPda,
             managerRole: tokenManagerRolePda,
@@ -200,13 +200,13 @@ describe('Test OAPP messaging', function() {
         const allowedBrokerPda = utils.getBrokerPdaWithBuf(solanaVault.programId, woofiProBrokerHash)
         const brokerManagerRoleHash = helper.getManagerRoleHash(constants.BROKER_MANAGER_ROLE)
         const brokerManagerRolePda = utils.getManagerRolePdaWithBuf(solanaVault.programId, brokerManagerRoleHash, wallet.publicKey)
-        const setBrokerParams = {
+        let setBrokerParams = {
             brokerManagerRole: brokerManagerRoleHash,
             brokerHash: woofiProBrokerHash,
             allowed: true
         }
 
-        const setBrokerAccounts = {
+        let setBrokerAccounts = {
             brokerManager: wallet.publicKey,
             allowedBroker: allowedBrokerPda,
             managerRole: brokerManagerRolePda,
@@ -238,7 +238,7 @@ describe('Test OAPP messaging', function() {
 
         const solAccountId = Array.from(Buffer.from(utils.getSolAccountId(userWallet.publicKey, woofiProBrokerId).slice(2), 'hex'));
 
-        const depositParams = {
+        let depositParams = {
             accountId: solAccountId,
             brokerHash: woofiProBrokerHash,
             tokenHash: usdcHash,
@@ -252,7 +252,7 @@ describe('Test OAPP messaging', function() {
             lzTokenFee: new BN(0)
         }
 
-        const accounts = {
+        let accounts = {
             user: userWallet.publicKey,
             userTokenAccount: userUSDCAccount.address,
             vaultAuthority: vaultAuthorityPda,
@@ -297,31 +297,16 @@ describe('Test OAPP messaging', function() {
         const invalidAccountId = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         try {
             console.log("🥷 Attacker tries to deposit with invalid account id")
-            const paramsWithdrawInvalidAccountId = {
-                accountId: invalidAccountId,
-                brokerHash: woofiProBrokerHash,
-                tokenHash: usdcHash,
-                userAddress: Array.from(attackerWallet.publicKey.toBytes()),
-                tokenAmount: new BN(DEPOSIT_AMOUNT),
-            }
-            const accountsWithInvalidAccountId = {
-                user: attackerWallet.publicKey,
-                userTokenAccount: attackerUSDCAccount.address,
-                vaultAuthority: vaultAuthorityPda,
-                vaultTokenAccount: vaultUSDCAccount.address,
-                depositToken: USDC_MINT,
-                peer: peerPda,
-                enforcedOptions: efOptionsPda,
-                oappConfig: oappConfigPda,
-                allowedBroker: allowedBrokerPda,
-                allowedToken: allowedTokenPda,
-                tokenProgram: TOKEN_PROGRAM_ID,
-                associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-                systemProgram: SystemProgram.programId
-            }
+            
+            // update to invalid account id
+            depositParams.accountId = invalidAccountId
+            depositParams.userAddress = Array.from(attackerWallet.publicKey.toBytes())
 
+            // update to attacker wallet
+            accounts.user = attackerWallet.publicKey
+            accounts.userTokenAccount = attackerUSDCAccount.address
           
-            await setup.deposit(attackerWallet, solanaVault, paramsWithdrawInvalidAccountId, feeParams, accountsWithInvalidAccountId, depositRemainingAccounts)
+            await setup.deposit(attackerWallet, solanaVault, depositParams, feeParams, accounts, depositRemainingAccounts)
             console.log("❌ Attacker successfully executed deposit with invalid account id")
         } catch(e) {
             assert.equal(e.error.errorCode.code, "InvalidAccountId")
@@ -331,34 +316,16 @@ describe('Test OAPP messaging', function() {
         // try to deposit memecoin
         try {
             console.log("🥷 Attacker tries to deposit MEME coin")
-    
-            const depositParamsWithMemeCoin = {
-                accountId: attackerAccountId,
-                brokerHash: woofiProBrokerHash,
-                tokenHash: usdcHash,
-                userAddress: Array.from(attackerWallet.publicKey.toBytes()),
-                tokenAmount: new BN(DEPOSIT_AMOUNT),
-            }
-            const feeParams = {
-                nativeFee: new BN(LZ_FEE),
-                lzTokenFee: new BN(0)
-            }
-            const accountWithMemeCoin ={
-                user: attackerWallet.publicKey,
-                userTokenAccount: attackerMEMEAccount.address,
-                vaultAuthority: vaultAuthorityPda,
-                vaultTokenAccount: vaultMEMEAccount.address,
-                depositToken: MEME_MINT,
-                peer: peerPda,
-                enforcedOptions: efOptionsPda,
-                oappConfig: oappConfigPda,
-                allowedBroker: allowedBrokerPda,
-                allowedToken: allowedTokenPda,
-                tokenProgram: TOKEN_PROGRAM_ID,
-                associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-                systemProgram: SystemProgram.programId
-            }
-            await setup.deposit(attackerWallet, solanaVault, depositParamsWithMemeCoin, feeParams, accountWithMemeCoin, depositRemainingAccounts)
+            
+            // recover to attacker account id
+            depositParams.accountId = attackerAccountId
+
+            // update to meme token
+            accounts.userTokenAccount = attackerMEMEAccount.address
+            accounts.vaultTokenAccount = vaultMEMEAccount.address
+            accounts.depositToken = MEME_MINT
+
+            await setup.deposit(attackerWallet, solanaVault, depositParams, feeParams, accounts, depositRemainingAccounts)
             console.log("❌ Attacker successfully executed deposit with MEME coin")
         } catch(e) {
             assert.equal(e.error.errorCode.code, "TokenNotAllowed")
@@ -375,59 +342,32 @@ describe('Test OAPP messaging', function() {
             const attackerAccountId = Array.from(Buffer.from(utils.getSolAccountId(attackerWallet.publicKey, invalidBrokerId).slice(2), 'hex'));
             const invalidBrokerPda = utils.getBrokerPdaWithBuf(solanaVault.programId, invalidBrokerHash)
 
-            const setBrokerParams = {
-                brokerManagerRole: brokerManagerRoleHash,
-                brokerHash: invalidBrokerHash,
-                allowed: false
-            }
+            setBrokerParams.brokerHash = invalidBrokerHash
+            setBrokerParams.allowed = false
 
-            const setBrokerAccounts = {
-                brokerManager: wallet.publicKey,
-                allowedBroker: invalidBrokerPda,
-                managerRole: brokerManagerRolePda,
-                systemProgram: SystemProgram.programId
-            }
+            setBrokerAccounts.allowedBroker = invalidBrokerPda
 
             await setup.setBroker(wallet.payer, solanaVault, setBrokerParams, setBrokerAccounts)
             console.log("✅ Set Invalid Broker as not allowed")
 
-            const depositParamsWithInvalidBroker = {
-                accountId: attackerAccountId,
-                brokerHash: invalidBrokerHash,
-                tokenHash: usdcHash,
-                userAddress: Array.from(attackerWallet.publicKey.toBytes()),
-                tokenAmount: new BN(DEPOSIT_AMOUNT),
-            }
-            const feeParams = {
-                nativeFee: new BN(LZ_FEE),
-                lzTokenFee: new BN(0)
-            }
-            const accountWithInvalidBroker ={
-                user: attackerWallet.publicKey,
-                userTokenAccount: attackerUSDCAccount.address,
-                vaultAuthority: vaultAuthorityPda,
-                vaultTokenAccount: vaultUSDCAccount.address,
-                depositToken: USDC_MINT,
-                peer: peerPda,
-                enforcedOptions: efOptionsPda,
-                oappConfig: oappConfigPda,
-                allowedBroker: invalidBrokerPda,
-                allowedToken: allowedTokenPda,
-                tokenProgram: TOKEN_PROGRAM_ID,
-                associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-                systemProgram: SystemProgram.programId
-            }
-            await setup.deposit(attackerWallet, solanaVault, depositParamsWithInvalidBroker, feeParams, accountWithInvalidBroker, depositRemainingAccounts)
+            depositParams.brokerHash = invalidBrokerHash
+
+            // update to invalid broker pda
+            accounts.allowedBroker = invalidBrokerPda
+            // recover to usdc token
+            accounts.userTokenAccount = attackerUSDCAccount.address
+            accounts.vaultTokenAccount = vaultUSDCAccount.address
+            accounts.depositToken = USDC_MINT
+
+            await setup.deposit(attackerWallet, solanaVault, depositParams , feeParams, accounts, depositRemainingAccounts)
             console.log("❌ Attacker successfully executed deposit with not allowed broker")
     } catch(e) {
         // console.log(e)
         assert.equal(e.error.errorCode.code, "BrokerNotAllowed")
         console.log("👌 Attacker failed to deposit with not allowed broker")
     }  
-    })
 
-    it('Deposit WSOL tests', async() => {
-        console.log("🚀 Starting deposit SOL tests")
+    console.log("🚀 Starting deposit SOL tests")
         // transform SOL to WSOL
         let tx = new Transaction().add(
             // transfer SOL
@@ -448,20 +388,14 @@ describe('Test OAPP messaging', function() {
         console.log("✅ Transfer SOL to WSOL")
 
         const wsolTokenPda = utils.getTokenPdaWithBuf(solanaVault.programId, wsolHash)
-        const setTokenParams = {
-            tokenManagerRole: tokenManagerRoleHash,
-            mintAccount: NATIVE_MINT,
-            tokenHash: wsolHash,
-            allowed: true
-        }
+ 
+        setTokenParams.mintAccount = NATIVE_MINT
+        setTokenParams.tokenHash = wsolHash
+        setTokenParams.allowed = true
 
-        const setTokenAccounts = {
-            tokenManager: wallet.publicKey,
-            allowedToken: wsolTokenPda,
-            managerRole: tokenManagerRolePda,
-            mintAccount: NATIVE_MINT,
-            systemProgram: SystemProgram.programId
-        }
+        setTokenAccounts.allowedToken = wsolTokenPda
+        setTokenAccounts.mintAccount = NATIVE_MINT
+        setTokenAccounts.tokenManager = wallet.publicKey
 
         await setup.setToken(wallet.payer, solanaVault, setTokenParams, setTokenAccounts)
 
@@ -473,47 +407,21 @@ describe('Test OAPP messaging', function() {
         assert.equal(wsolTokenPdaData.allowed, true)
         
         console.log("✅ Set WSOL Token")
+        depositParams.tokenHash = wsolHash
+        depositParams.brokerHash = woofiProBrokerHash
+        
+        accounts.user = userWallet.publicKey
+        accounts.userTokenAccount = userWSOLAccount.address
+        accounts.vaultTokenAccount = vaultWSOLAccount.address
+        accounts.depositToken = NATIVE_MINT
+        accounts.allowedToken = wsolTokenPda
+        accounts.allowedBroker = allowedBrokerPda
 
-        // deposit WSOL
-        const solAccountId = Array.from(Buffer.from(utils.getSolAccountId(userWallet.publicKey, woofiProBrokerId).slice(2), 'hex'));
-
-        const depositParams = {
-            accountId: solAccountId,
-            brokerHash: woofiProBrokerHash,
-            tokenHash: wsolHash,
-            userAddress: Array.from(userWallet.publicKey.toBytes()),
-            tokenAmount: new BN(DEPOSIT_AMOUNT),
-        }
-
-        const feeParams = {
-            nativeFee: new BN(LZ_FEE),
-            lzTokenFee: new BN(0)
-        }
-
-        const oappConfigPda = utils.getOAppConfigPda(solanaVault.programId)
-        const peerPda = utils.getPeerPda(solanaVault.programId, oappConfigPda, DST_EID)
-        const efOptionsPda = utils.getEnforcedOptionsPda(solanaVault.programId, oappConfigPda, DST_EID)
-        const allowedBrokerPda = utils.getBrokerPdaWithBuf(solanaVault.programId, woofiProBrokerHash)
-
-        const accounts = {
-            user: userWallet.publicKey,
-            userTokenAccount: userWSOLAccount.address,
-            vaultAuthority: vaultAuthorityPda,
-            vaultTokenAccount: vaultWSOLAccount.address,
-            depositToken: NATIVE_MINT,
-            peer: peerPda,
-            enforcedOptions: efOptionsPda,
-            oappConfig: oappConfigPda,
-            allowedBroker: allowedBrokerPda,
-            allowedToken: wsolTokenPda,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-            systemProgram: SystemProgram.programId
-        }
-
-        const depositRemainingAccounts = await helper.getDepositRemainingAccounts(solanaVault, endpointProgram, ulnProgram)
+        console.log(accounts)
+        console.log(depositParams)
 
         await setup.deposit(userWallet, solanaVault, depositParams, feeParams, accounts, depositRemainingAccounts)
+
 
         currUserWSOLAccountBalance = await helper.getTokenBalance(provider.connection, userWSOLAccount.address)
         assert.equal(currUserWSOLAccountBalance, 0)
@@ -524,7 +432,6 @@ describe('Test OAPP messaging', function() {
         console.log("✅ Check account states after deposit")
 
         console.log("✅ Executed deposit WSOL")
-        
     })
 
     it('LzReceive tests', async () => {    
