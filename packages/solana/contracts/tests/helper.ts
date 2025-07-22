@@ -20,6 +20,8 @@ import path from 'path'
 
 export const USDC_SYMBOL = "USDC"
 export const USDT_SYMBOL = "USDT"
+export const WRAPPED_SOL_SYMBOL = "WSOL"
+export const SOL_SYMBOL = "SOL"
 export const WOOFI_PRO_BROKER_ID = "woofi_pro"
 const usdcKeyPath = path.resolve(__dirname, 'keys/usdc_mint.json');
 export const USDC_KEY = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(usdcKeyPath, 'utf8'))))

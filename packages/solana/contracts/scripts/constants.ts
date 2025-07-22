@@ -271,14 +271,15 @@ export const TOKEN_INDEX = {
     "PLACEHOLDER": 0,
     "USDC": 1,
     "USDT": 2,
-    "ETH": 255,
-    "SOL": 254
+    "WSOL": 3,
+    "SOL": 255
 }
 
 export const TOKEN_DECIMALS = {
     "USDC": 6,
     "USDT": 6,
-    "SOL": 9
+    "SOL": 9,
+    "WSOL": 9
 }
 
 
