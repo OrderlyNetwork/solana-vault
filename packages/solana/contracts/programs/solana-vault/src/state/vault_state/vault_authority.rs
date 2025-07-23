@@ -12,3 +12,12 @@ pub struct VaultAuthority {
     pub dst_eid: u32,
     pub sol_chain_id: u128,
 }
+
+impl VaultAuthority {
+    pub fn check_nonce(&self, nonce: u64) -> bool {
+        if self.order_delivery && nonce != self.inbound_nonce + 1 {
+            return false;
+        } 
+        return true;
+    }
+}

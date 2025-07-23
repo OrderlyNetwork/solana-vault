@@ -34,26 +34,30 @@ pub struct OAppLzReceive<'info> {
 
     
     #[account(
-        seeds = [BROKER_SEED, &LzMessage::decode_withdraw_params(&params.message)?.broker_hash.as_ref()],
+        seeds = [BROKER_SEED, &LzMessage::get_broker_hash(&params.message)?.as_ref()],
         bump = broker_pda.bump,
+        constraint = broker_pda.allowed @VaultError::BrokerNotAllowed
     )]
     pub broker_pda: Account<'info, AllowedBroker>,
     /// CHECK
     #[account(
-        // seeds = [TOKEN_SEED, &LzMessage::decode_withdraw_params(&params.message)?.token_index.to_be_bytes()],
-        // bump = withdraw_token_pda.bump,
+        seeds = [TOKEN_SEED, &LzMessage::get_token_index(&params.message)?.to_be_bytes()],
+        bump = withdraw_token_pda.bump,
+        constraint = withdraw_token_pda.allowed @VaultError::TokenNotAllowed
     )]
     pub withdraw_token_pda: Account<'info, WithdrawToken>,
 
     /// CHECK
     #[account(
         mint::token_program = token_program,
-        // constraint = token_mint.key() == withdraw_token_pda.mint_account.key() @VaultError::TokenNotAllowed
+        constraint = token_mint.key() == withdraw_token_pda.mint_account.key() @VaultError::TokenNotAllowed
     )]
     pub token_mint: Account<'info, Mint>,
 
     /// CHECK
-    #[account()]
+    #[account(
+        constraint = LzMessage::get_receiver_address(&params.message)? == receiver.key() @OAppError::InvalidReceiver
+    )]
     pub receiver: AccountInfo<'info>,
 
     /// UNCHECKED
@@ -64,6 +68,7 @@ pub struct OAppLzReceive<'info> {
         mut,
         seeds = [VAULT_AUTHORITY_SEED],
         bump = vault_authority.bump,
+        constraint = vault_authority.check_nonce(params.nonce) == true @OAppError::InvalidInboundNonce
     )]
     pub vault_authority: Account<'info, VaultAuthority>,
 
@@ -109,12 +114,12 @@ impl<'info> OAppLzReceive<'info> {
             },
         )?;
 
-        if ctx.accounts.vault_authority.order_delivery {
-            require!(
-                params.nonce == ctx.accounts.vault_authority.inbound_nonce + 1,
-                OAppError::InvalidInboundNonce
-            );
-        }
+        // if ctx.accounts.vault_authority.order_delivery {
+        //     require!(
+        //         params.nonce == ctx.accounts.vault_authority.inbound_nonce + 1,
+        //         OAppError::InvalidInboundNonce
+        //     );
+        // }
 
         ctx.accounts.vault_authority.inbound_nonce = params.nonce;
 
@@ -122,27 +127,27 @@ impl<'info> OAppLzReceive<'info> {
         msg!("msg_type: {:?}", lz_message.msg_type);
         if lz_message.msg_type == MsgType::Withdraw as u8 {
             let withdraw_params = AccountWithdrawSol::decode_packed(&lz_message.payload).unwrap();
-            require!(
-                withdraw_params.receiver == ctx.accounts.receiver.key.to_bytes(),
-                OAppError::InvalidReceiver
-            );
+            // require!(
+            //     withdraw_params.receiver == ctx.accounts.receiver.key.to_bytes(),
+            //     OAppError::InvalidReceiver
+            // );
 
             // check if the token is allowed and the mint is correct
-            let (withdraw_token_pda, _) = Pubkey::find_program_address(
-                &[TOKEN_SEED, &withdraw_params.token_index.to_be_bytes()],
-                ctx.program_id,
-            );
+            // let (withdraw_token_pda, _) = Pubkey::find_program_address(
+            //     &[TOKEN_SEED, &withdraw_params.token_index.to_be_bytes()],
+            //     ctx.program_id,
+            // );
 
-            if withdraw_token_pda.key() != ctx.accounts.withdraw_token_pda.key()
-                || !ctx.accounts.withdraw_token_pda.allowed
-            {
-                return Err(VaultError::TokenNotAllowed.into());
-            }
+            // if withdraw_token_pda.key() != ctx.accounts.withdraw_token_pda.key()
+            //     || !ctx.accounts.withdraw_token_pda.allowed
+            // {
+            //     return Err(VaultError::TokenNotAllowed.into());
+            // }
            
-            require!(
-                ctx.accounts.token_mint.key() == ctx.accounts.withdraw_token_pda.mint_account.key(),
-                VaultError::TokenNotAllowed
-            );
+            // require!(
+            //     ctx.accounts.token_mint.key() == ctx.accounts.withdraw_token_pda.mint_account.key(),
+            //     VaultError::TokenNotAllowed
+            // );
         
 
             // check if the receiver_token_account is the correct associated token account
@@ -156,14 +161,14 @@ impl<'info> OAppLzReceive<'info> {
             );
 
             // check if the broker is allowed
-            let (allowed_broker, _) = Pubkey::find_program_address(
-                &[BROKER_SEED, &withdraw_params.broker_hash],
-                ctx.program_id,
-            );
+            // let (allowed_broker, _) = Pubkey::find_program_address(
+            //     &[BROKER_SEED, &withdraw_params.broker_hash],
+            //     ctx.program_id,
+            // );
 
-            if allowed_broker != ctx.accounts.broker_pda.key() || !ctx.accounts.broker_pda.allowed {
-                return Err(VaultError::BrokerNotAllowed.into());
-            }
+            // if allowed_broker != ctx.accounts.broker_pda.key() || !ctx.accounts.broker_pda.allowed {
+            //     return Err(VaultError::BrokerNotAllowed.into());
+            // }
 
             let amount_to_transfer = withdraw_params.token_amount - withdraw_params.fee;
             let vault_withdraw_params: VaultWithdrawParams = withdraw_params.into();

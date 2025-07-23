@@ -22,31 +22,6 @@ pub struct VaultDepositParams {
 }
 
 impl VaultDepositParams {
-    // pub fn decode(input: &[u8]) -> Result<Self> {
-    //     let mut offset = 0;
-    //     let account_id = input[offset..offset + 32].try_into().unwrap();
-    //     offset += 32;
-    //     let broker_hash = input[offset..offset + 32].try_into().unwrap();
-    //     offset += 32;
-    //     let user_address = input[offset..offset + 32].try_into().unwrap();
-    //     offset += 32;
-    //     let token_hash = input[offset..offset + 32].try_into().unwrap();
-    //     offset += 32;
-    //     let src_chain_id = u128::from_be_bytes(input[offset + 16..offset + 32].try_into().unwrap());
-    //     let token_amount = u128::from_be_bytes(input[offset + 16..offset + 32].try_into().unwrap());
-    //     let src_chain_deposit_nonce =
-    //         u64::from_be_bytes(input[offset + 24..offset + 32].try_into().unwrap());
-
-    //     Ok(Self {
-    //         account_id,
-    //         broker_hash,
-    //         user_address,
-    //         token_hash,
-    //         src_chain_id,
-    //         token_amount,
-    //         src_chain_deposit_nonce,
-    //     })
-    // }
 
     pub fn encode(&self) -> Vec<u8> {
         let mut buf = Vec::new();
@@ -88,6 +63,36 @@ impl LzMessage {
         if message.msg_type == MsgType::Withdraw as u8 {
             let withdraw_params = AccountWithdrawSol::decode_packed(&message.payload)?;
             return Ok(withdraw_params);
+        } else {
+            return Err(OAppError::InvalidMessageType.into());
+        }
+    }
+
+    pub fn get_token_index(encoded: &[u8]) -> Result<u8> {
+        let message = LzMessage::decode(encoded)?;
+        if message.msg_type == MsgType::Withdraw as u8 {
+            let withdraw_params = AccountWithdrawSol::decode_packed(&message.payload)?;
+            return Ok(withdraw_params.token_index);
+        } else {
+            return Err(OAppError::InvalidMessageType.into());
+        }
+    }
+
+    pub fn get_broker_hash(encoded: &[u8]) -> Result<[u8; 32]> {
+        let message = LzMessage::decode(encoded)?;
+        if message.msg_type == MsgType::Withdraw as u8 {
+            let withdraw_params = AccountWithdrawSol::decode_packed(&message.payload)?;
+            return Ok(withdraw_params.broker_hash);
+        } else {
+            return Err(OAppError::InvalidMessageType.into());
+        }
+    }
+
+    pub fn get_receiver_address(encoded: &[u8]) -> Result<Pubkey> {
+        let message = LzMessage::decode(encoded)?;
+        if message.msg_type == MsgType::Withdraw as u8 {
+            let withdraw_params = AccountWithdrawSol::decode_packed(&message.payload)?;
+            return Ok(Pubkey::new_from_array(withdraw_params.receiver));
         } else {
             return Err(OAppError::InvalidMessageType.into());
         }
