@@ -41,6 +41,7 @@ describe('Test Solana-Vault configuration', function() {
     const newVaultOwner = Keypair.generate();
     const usdcTokenHash = helper.getTokenHash(helper.USDC_SYMBOL)
     const usdtTokenHash = helper.getTokenHash(helper.USDT_SYMBOL)
+    const wsolTokenHash = helper.getTokenHash(helper.WSOL_SYMBOL)
     const woofiBrokerHash = helper.getBrokerHash(helper.WOOFI_PRO_BROKER_ID)
     let USDC_MINT: PublicKey
     let USDT_MINT: PublicKey
@@ -279,11 +280,10 @@ describe('Test Solana-Vault configuration', function() {
     })
 
     it('Set deposit token and withdraw token', async () => {
-        const allowedTokenPda = getTokenPdaWithBuf(solanaVault.programId, usdcTokenHash)
+        const allowedUsdcTokenPda = getTokenPdaWithBuf(solanaVault.programId, usdcTokenHash)
+        const allowedUsdtTokenPda = getTokenPdaWithBuf(solanaVault.programId, usdtTokenHash)
         const tokenManagerRoleHash = helper.getManagerRoleHash(constants.TOKEN_MANAGER_ROLE)
         const tokenManagerRolePda = utils.getManagerRolePdaWithBuf(solanaVault.programId, tokenManagerRoleHash, vaultOwner.publicKey)
-
-        
 
         const setManagerRoleParams = {
             roleHash: tokenManagerRoleHash,
@@ -318,7 +318,7 @@ describe('Test Solana-Vault configuration', function() {
             setTokenAccounts = {
                 tokenManager:attacker.publicKey,
                 mintAccount: USDC_MINT,
-                allowedToken: allowedTokenPda,
+                allowedToken: allowedUsdcTokenPda,
                 managerRole: attackerTokenManagerRolePda,
                 systemProgram: SystemProgram.programId
             }
@@ -332,13 +332,27 @@ describe('Test Solana-Vault configuration', function() {
         setTokenAccounts.tokenManager = wallet.publicKey
         setTokenAccounts.managerRole = tokenManagerRolePda
         await setup.setToken(wallet.payer, solanaVault, setTokenParams, setTokenAccounts)
-        const allowedToken = await solanaVault.account.allowedToken.fetch(allowedTokenPda)
+        const allowedToken = await solanaVault.account.allowedToken.fetch(allowedUsdcTokenPda)
         assert.equal(allowedToken.mintAccount.toString(), USDC_MINT.toString())
         assert.deepEqual(allowedToken.tokenHash, usdcTokenHash)
         assert.equal(allowedToken.tokenDecimals, constants.TOKEN_DECIMALS.USDC)
         assert.equal(allowedToken.allowed, true)
         assert.isOk(allowedToken.bump)
-        console.log("✅ Set Deposit Token")
+        console.log("✅ Set USDC token for deposit")
+
+        setTokenParams.tokenHash = usdtTokenHash
+        setTokenParams.allowed = true
+        setTokenAccounts.allowedToken = allowedUsdtTokenPda
+        setTokenAccounts.mintAccount = USDT_MINT
+        await setup.setToken(wallet.payer, solanaVault, setTokenParams, setTokenAccounts)
+        
+        const allowedUsdtToken = await solanaVault.account.allowedToken.fetch(allowedUsdtTokenPda)
+        assert.equal(allowedUsdtToken.mintAccount.toString(), USDT_MINT.toString())
+        assert.deepEqual(allowedUsdtToken.tokenHash, usdtTokenHash)
+        assert.equal(allowedUsdtToken.tokenDecimals, constants.TOKEN_DECIMALS.USDT)
+        assert.equal(allowedUsdtToken.allowed, true)
+        assert.isOk(allowedUsdtToken.bump)
+        console.log("✅ Set USDT token for deposit")
 
         const usdcIndex = constants.TOKEN_INDEX.USDC
         const withdrawUsdcPda = utils.getWithdrawTokenPda(solanaVault.programId, usdcIndex)
@@ -348,7 +362,7 @@ describe('Test Solana-Vault configuration', function() {
         try {
             setWithdrawTokenParams = {
                 tokenManagerRole: tokenManagerRoleHash,
-                mintAccount: USDC_MINT,
+                // mintAccount: USDC_MINT,
                 tokenHash: usdcTokenHash,
                 tokenIndex: usdcIndex,
                 allowed: true
@@ -381,8 +395,43 @@ describe('Test Solana-Vault configuration', function() {
         assert.equal(withdrawToken.tokenDecimals, constants.TOKEN_DECIMALS.USDC)
         assert.equal(withdrawToken.allowed, true)
         assert.isOk(withdrawToken.bump)
-        console.log("✅ Set Withdraw Token")        
+        console.log("✅ Set USDC token for withdraw")
         
+        console.log("🚀 Set USDT token for withdraw")
+        const withdrawUsdtPda = utils.getWithdrawTokenPda(solanaVault.programId, constants.TOKEN_INDEX.USDT)
+
+        setWithdrawTokenParams.tokenHash = usdtTokenHash
+        setWithdrawTokenParams.tokenIndex = constants.TOKEN_INDEX.USDT
+        setWithdrawTokenAccounts.withdrawToken = withdrawUsdtPda
+        setWithdrawTokenAccounts.mintAccount = USDT_MINT
+        await setup.setWithdrawToken(wallet.payer, solanaVault, setWithdrawTokenParams, setWithdrawTokenAccounts)
+
+        const withdrawUsdtToken = await solanaVault.account.withdrawToken.fetch(withdrawUsdtPda)
+        assert.equal(withdrawUsdtToken.mintAccount.toString(), USDT_MINT.toString())
+        assert.deepEqual(withdrawUsdtToken.tokenHash, usdtTokenHash)
+        assert.equal(withdrawUsdtToken.tokenIndex, constants.TOKEN_INDEX.USDT)
+        assert.equal(withdrawUsdtToken.tokenDecimals, constants.TOKEN_DECIMALS.USDT)
+        assert.equal(withdrawUsdtToken.allowed, true)
+        assert.isOk(withdrawUsdtToken.bump)
+        console.log("✅ Set USDT token for withdraw")    
+        
+        console.log("🚀 Set WSOL token for withdraw")
+        const withdrawWsolPda = utils.getWithdrawTokenPda(solanaVault.programId, constants.TOKEN_INDEX.WSOL)
+
+        setWithdrawTokenParams.tokenHash = wsolTokenHash
+        setWithdrawTokenParams.tokenIndex = constants.TOKEN_INDEX.WSOL
+        setWithdrawTokenAccounts.withdrawToken = withdrawWsolPda
+        setWithdrawTokenAccounts.mintAccount = NATIVE_MINT
+        await setup.setWithdrawToken(wallet.payer, solanaVault, setWithdrawTokenParams, setWithdrawTokenAccounts)
+
+        const withdrawWsolToken = await solanaVault.account.withdrawToken.fetch(withdrawWsolPda)
+        assert.equal(withdrawWsolToken.mintAccount.toString(), NATIVE_MINT.toString())
+        assert.deepEqual(withdrawWsolToken.tokenHash, wsolTokenHash)
+        assert.equal(withdrawWsolToken.tokenIndex, constants.TOKEN_INDEX.WSOL)
+        assert.equal(withdrawWsolToken.tokenDecimals, constants.TOKEN_DECIMALS.WSOL)
+        assert.equal(withdrawWsolToken.allowed, true)
+        assert.isOk(withdrawWsolToken.bump)
+        console.log("✅ Set WSOL token for withdraw")
     })
 
     
