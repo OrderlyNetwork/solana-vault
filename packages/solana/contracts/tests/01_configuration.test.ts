@@ -42,6 +42,7 @@ describe('Test Solana-Vault configuration', function() {
     const usdcTokenHash = helper.getTokenHash(helper.USDC_SYMBOL)
     const usdtTokenHash = helper.getTokenHash(helper.USDT_SYMBOL)
     const wsolTokenHash = helper.getTokenHash(helper.WSOL_SYMBOL)
+    const solTokenHash = helper.getTokenHash(helper.SOL_SYMBOL)
     const woofiBrokerHash = helper.getBrokerHash(helper.WOOFI_PRO_BROKER_ID)
     let USDC_MINT: PublicKey
     let USDT_MINT: PublicKey
@@ -354,6 +355,47 @@ describe('Test Solana-Vault configuration', function() {
         assert.isOk(allowedUsdtToken.bump)
         console.log("✅ Set USDT token for deposit")
 
+        const wsolTokenPda = utils.getTokenPdaWithBuf(solanaVault.programId, wsolTokenHash)
+ 
+        setTokenParams.mintAccount = NATIVE_MINT
+        setTokenParams.tokenHash = wsolTokenHash
+        setTokenParams.allowed = true
+
+        setTokenAccounts.allowedToken = wsolTokenPda
+        setTokenAccounts.mintAccount = NATIVE_MINT
+        setTokenAccounts.tokenManager = wallet.publicKey
+
+        await setup.setToken(wallet.payer, solanaVault, setTokenParams, setTokenAccounts)
+
+        const wsolTokenPdaData = await solanaVault.account.allowedToken.fetch(wsolTokenPda)
+        console.log("wsolTokenPdaData", wsolTokenPdaData)
+        assert.equal(wsolTokenPdaData.mintAccount.toBase58(), NATIVE_MINT.toBase58())
+        assert.equal(wsolTokenPdaData.tokenHash.toString(), wsolTokenHash.toString())
+        assert.equal(wsolTokenPdaData.tokenDecimals, constants.TOKEN_DECIMALS.WSOL)
+        assert.equal(wsolTokenPdaData.allowed, true)
+        
+        console.log("✅ Set WSOL token for deposit")
+
+        const solTokenPda = utils.getTokenPdaWithBuf(solanaVault.programId, solTokenHash)
+ 
+        setTokenParams.mintAccount = NATIVE_MINT
+        setTokenParams.tokenHash = solTokenHash
+        setTokenParams.allowed = true
+
+        setTokenAccounts.allowedToken = solTokenPda
+        setTokenAccounts.mintAccount = NATIVE_MINT
+        setTokenAccounts.tokenManager = wallet.publicKey
+
+        await setup.setToken(wallet.payer, solanaVault, setTokenParams, setTokenAccounts)
+
+        const solTokenPdaData = await solanaVault.account.allowedToken.fetch(solTokenPda)
+        assert.equal(solTokenPdaData.mintAccount.toBase58(), NATIVE_MINT.toBase58())
+        assert.equal(solTokenPdaData.tokenHash.toString(), solTokenHash.toString())
+        assert.equal(solTokenPdaData.tokenDecimals, constants.TOKEN_DECIMALS.SOL)
+        assert.equal(solTokenPdaData.allowed, true)
+        
+        console.log("✅ Set SOL token for deposit")
+
         const usdcIndex = constants.TOKEN_INDEX.USDC
         const withdrawUsdcPda = utils.getWithdrawTokenPda(solanaVault.programId, usdcIndex)
 
@@ -432,6 +474,24 @@ describe('Test Solana-Vault configuration', function() {
         assert.equal(withdrawWsolToken.allowed, true)
         assert.isOk(withdrawWsolToken.bump)
         console.log("✅ Set WSOL token for withdraw")
+
+        console.log("🚀 Set SOL token for withdraw")
+        const withdrawSolPda = utils.getWithdrawTokenPda(solanaVault.programId, constants.TOKEN_INDEX.SOL)
+
+        setWithdrawTokenParams.tokenHash = solTokenHash
+        setWithdrawTokenParams.tokenIndex = constants.TOKEN_INDEX.SOL
+        setWithdrawTokenAccounts.withdrawToken = withdrawSolPda
+        setWithdrawTokenAccounts.mintAccount = NATIVE_MINT
+        await setup.setWithdrawToken(wallet.payer, solanaVault, setWithdrawTokenParams, setWithdrawTokenAccounts)
+
+        const withdrawSolToken = await solanaVault.account.withdrawToken.fetch(withdrawSolPda)
+        assert.equal(withdrawSolToken.mintAccount.toString(), NATIVE_MINT.toString())
+        assert.deepEqual(withdrawSolToken.tokenHash, solTokenHash)
+        assert.equal(withdrawSolToken.tokenIndex, constants.TOKEN_INDEX.SOL)
+        assert.equal(withdrawSolToken.tokenDecimals, constants.TOKEN_DECIMALS.SOL)
+        assert.equal(withdrawSolToken.allowed, true)
+        assert.isOk(withdrawSolToken.bump)
+        console.log("✅ Set SOL token for withdraw")
     })
 
     

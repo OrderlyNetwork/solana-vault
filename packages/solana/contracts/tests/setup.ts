@@ -518,3 +518,12 @@ export async function deposit(signer: Keypair, solanaVault: Program<SolanaVault>
             .signers([signer])
             .rpc(confirmOptions)
 }
+
+export async function depositSol(signer: Keypair, solanaVault: Program<SolanaVault>, depositParams: any, feeParams: any, accounts: any, depsoitRemainingAccounts: any) {
+    await solanaVault.methods
+            .depositSol(depositParams, feeParams)
+            .accounts(accounts)
+            .remainingAccounts(depsoitRemainingAccounts)
+            .signers([signer])
+            .rpc(confirmOptions)
+}

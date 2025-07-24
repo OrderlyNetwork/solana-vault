@@ -509,6 +509,13 @@ export function getTokenPdaWithBuf(VAULT_PROGRAM_ID: PublicKey, tokenHash: numbe
     )[0];
 }
 
+export function getSolVaultPda(VAULT_PROGRAM_ID: PublicKey): PublicKey {
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from(constants.SOL_VAULT_SEED, "utf8")],
+        VAULT_PROGRAM_ID
+    )[0];
+}
+
 export function getWithdrawTokenPda(VAULT_PROGRAM_ID: PublicKey, tokenIndex: number): PublicKey {
 
     // console.log("tokenIndex", tokenIndex)

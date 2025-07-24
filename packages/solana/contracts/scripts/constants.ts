@@ -36,6 +36,7 @@ export const DEV_RPC = "https://api.devnet.solana.com";
 export const MAIN_RPC = "https://api.mainnet-beta.solana.com";
 
 export const VAULT_AUTHORITY_SEED = "VaultAuthority";
+export const SOL_VAULT_SEED = "SolVault";
 export const BROKER_SEED = "Broker";
 export const TOKEN_SEED = "Token";
 export const OWNER_SEED = "Owner";

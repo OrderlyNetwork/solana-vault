@@ -27,6 +27,14 @@ pub mod solana_vault {
         Deposit::apply(&mut ctx, &deposit_params, &oapp_params)
     }
 
+    pub fn deposit_sol<'info>(
+        mut ctx: Context<'_, '_, '_, 'info, DepositSol<'info>>,
+        deposit_params: DepositParams,
+        oapp_params: OAppSendParams,
+    ) -> Result<MessagingReceipt> {
+        DepositSol::apply(&mut ctx, &deposit_params, &oapp_params)
+    }
+
     pub fn init_oapp(mut ctx: Context<InitOApp>, params: InitOAppParams) -> Result<()> {
         InitOApp::apply(&mut ctx, &params)
     }
@@ -68,7 +76,6 @@ pub mod solana_vault {
     pub fn lz_receive(mut ctx: Context<OAppLzReceive>, params: OAppLzReceiveParams) -> Result<()> {
         OAppLzReceive::apply(&mut ctx, &params)
     }
-
     pub fn lz_receive_types(
         ctx: Context<OAppLzReceiveTypes>,
         params: OAppLzReceiveParams,

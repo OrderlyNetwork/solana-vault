@@ -42,14 +42,14 @@ impl SetWithdrawToken<'_> {
             emit!(SetWithdrawTokenIndex {
                 token_index: params.token_index,
                 token_hash: params.token_hash,
-                mint_account: params.mint_account,
+                mint_account: ctx.accounts.mint_account.key(),
             });
         } else {
             msg!("Resetting withdraw token index {:?}, token hash {:?}", params.token_index, token_hash_hex);
             emit!(ResetWithdrawTokenIndex {
                 token_index: params.token_index,
                 token_hash: params.token_hash,
-                mint_account: params.mint_account,
+                mint_account: ctx.accounts.mint_account.key(),
             });
         }
         ctx.accounts.withdraw_token.bump = ctx.bumps.withdraw_token;
@@ -60,7 +60,6 @@ impl SetWithdrawToken<'_> {
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct SetWithdrawTokenParams {
     pub token_manager_role: [u8; 32],
-    pub mint_account: Pubkey,
     pub token_hash: [u8; 32],
     pub token_index: u8,
     pub allowed: bool,

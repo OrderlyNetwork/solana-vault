@@ -1,4 +1,4 @@
-use crate::constants::{TOKEN_INDEX_USDC, TOKEN_INDEX_USDT};
+use crate::constants::{TOKEN_INDEX_USDC, TOKEN_INDEX_USDT, TOKEN_INDEX_WSOL, TOKEN_INDEX_SOL};
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program;
@@ -10,7 +10,7 @@ use crate::errors::OAppError;
 use crate::instructions::AccountWithdrawSol;
 use crate::instructions::{
     LzMessage, MsgType, ACCOUNT_LIST_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED,
-    VAULT_AUTHORITY_SEED,
+    VAULT_AUTHORITY_SEED, SOL_VAULT_SEED
 };
 use crate::state::{AccountList, OAppConfig};
 use crate::BROKER_SEED;
@@ -27,6 +27,7 @@ use crate::BROKER_SEED;
 // 7: receiver_token_account
 // 8: vault_authority
 // 9: vault_token_account
+// 9.1: sol_vault
 // 10: token_program_id
 // 10.1: associated_token_id
 // 10.2: system_program_id
@@ -41,6 +42,7 @@ pub struct OAppLzReceiveTypes<'info> {
         bump = oapp_config.bump
     )]
     pub oapp_config: Account<'info, OAppConfig>,
+    
     #[account(
         seeds = [ACCOUNT_LIST_SEED, &oapp_config.key().as_ref()],
         bump = account_list.bump
@@ -109,6 +111,8 @@ impl OAppLzReceiveTypes<'_> {
                 token_mint = ctx.accounts.account_list.usdc_mint;
             } else if token_index == TOKEN_INDEX_USDT {
                 token_mint = ctx.accounts.account_list.usdt_mint;
+            } else if token_index == TOKEN_INDEX_WSOL || token_index == TOKEN_INDEX_SOL {  // SOL is native token, which has no token mint, the wsol_mint is a placeholder then the token is SOL
+                token_mint = ctx.accounts.account_list.wsol_mint;
             } else {
                 return Err(OAppError::InvalidTokenIndex.into());
             }
@@ -126,6 +130,9 @@ impl OAppLzReceiveTypes<'_> {
 
             // account 9
             let vault_token_account = get_associated_token_address(&vault_authority, &token_mint);
+
+            // account 9.1
+            let (sol_vault, _) = Pubkey::find_program_address(&[SOL_VAULT_SEED], ctx.program_id);
 
             // account 10
             let token_program_id = TOKEN_PROGRAM_ID;
@@ -159,7 +166,7 @@ impl OAppLzReceiveTypes<'_> {
                 LzAccount {
                     pubkey: receiver,
                     is_signer: false,
-                    is_writable: false,
+                    is_writable: true,
                 }, // 6
                 LzAccount {
                     pubkey: receiver_token_account,
@@ -176,6 +183,11 @@ impl OAppLzReceiveTypes<'_> {
                     is_signer: false,
                     is_writable: true,
                 }, // 9
+                LzAccount {
+                    pubkey: sol_vault,
+                    is_signer: false,
+                    is_writable: true,
+                }, // 9.1
                 LzAccount {
                     pubkey: token_program_id,
                     is_signer: false,
