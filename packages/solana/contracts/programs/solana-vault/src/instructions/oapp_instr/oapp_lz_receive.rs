@@ -5,7 +5,7 @@ use crate::instructions::{
     LzMessage, MsgType, BROKER_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED, SOL_VAULT_SEED,
 };
 use crate::constants::{TOKEN_INDEX_SOL};
-use crate::state::{AllowedBroker, WithdrawToken, OAppConfig, Peer, VaultAuthority};
+use crate::state::{AllowedBroker, WithdrawToken, OAppConfig, Peer, VaultAuthority, WithdrawBroker};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::{create, get_associated_token_address, AssociatedToken, Create};
 use anchor_spl::token::{transfer, Mint, Token, TokenAccount, Transfer};
@@ -35,11 +35,11 @@ pub struct OAppLzReceive<'info> {
     pub oapp_config: Account<'info, OAppConfig>,
 
     #[account(
-        seeds = [BROKER_SEED, &LzMessage::get_broker_hash(&params.message)?.as_ref()],
-        bump = broker_pda.bump,
-        constraint = broker_pda.allowed @VaultError::BrokerNotAllowed
+        seeds = [BROKER_SEED, &LzMessage::get_broker_index(&params.message)?.to_be_bytes()],
+        bump = withdraw_broker_pda.bump,
+        constraint = withdraw_broker_pda.allowed @VaultError::BrokerNotAllowed
     )]
-    pub broker_pda: Account<'info, AllowedBroker>,
+    pub withdraw_broker_pda: Account<'info, WithdrawBroker>,
     /// CHECK
     #[account(
         seeds = [TOKEN_SEED, &LzMessage::get_token_index(&params.message)?.to_be_bytes()],
@@ -78,12 +78,12 @@ pub struct OAppLzReceive<'info> {
     )]
     pub vault_token_account: Account<'info, TokenAccount>,
     /// CHECKED: sol_vault is used for SOL withdrawal
-    #[account(
-        mut,
-        seeds = [SOL_VAULT_SEED],
-        bump,
-    )]
-    pub sol_vault: UncheckedAccount<'info>,
+    // #[account(
+    //     mut,
+    //     seeds = [SOL_VAULT_SEED],
+    //     bump,
+    // )]
+    // pub sol_vault: UncheckedAccount<'info>,
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -139,26 +139,27 @@ impl<'info> OAppLzReceive<'info> {
 
             let token_index = withdraw_params.token_index;
             let amount_to_transfer = withdraw_params.token_amount - withdraw_params.fee;
-            let vault_withdraw_params: VaultWithdrawParams = withdraw_params.into();
+            let vault_withdraw_params: VaultWithdrawParams = withdraw_params.to_vault_withdraw_params(ctx.accounts.withdraw_broker_pda.broker_hash, ctx.accounts.withdraw_token_pda.token_hash);
 
             if token_index == TOKEN_INDEX_SOL {
                 // transfer SOL to the receiver
-                let ix = anchor_lang::solana_program::system_instruction::transfer(
-                    &ctx.accounts.sol_vault.to_account_info().key(),
-                    &ctx.accounts.receiver.key(),
-                    amount_to_transfer,
-                );
-                let seeds = &[SOL_VAULT_SEED, &[ctx.bumps.sol_vault]];
-                anchor_lang::solana_program::program::invoke_signed(
-                    &ix,
-                    &[
-                        ctx.accounts.sol_vault.to_account_info(),
-                        ctx.accounts.receiver.to_account_info(),
-                    ],
-                    &[&seeds[..]],
-                )?;
+                // let ix = anchor_lang::solana_program::system_instruction::transfer(
+                //     &ctx.accounts.sol_vault.to_account_info().key(),
+                //     &ctx.accounts.receiver.key(),
+                //     amount_to_transfer,
+                // );
+                // let seeds = &[SOL_VAULT_SEED, &[ctx.bumps.sol_vault]];
+                // anchor_lang::solana_program::program::invoke_signed(
+                //     &ix,
+                //     &[
+                //         ctx.accounts.sol_vault.to_account_info(),
+                //         ctx.accounts.receiver.to_account_info(),
+                //     ],
+                //     &[&seeds[..]],
+                // )?;
 
-                emit!(Into::<VaultWithdrawn>::into(vault_withdraw_params.clone()))
+                // emit!(Into::<VaultWithdrawn>::into(vault_withdraw_params.clone()))
+
                 
             } else {
                 // if the receiver_token_account is empty, create a new ATA

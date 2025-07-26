@@ -20,7 +20,7 @@ use crate::BROKER_SEED;
 // 0: signer = lz executor
 // 1: peer
 // 2: oapp_config
-// 3: broker_pda
+// 3: withdraw_broker_pda
 // 4: withdraw_token_pda
 // 5: token_mint
 // 6: receiver
@@ -42,7 +42,7 @@ pub struct OAppLzReceiveTypes<'info> {
         bump = oapp_config.bump
     )]
     pub oapp_config: Account<'info, OAppConfig>,
-    
+
     #[account(
         seeds = [ACCOUNT_LIST_SEED, &oapp_config.key().as_ref()],
         bump = account_list.bump
@@ -93,8 +93,9 @@ impl OAppLzReceiveTypes<'_> {
             let withdraw_params = AccountWithdrawSol::decode_packed(&lz_message.payload).unwrap();
 
             // account 3
-            let (broker_pda, _) = Pubkey::find_program_address(
-                &[BROKER_SEED, withdraw_params.broker_hash.as_ref()],
+            let broker_index = withdraw_params.broker_index;
+            let (withdraw_broker_pda, _) = Pubkey::find_program_address(
+                &[BROKER_SEED, &broker_index.to_be_bytes()],
                 ctx.program_id,
             );
 
@@ -149,7 +150,7 @@ impl OAppLzReceiveTypes<'_> {
             // add accounts 3..12
             accounts.extend_from_slice(&[
                 LzAccount {
-                    pubkey: broker_pda,
+                    pubkey: withdraw_broker_pda,
                     is_signer: false,
                     is_writable: false,
                 }, // 3
@@ -183,11 +184,11 @@ impl OAppLzReceiveTypes<'_> {
                     is_signer: false,
                     is_writable: true,
                 }, // 9
-                LzAccount {
-                    pubkey: sol_vault,
-                    is_signer: false,
-                    is_writable: true,
-                }, // 9.1
+                // LzAccount {
+                //     pubkey: sol_vault,
+                //     is_signer: false,
+                //     is_writable: true,
+                // }, // 9.1
                 LzAccount {
                     pubkey: token_program_id,
                     is_signer: false,

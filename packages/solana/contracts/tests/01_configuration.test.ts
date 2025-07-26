@@ -1,7 +1,7 @@
 import * as anchor from '@coral-xyz/anchor'
 import { BN, Program, Idl } from '@coral-xyz/anchor'
 import { createMint, NATIVE_MINT } from '@solana/spl-token'
-import { Keypair, PublicKey, SystemProgram, sendAndConfirmTransaction } from '@solana/web3.js'
+import { Keypair, PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction } from '@solana/web3.js'
 import { assert } from 'chai'
 import { OftTools } from '@layerzerolabs/lz-solana-sdk-v2'
 import * as utils from '../scripts/utils'
@@ -216,9 +216,9 @@ describe('Test Solana-Vault configuration', function() {
         
         try {
             setAccountListParams = {
+                woofiProPda: brokerPda,
                 withdrawUsdcPda: withdrawUsdcPda,
                 usdcMint: USDC_MINT,
-                woofiProPda: brokerPda,
                 withdrawUsdtPda: withdrawUsdtPda,
                 usdtMint: USDT_MINT,
                 withdrawWsolPda: withdrawWsolPda,
@@ -525,8 +525,9 @@ describe('Test Solana-Vault configuration', function() {
 
     
     it('Set broker', async () => {
-        const brokerHash = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        const allowedBrokerPda = getBrokerPdaWithBuf(solanaVault.programId, brokerHash)
+        const brokerSymbol = "woofi_pro"
+        const brokerHash = helper.getBrokerHash(brokerSymbol)
+        const allowedBrokerPda = utils.getBrokerPdaWithBuf(solanaVault.programId, brokerHash)
         const brokerManagerRoleHash = helper.getManagerRoleHash(constants.BROKER_MANAGER_ROLE)
         const brokerManagerRolePda = utils.getManagerRolePdaWithBuf(solanaVault.programId, brokerManagerRoleHash, vaultOwner.publicKey)
        
@@ -582,6 +583,34 @@ describe('Test Solana-Vault configuration', function() {
         assert.deepEqual(allowedBroker.brokerHash, brokerHash)
         assert.isOk(allowedBroker.bump)
         console.log("✅ Set Broker")
+
+        console.log("🚀 Set Withdraw Broker")
+        console.log("constants.WITHDRAW_BROKER_INDEX.woofi_pro", constants.WITHDRAW_BROKER_INDEX.woofi_pro)
+        const withdrawBrokerPda = utils.getWithdrawBrokerPda(solanaVault.programId, constants.WITHDRAW_BROKER_INDEX.woofi_pro)
+
+        let setWithdrawBrokerParams, setWithdrawBrokerAccounts
+
+        setWithdrawBrokerParams = {
+            brokerManagerRole: brokerManagerRoleHash,
+            brokerHash: brokerHash,
+            brokerIndex: constants.WITHDRAW_BROKER_INDEX.woofi_pro,
+            allowed: true
+        }
+        setWithdrawBrokerAccounts = {
+            brokerManager: wallet.publicKey,
+            withdrawBroker: withdrawBrokerPda,
+            managerRole: brokerManagerRolePda,
+            systemProgram: SystemProgram.programId
+        }
+
+        await setup.setWithdrawBroker(wallet.payer, solanaVault, setWithdrawBrokerParams, setWithdrawBrokerAccounts)
+        const withdrawBroker = await solanaVault.account.withdrawBroker.fetch(withdrawBrokerPda)
+        assert.equal(withdrawBroker.brokerHash.toString(), brokerHash.toString())
+        assert.equal(withdrawBroker.brokerIndex, constants.WITHDRAW_BROKER_INDEX.woofi_pro)
+        assert.equal(withdrawBroker.allowed, true)
+        assert.isOk(withdrawBroker.bump)
+        console.log("✅ Set Withdraw Broker")
+
     })
 
 

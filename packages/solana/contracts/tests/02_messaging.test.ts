@@ -557,6 +557,9 @@ describe('Test OAPP messaging', function() {
         const chainIdBuffer = Buffer.alloc(8)
         chainIdBuffer.writeBigUInt64BE(BigInt('1'))
 
+        const brokerIndexBuffer = Buffer.alloc(2)
+        brokerIndexBuffer.writeUInt16BE(constants.WITHDRAW_BROKER_INDEX.woofi_pro)
+
         const tokenIndexBuffer = Buffer.alloc(1)
         tokenIndexBuffer.writeUint8(constants.TOKEN_INDEX.USDC)
 
@@ -580,7 +583,7 @@ describe('Test OAPP messaging', function() {
             // wallet.publicKey.toBuffer()// placeholder for account_id
             wallet.publicKey.toBuffer(),  // sender     
             userWallet.publicKey.toBuffer(),  // receiver
-            Buffer.from(woofiProBrokerHash), 
+            brokerIndexBuffer, 
             tokenIndexBuffer,
             tokenAmountBuffer,
             feeBuffer,
@@ -597,6 +600,7 @@ describe('Test OAPP messaging', function() {
 
         const peerPda = utils.getPeerPda(solanaVault.programId, oappConfigPda, DST_EID)
         const solVaultPda = utils.getSolVaultPda(solanaVault.programId)
+        const withdrawBrokerPda = utils.getWithdrawBrokerPda(solanaVault.programId, constants.WITHDRAW_BROKER_INDEX.woofi_pro)
 
         // get initial balance
         prevVaultUSDCBalance = await helper.getTokenBalance(provider.connection, vaultUSDCAccount.address)
@@ -628,13 +632,12 @@ describe('Test OAPP messaging', function() {
                 message: msg,
                 extraData: Buffer.from([])
             }
-
             // console.log(attackerWallet.publicKey.toBase58())
             const accountsWithInvalidReceiver = {
                 payer: attackerWallet.publicKey,
                 oappConfig: oappConfigPda,
                 peer: peerPda,
-                brokerPda: brokerPda,
+                withdrawBrokerPda: withdrawBrokerPda,
                 withdrawTokenPda: withdrawUsdcPda,
                 tokenMint: USDC_MINT,
                 receiver: attackerWallet.publicKey,
@@ -684,7 +687,7 @@ describe('Test OAPP messaging', function() {
                 payer: attackerWallet.publicKey,
                 oappConfig: oappConfigPda,
                 peer: peerPda,
-                brokerPda: brokerPda,
+                withdrawBrokerPda: withdrawBrokerPda,
                 withdrawTokenPda: withdrawUsdcPda,
                 tokenMint: MEME_MINT,
                 receiver: userWallet.publicKey,
@@ -705,24 +708,25 @@ describe('Test OAPP messaging', function() {
         // try to execute the lzReceive USDC with not allowed broker
         const brokerManagerRoleHash = helper.getManagerRoleHash(constants.BROKER_MANAGER_ROLE)
         const brokerManagerRolePda = utils.getManagerRolePdaWithBuf(solanaVault.programId, brokerManagerRoleHash, wallet.publicKey)
-        let setBrokerParams, setBrokerAccounts
+        let setWithdrawBrokerParams, setWithdrawBrokerAccounts
         try {
 
-            setBrokerParams = {
+            setWithdrawBrokerParams = {
                 brokerManagerRole: brokerManagerRoleHash,
                 brokerHash: woofiProBrokerHash,
+                brokerIndex: constants.WITHDRAW_BROKER_INDEX.woofi_pro,
                 allowed: false
             }
-            setBrokerAccounts = {
+            setWithdrawBrokerAccounts = {
                 brokerManager: wallet.publicKey,
-                allowedBroker: brokerPda,
+                withdrawBroker: withdrawBrokerPda,
                 managerRole: brokerManagerRolePda,
                 systemProgram: SystemProgram.programId
             }
 
-            await setup.setBroker(wallet.payer, solanaVault, setBrokerParams, setBrokerAccounts)
+            await setup.setWithdrawBroker(wallet.payer, solanaVault, setWithdrawBrokerParams, setWithdrawBrokerAccounts)
     
-            console.log("✅ Set Broker to not allowed")
+            console.log("✅ Set Withdraw Broker to not allowed")
 
             console.log("🥷 Attacker tries to execute withdrawal with not allowed broker")
             const params = {
@@ -737,7 +741,7 @@ describe('Test OAPP messaging', function() {
                 payer: attackerWallet.publicKey,
                 oappConfig: oappConfigPda,
                 peer: peerPda,
-                brokerPda: brokerPda,
+                withdrawBrokerPda: withdrawBrokerPda,
                 withdrawTokenPda: withdrawUsdcPda,
                 tokenMint: USDC_MINT,
                 receiver: userWallet.publicKey,
@@ -756,10 +760,10 @@ describe('Test OAPP messaging', function() {
             console.log("👌 Attacker failed to execute withdrawal with not allowed broker")
         }
 
-        setBrokerParams.allowed = true
-        await setup.setBroker(wallet.payer, solanaVault, setBrokerParams, setBrokerAccounts)
+        setWithdrawBrokerParams.allowed = true
+        await setup.setWithdrawBroker(wallet.payer, solanaVault, setWithdrawBrokerParams, setWithdrawBrokerAccounts)
 
-        console.log("✅ Set Broker allowed")
+        console.log("✅ Set Withdraw Broker allowed")
 
         // try to execute the lzReceive USDC with not allowed token
         const tokenManagerRoleHash = helper.getManagerRoleHash(constants.TOKEN_MANAGER_ROLE)
@@ -799,7 +803,7 @@ describe('Test OAPP messaging', function() {
                 payer: attackerWallet.publicKey,
                 oappConfig: oappConfigPda,
                 peer: peerPda,
-                brokerPda: brokerPda,
+                withdrawBrokerPda: withdrawBrokerPda,
                 withdrawTokenPda: withdrawUsdcPda,
                 tokenMint: USDC_MINT,
                 receiver: userWallet.publicKey,
@@ -859,7 +863,7 @@ describe('Test OAPP messaging', function() {
             payer: wallet.publicKey,
             oappConfig: oappConfigPda,
             peer: peerPda,
-            brokerPda: brokerPda,
+            withdrawBrokerPda: withdrawBrokerPda,
             withdrawTokenPda: withdrawUsdcPda,
             tokenMint: USDC_MINT,
             receiver: userWallet.publicKey,
@@ -910,7 +914,7 @@ describe('Test OAPP messaging', function() {
             payer: wallet.publicKey,
             oappConfig: oappConfigPda,
             peer: peerPda,
-            brokerPda: brokerPda,
+            withdrawBrokerPda: withdrawBrokerPda,
             withdrawTokenPda: withdrawUsdcPda,
             tokenMint: USDC_MINT,
             receiver: userWallet.publicKey,
@@ -987,7 +991,7 @@ describe('Test OAPP messaging', function() {
             payer: wallet.publicKey,
             oappConfig: oappConfigPda,
             peer: peerPda,
-            brokerPda: brokerPda,
+            withdrawBrokerPda: withdrawBrokerPda,
             withdrawTokenPda: withdrawUsdcPda,
             tokenMint: USDC_MINT,
             receiver: userWallet.publicKey,
@@ -1024,7 +1028,7 @@ describe('Test OAPP messaging', function() {
             // wallet.publicKey.toBuffer()// placeholder for account_id
             wallet.publicKey.toBuffer(),  // sender     
             userWallet.publicKey.toBuffer(),  // receiver
-            Buffer.from(woofiProBrokerHash), 
+            brokerIndexBuffer, 
             usdtTokenIndexBuffer,
             tokenAmountBuffer,
             feeBuffer,
@@ -1052,7 +1056,7 @@ describe('Test OAPP messaging', function() {
             payer: wallet.publicKey,
             oappConfig: oappConfigPda,
             peer: peerPda,
-            brokerPda: brokerPda,
+            withdrawBrokerPda: withdrawBrokerPda,
             withdrawTokenPda: withdrawUsdtPda,
             tokenMint: USDT_MINT,
             receiver: userWallet.publicKey,
@@ -1087,7 +1091,7 @@ describe('Test OAPP messaging', function() {
             // wallet.publicKey.toBuffer()// placeholder for account_id
             wallet.publicKey.toBuffer(),  // sender     
             userWallet.publicKey.toBuffer(),  // receiver
-            Buffer.from(woofiProBrokerHash), 
+            brokerIndexBuffer, 
             wsolTokenIndexBuffer,
             tokenAmountBuffer,
             feeBuffer,
@@ -1115,7 +1119,7 @@ describe('Test OAPP messaging', function() {
             payer: wallet.publicKey,
             oappConfig: oappConfigPda,
             peer: peerPda,
-            brokerPda: brokerPda,
+            withdrawBrokerPda: withdrawBrokerPda,
             withdrawTokenPda: withdrawWsolPda,
             tokenMint: NATIVE_MINT,
             receiver: userWallet.publicKey,
@@ -1151,7 +1155,7 @@ describe('Test OAPP messaging', function() {
             // wallet.publicKey.toBuffer()// placeholder for account_id
             wallet.publicKey.toBuffer(),  // sender     
             userWallet.publicKey.toBuffer(),  // receiver
-            Buffer.from(woofiProBrokerHash), 
+            brokerIndexBuffer, 
             solTokenIndexBuffer,
             solTokenAmountBuffer,
             feeBuffer,
@@ -1179,14 +1183,14 @@ describe('Test OAPP messaging', function() {
             payer: wallet.publicKey,
             oappConfig: oappConfigPda,
             peer: peerPda,
-            brokerPda: brokerPda,
+            withdrawBrokerPda: withdrawBrokerPda,
             withdrawTokenPda: withdrawSolPda,
             tokenMint: NATIVE_MINT,
             receiver: userWallet.publicKey,
             receiverTokenAccount: userWSOLAccount.address,
             vaultAuthority: vaultAuthorityPda,
             vaultTokenAccount: vaultWSOLAccount.address,
-            solVault: solVaultPda,
+            // solVault: solVaultPda,
             tokenProgram: TOKEN_PROGRAM_ID,
         }
 
@@ -1196,7 +1200,30 @@ describe('Test OAPP messaging', function() {
 
         console.log("prevVaultSOLBalance", prevVaultSOLBalance)
 
-        await setup.lzReceive(wallet.payer, solanaVault, endpointProgram, ulnProgram, nonce, params, accounts, msgSender, peerAddress, ORDERLY_EID, SOLANA_EID)
+        // const lzReceiveTxSig = await setup.lzReceive(wallet.payer, solanaVault, endpointProgram, ulnProgram, nonce, params, accounts, msgSender, peerAddress, ORDERLY_EID, SOLANA_EID)
+        // console.log("lzReceiveTx", lzReceiveTxSig)
+
+        // const txInfo = await solanaVault.provider.connection.getTransaction(lzReceiveTxSig, {
+        //     commitment: "confirmed",
+        //     maxSupportedTransactionVersion: 0,
+        //   });
+
+        // const logs = txInfo?.meta?.logMessages ?? [];
+        // console.log("logs", logs)
+        // console.log("solanaVault.programId", solanaVault.programId)
+        // console.log("solanaVault.coder", solanaVault.coder)
+        // const parser = new anchor.EventParser(solanaVault.programId, solanaVault.coder);
+
+        // const events: any[] = [];
+        // parser.parseLogs(logs, (evt) => {
+        //     console.log("Parsed event:", evt);
+        //     events.push(evt);
+        // });
+
+        // // 获取 VaultWithdrawn
+        // const vaultEvent = events.find((e) => e.name === "VaultWithdrawn");
+
+        // console.log("vaultEvent", vaultEvent)
 
         currVaultSOLBalance = await provider.connection.getBalance(solVaultPda)
         currUserSOLBalance = await provider.connection.getBalance(userWallet.publicKey)

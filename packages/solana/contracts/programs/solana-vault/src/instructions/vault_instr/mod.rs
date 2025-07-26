@@ -6,6 +6,7 @@ pub mod set_vault;
 pub mod set_manager_role;
 pub mod set_withdraw_token;
 pub mod deposit_sol;
+pub mod set_withdraw_broker;
 
 pub use deposit::*;
 pub use deposit_sol::*;
@@ -15,3 +16,4 @@ pub use set_token::*;
 pub use set_vault::*;
 pub use set_manager_role::*;
 pub use set_withdraw_token::*;
+pub use set_withdraw_broker::*;

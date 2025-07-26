@@ -39,6 +39,18 @@ pub struct ResetWithdrawTokenIndex {
 }
 
 #[event]
+pub struct SetWithdrawBrokerEvent {
+    pub broker_hash: [u8; 32],
+    pub broker_index: u16,
+}
+
+#[event]
+pub struct ResetWithdrawBrokerEvent {
+    pub broker_hash: [u8; 32],
+    pub broker_index: u16,
+}
+
+#[event]
 pub struct SetManager {
     pub role_hash: [u8; 32],
     pub manager_address: Pubkey,

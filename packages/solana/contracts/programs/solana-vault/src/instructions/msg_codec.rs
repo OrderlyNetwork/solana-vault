@@ -78,11 +78,12 @@ impl LzMessage {
         }
     }
 
-    pub fn get_broker_hash(encoded: &[u8]) -> Result<[u8; 32]> {
+
+    pub fn get_broker_index(encoded: &[u8]) -> Result<u16> {
         let message = LzMessage::decode(encoded)?;
         if message.msg_type == MsgType::Withdraw as u8 {
             let withdraw_params = AccountWithdrawSol::decode_packed(&message.payload)?;
-            return Ok(withdraw_params.broker_hash);
+            return Ok(withdraw_params.broker_index);
         } else {
             return Err(OAppError::InvalidMessageType.into());
         }
@@ -105,7 +106,7 @@ pub struct AccountWithdrawSol {
     // pub account_id: [u8; 32],
     pub sender: [u8; 32],
     pub receiver: [u8; 32],
-    pub broker_hash: [u8; 32],
+    pub broker_index: u16,
     pub token_index: u8,
     pub token_amount: u64,
     pub fee: u64,
@@ -115,19 +116,6 @@ pub struct AccountWithdrawSol {
 
 // implement the evm abi.encode and decode for AccountWithdrawSol
 impl AccountWithdrawSol {
-    pub fn encode(&self) -> Vec<u8> {
-        let mut encoded = Vec::new();
-        // encoded.extend_from_slice(&self.account_id);
-        encoded.extend_from_slice(&self.sender);
-        encoded.extend_from_slice(&self.receiver);
-        encoded.extend_from_slice(&self.broker_hash);
-        // encoded.extend_from_slice(&self.token_hash);
-        encoded.extend_from_slice(&to_bytes32(&self.token_amount.to_be_bytes()));
-        encoded.extend_from_slice(&to_bytes32(&self.fee.to_be_bytes()));
-        encoded.extend_from_slice(&to_bytes32(&self.chain_id.to_be_bytes()));
-        encoded.extend_from_slice(&to_bytes32(&self.withdraw_nonce.to_be_bytes()));
-        encoded
-    }
 
     pub fn get_receiver_address(encoded: &[u8]) -> Result<Pubkey> {
         // Decode the LzMessage to get the payload
@@ -142,19 +130,6 @@ impl AccountWithdrawSol {
         }
     }
 
-    pub fn encode_packed(&self) -> Vec<u8> {
-        let mut encoded = Vec::new();
-        // encoded.extend_from_slice(&self.account_id);
-        encoded.extend_from_slice(&self.sender);
-        encoded.extend_from_slice(&self.receiver);
-        encoded.extend_from_slice(&self.broker_hash);
-        // encoded.extend_from_slice(&self.token_hash);
-        encoded.extend_from_slice(&self.token_amount.to_be_bytes());
-        encoded.extend_from_slice(&self.fee.to_be_bytes());
-        encoded.extend_from_slice(&self.chain_id.to_be_bytes());
-        encoded.extend_from_slice(&self.withdraw_nonce.to_be_bytes());
-        encoded
-    }
 
     pub fn decode_packed(encoded: &[u8]) -> Result<Self> {
         let mut offset = 0;
@@ -164,8 +139,10 @@ impl AccountWithdrawSol {
         offset += 32;
         let receiver = encoded[offset..offset + 32].try_into().unwrap();
         offset += 32;
-        let broker_hash = encoded[offset..offset + 32].try_into().unwrap();
-        offset += 32;
+        // let broker_hash = encoded[offset..offset + 32].try_into().unwrap();
+        // offset += 32;
+        let broker_index = u16::from_be_bytes(encoded[offset..offset + 2].try_into().unwrap());
+        offset += 2;
         let token_index = u8::from_be_bytes(encoded[offset..offset + 1].try_into().unwrap());
         offset += 1;
         // higher 128 bits of the token amount
@@ -180,7 +157,7 @@ impl AccountWithdrawSol {
             // account_id,
             sender,
             receiver,
-            broker_hash,
+            broker_index,
             token_index,
             token_amount,
             fee,
@@ -189,57 +166,24 @@ impl AccountWithdrawSol {
         })
     }
 
-    pub fn decode(encoded: &[u8]) -> Result<Self> {
-        let mut offset = 0;
-        // let account_id = encoded[offset..offset + 32].try_into().unwrap();
-        // offset += 32;
-        let sender = encoded[offset..offset + 32].try_into().unwrap();
-        offset += 32;
-        let receiver = encoded[offset..offset + 32].try_into().unwrap();
-        offset += 32;
-        let broker_hash = encoded[offset..offset + 32].try_into().unwrap();
-        offset += 32;
-        let token_index = u8::from_be_bytes(encoded[offset .. offset + 1].try_into().unwrap());
-        offset += 1;
-        // higher 128 bits of the token amount
-        let token_amount =
-            u64::from_be_bytes(encoded[offset + 24..offset + 32].try_into().unwrap());
-        offset += 32;
-        let fee = u64::from_be_bytes(encoded[offset + 24..offset + 32].try_into().unwrap());
-        offset += 32;
-        let chain_id = u64::from_be_bytes(encoded[offset + 24..offset + 32].try_into().unwrap());
-        offset += 32;
-        let withdraw_nonce =
-            u64::from_be_bytes(encoded[offset + 24..offset + 32].try_into().unwrap());
-        Ok(Self {
-            // account_id,
-            sender,
-            receiver,
-            broker_hash,
-            token_index,
-            token_amount,
-            fee,
-            chain_id,
-            withdraw_nonce,
-        })
-    }
 }
 
-impl From<AccountWithdrawSol> for VaultWithdrawParams {
-    fn from(account_withdraw_sol: AccountWithdrawSol) -> VaultWithdrawParams {
+
+impl AccountWithdrawSol {
+    pub fn to_vault_withdraw_params(&self, broker_hash: [u8; 32], token_hash: [u8; 32]) -> VaultWithdrawParams {
         VaultWithdrawParams {
             account_id: get_account_id(
-                &account_withdraw_sol.sender,
-                &account_withdraw_sol.broker_hash,
+                &self.sender,
+                &broker_hash,
             ), // account_withdraw_sol.account_id
-            sender: account_withdraw_sol.sender,
-            receiver: account_withdraw_sol.receiver,
-            broker_hash: account_withdraw_sol.broker_hash,
-            token_hash: get_usdc_hash(),
-            token_amount: account_withdraw_sol.token_amount as u64,
-            fee: account_withdraw_sol.fee as u128,
-            chain_id: account_withdraw_sol.chain_id as u128,
-            withdraw_nonce: account_withdraw_sol.withdraw_nonce,
+            sender: self.sender,
+            receiver: self.receiver,
+            broker_hash: broker_hash,
+            token_hash: token_hash,
+            token_amount: self.token_amount as u64,
+            fee: self.fee as u128,
+            chain_id: self.chain_id as u128,
+            withdraw_nonce: self.withdraw_nonce,
         }
     }
 }

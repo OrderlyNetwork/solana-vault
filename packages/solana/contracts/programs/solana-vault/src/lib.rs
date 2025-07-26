@@ -54,6 +54,10 @@ pub mod solana_vault {
         SetBroker::apply(&mut ctx, &params)
     }
 
+    pub fn set_withdraw_broker(mut ctx: Context<SetWithdrawBroker>, params: SetWithdrawBrokerParams) -> Result<()> {
+        SetWithdrawBroker::apply(&mut ctx, &params)
+    }
+
     pub fn set_token(mut ctx: Context<SetToken>, params: SetTokenParams) -> Result<()> {
         SetToken::apply(&mut ctx, &params)
     }

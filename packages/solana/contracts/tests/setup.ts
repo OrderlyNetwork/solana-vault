@@ -232,6 +232,17 @@ export async function setBroker(signer: Keypair, solanaVault: Program<SolanaVaul
     return {allowedBroker, allowedBrokerPda}
 }
 
+export async function setWithdrawBroker(signer: Keypair, solanaVault: Program<SolanaVault>, setWithdrawBrokerParams: any, setWithdrawBrokerAccounts: any) {
+    await solanaVault.methods
+        .setWithdrawBroker(setWithdrawBrokerParams)
+        .accounts(setWithdrawBrokerAccounts)
+        .signers([signer])
+        .rpc(confirmOptions)
+    const withdrawBrokerPda = setWithdrawBrokerAccounts.withdrawBroker
+    const withdrawBroker = await solanaVault.account.withdrawBroker.fetch(withdrawBrokerPda)
+    return {withdrawBroker, withdrawBrokerPda}
+}
+
 export async function setToken(signer: Keypair, solanaVault: Program<SolanaVault>, setTokenParams: any, setTokenAccounts: any) {
     await solanaVault.methods
         .setToken(setTokenParams)
@@ -502,12 +513,14 @@ export async function commitVerify(wallet: anchor.Wallet, endpointAdmin: Keypair
 export async function lzReceive(signer: Keypair, solanaVault: Program<SolanaVault>, endpointProgram: Program<Endpoint>, ulnProgram: Program<Uln>, nonce: number, receiveParams: any, receiveAccounts: any, msgSender: PublicKey, peerAddress: any, orderlyEid: number, solanaEid: number) {
     
     const lzReceiveRemainingAccounts = await helper.getLzReceiveRemainingAccounts(solanaVault, endpointProgram, ulnProgram, orderlyEid, solanaEid, peerAddress, msgSender, nonce)
-    await solanaVault.methods
+    const lzReceiveTx = await solanaVault.methods
         .lzReceive(receiveParams)
         .accounts(receiveAccounts)
         .remainingAccounts(lzReceiveRemainingAccounts)
         .signers([signer])
         .rpc(confirmOptions)
+
+    return lzReceiveTx
 }
 
 export async function deposit(signer: Keypair, solanaVault: Program<SolanaVault>, depositParams: any, feeParams: any, accounts: any, depsoitRemainingAccounts: any) {

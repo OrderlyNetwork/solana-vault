@@ -38,11 +38,11 @@ impl SetAccountList<'_> {
     pub fn apply(ctx: &mut Context<SetAccountList>, params: &SetAccountListParams) -> Result<()> {
         ctx.accounts.lz_receive_types.account_list = ctx.accounts.accounts_list.key();       // update the account_list pda in lz_receive_types
         ctx.accounts.accounts_list.bump = ctx.bumps.accounts_list;
+        ctx.accounts.accounts_list.woofi_pro_pda = params.woofi_pro_pda;
         ctx.accounts.accounts_list.withdraw_usdc_pda = params.withdraw_usdc_pda;
         ctx.accounts.accounts_list.usdc_mint = params.usdc_mint;
-        ctx.accounts.accounts_list.woofi_pro_pda = params.woofi_pro_pda;
         ctx.accounts.accounts_list.withdraw_usdt_pda = params.withdraw_usdt_pda;
-        ctx.accounts.accounts_list.usdt_mint = params.usdt_mint;
+        ctx.accounts.accounts_list.usdt_mint = params.usdt_mint; 
         ctx.accounts.accounts_list.withdraw_wsol_pda = params.withdraw_wsol_pda;
         ctx.accounts.accounts_list.wsol_mint = params.wsol_mint;
         Ok(())
@@ -51,9 +51,9 @@ impl SetAccountList<'_> {
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct SetAccountListParams {
+    pub woofi_pro_pda: Pubkey,
     pub withdraw_usdc_pda: Pubkey,
     pub usdc_mint: Pubkey,
-    pub woofi_pro_pda: Pubkey,
     pub withdraw_usdt_pda: Pubkey,
     pub usdt_mint: Pubkey,
     pub withdraw_wsol_pda: Pubkey,
