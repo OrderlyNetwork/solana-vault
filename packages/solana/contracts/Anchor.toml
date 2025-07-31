@@ -44,6 +44,9 @@ test = "yarn run ts-mocha -b -p ./tsconfig.json -t 1000000 tests/**/*.test.ts"
 transfer_admin = "yarn run ts-node scripts/transfer_admin.ts"
 set_broker_manager = "yarn run ts-node scripts/set_broker_manager.ts"
 set_token_manager = "yarn run ts-node scripts/set_token_manager.ts"
+set_withdraw_token = "yarn run ts-node scripts/set_withdraw_token.ts"
+set_withdraw_broker = "yarn run ts-node scripts/set_withdraw_broker.ts"
+deposit_sol = "yarn run ts-node scripts/06deposit_sol.ts"
 
 [test]
 startup_wait = 5000

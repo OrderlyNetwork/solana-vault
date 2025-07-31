@@ -1190,7 +1190,7 @@ describe('Test OAPP messaging', function() {
             receiverTokenAccount: userWSOLAccount.address,
             vaultAuthority: vaultAuthorityPda,
             vaultTokenAccount: vaultWSOLAccount.address,
-            // solVault: solVaultPda,
+            solVault: solVaultPda,
             tokenProgram: TOKEN_PROGRAM_ID,
         }
 
@@ -1200,7 +1200,7 @@ describe('Test OAPP messaging', function() {
 
         console.log("prevVaultSOLBalance", prevVaultSOLBalance)
 
-        // const lzReceiveTxSig = await setup.lzReceive(wallet.payer, solanaVault, endpointProgram, ulnProgram, nonce, params, accounts, msgSender, peerAddress, ORDERLY_EID, SOLANA_EID)
+        const lzReceiveTxSig = await setup.lzReceive(wallet.payer, solanaVault, endpointProgram, ulnProgram, nonce, params, accounts, msgSender, peerAddress, ORDERLY_EID, SOLANA_EID)
         // console.log("lzReceiveTx", lzReceiveTxSig)
 
         // const txInfo = await solanaVault.provider.connection.getTransaction(lzReceiveTxSig, {

@@ -78,12 +78,12 @@ pub struct OAppLzReceive<'info> {
     )]
     pub vault_token_account: Account<'info, TokenAccount>,
     /// CHECKED: sol_vault is used for SOL withdrawal
-    // #[account(
-    //     mut,
-    //     seeds = [SOL_VAULT_SEED],
-    //     bump,
-    // )]
-    // pub sol_vault: UncheckedAccount<'info>,
+    #[account(
+        mut,
+        seeds = [SOL_VAULT_SEED],
+        bump,
+    )]
+    pub sol_vault: UncheckedAccount<'info>,
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -143,22 +143,22 @@ impl<'info> OAppLzReceive<'info> {
 
             if token_index == TOKEN_INDEX_SOL {
                 // transfer SOL to the receiver
-                // let ix = anchor_lang::solana_program::system_instruction::transfer(
-                //     &ctx.accounts.sol_vault.to_account_info().key(),
-                //     &ctx.accounts.receiver.key(),
-                //     amount_to_transfer,
-                // );
-                // let seeds = &[SOL_VAULT_SEED, &[ctx.bumps.sol_vault]];
-                // anchor_lang::solana_program::program::invoke_signed(
-                //     &ix,
-                //     &[
-                //         ctx.accounts.sol_vault.to_account_info(),
-                //         ctx.accounts.receiver.to_account_info(),
-                //     ],
-                //     &[&seeds[..]],
-                // )?;
+                let ix = anchor_lang::solana_program::system_instruction::transfer(
+                    &ctx.accounts.sol_vault.to_account_info().key(),
+                    &ctx.accounts.receiver.key(),
+                    amount_to_transfer,
+                );
+                let seeds = &[SOL_VAULT_SEED, &[ctx.bumps.sol_vault]];
+                anchor_lang::solana_program::program::invoke_signed(
+                    &ix,
+                    &[
+                        ctx.accounts.sol_vault.to_account_info(),
+                        ctx.accounts.receiver.to_account_info(),
+                    ],
+                    &[&seeds[..]],
+                )?;
 
-                // emit!(Into::<VaultWithdrawn>::into(vault_withdraw_params.clone()))
+                emit!(Into::<VaultWithdrawn>::into(vault_withdraw_params.clone()))
 
                 
             } else {

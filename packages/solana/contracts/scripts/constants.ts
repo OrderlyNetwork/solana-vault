@@ -13,6 +13,12 @@ export const MOCK_USDC_ACCOUNT = new PublicKey("usdc4pNcoYJ2GNXcJN4iwNXfxbKXPQzq
 export const DEV_USDC_ACCOUNT = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");
 export const MAIN_USDC_ACCOUNT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 
+export const DEV_USDT_ACCOUNT = new PublicKey("USDTWREFQR4hQoKiDD8w9hHBiJ5qx5EKfouU5hLLhc1");
+export const MAIN_USDT_ACCOUNT = new PublicKey("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB");
+
+export const DEV_WSOL_ACCOUNT = new PublicKey("So11111111111111111111111111111111111111112");
+export const MAIN_WSOL_ACCOUNT = new PublicKey("So11111111111111111111111111111111111111112");
+
 export const PEER_ADDRESS = addressToBytes32('0x5Bf771A65d057e778C5f0Ed52A0003316f94322D');
 export const DEV_PEER_ADDRESS = addressToBytes32("0x9Dc724b24146BeDD2dA28b8C4B74126169B8f312");
 export const QA_PEER_ADDRESS = addressToBytes32("0x45b6C6266A7A2170617d8A27A50C642fd68b91c4");
@@ -279,8 +285,20 @@ export const TOKEN_INDEX = {
 export const TOKEN_DECIMALS = {
     "USDC": 6,
     "USDT": 6,
-    "SOL": 9,
-    "WSOL": 9
+    "WSOL": 9,
+    "SOL": 9
+}
+
+export const TOKEN_SYMBOLS = [
+    "USDC",
+    "USDT",
+    "WSOL",
+    "SOL",
+]
+
+export const WITHDRAW_BROKER_INDEX = {
+    "woofi_pro": 1,
+    "vooi": 2,
 }
 
 

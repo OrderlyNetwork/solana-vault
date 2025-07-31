@@ -184,11 +184,11 @@ impl OAppLzReceiveTypes<'_> {
                     is_signer: false,
                     is_writable: true,
                 }, // 9
-                // LzAccount {
-                //     pubkey: sol_vault,
-                //     is_signer: false,
-                //     is_writable: true,
-                // }, // 9.1
+                LzAccount {
+                    pubkey: sol_vault,
+                    is_signer: false,
+                    is_writable: true,
+                }, // 9.1
                 LzAccount {
                     pubkey: token_program_id,
                     is_signer: false,

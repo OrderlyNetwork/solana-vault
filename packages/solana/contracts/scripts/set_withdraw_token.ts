@@ -12,17 +12,19 @@ const ENV = utils.getEnv();
 const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider); 
 
 
-async function setToken() {
+async function setWithdrawToken() {
     const multisig = utils.getMultisig(ENV);
     const useMultisig = false;
-    const tokenSymble = "SOL";
-    console.log("Token Symbol:", tokenSymble);
+    const tokenSymble = constants.TOKEN_SYMBOLS[3];
+    console.log("tokenSymble", tokenSymble);
+    const tokenIndex = constants.TOKEN_INDEX[tokenSymble];
+    console.log("tokenIndex", tokenIndex);
     const tokenHash = utils.getTokenHash(tokenSymble);
     console.log("Token Hash:", tokenHash);
     const codedTokenHash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'));
     const mintAccount = utils.getTokenAddress(ENV, tokenSymble);
     console.log("mintAccount", mintAccount.toBase58());
-    const tokenPda = utils.getTokenPda(OAPP_PROGRAM_ID, tokenHash);
+    const tokenPda = utils.getWithdrawTokenPda(OAPP_PROGRAM_ID, tokenIndex);
     console.log("tokenPda", tokenPda.toBase58());
 
     const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
@@ -30,24 +32,25 @@ async function setToken() {
     const tokenManagerRole = utils.getManagerRoleHash(constants.TOKEN_MANAGER_ROLE)
     const codedTokenManagerRole = Array.from(Buffer.from(tokenManagerRole.slice(2), 'hex'));
     const tokenManagerRolePda = utils.getManagerRolePdaWithBuf(OAPP_PROGRAM_ID, codedTokenManagerRole, wallet.publicKey)
+    const withdrawTokenPda = utils.getWithdrawTokenPda(OAPP_PROGRAM_ID, tokenIndex);
 
     const allowed = true;
-    let setTokenParams = {
+    let setWithdrawTokenParams = {
         tokenManagerRole: codedTokenManagerRole,
-        mintAccount: mintAccount,
         tokenHash: codedTokenHash,
+        tokenIndex: tokenIndex,
         allowed: allowed,
     };
     // console.log("Set Token Params:", setTokenParams);
-    const setTokenAccounts = {
+    const setWithdrawTokenAccounts = {
         tokenManager: useMultisig ? multisig : wallet.publicKey,
-        mintAccount: mintAccount,
-        allowedToken: tokenPda,
+        withdrawToken: withdrawTokenPda,
         managerRole: tokenManagerRolePda,
-        systemProgram: SystemProgram.programId,
+        mintAccount: mintAccount,
+
     }
     // console.log("Set Token Accounts:", setTokenAccounts);
-    const ixSetToken = await OAppProgram.methods.setToken(setTokenParams).accounts(setTokenAccounts).instruction();
+    const ixSetToken = await OAppProgram.methods.setWithdrawToken(setWithdrawTokenParams).accounts(setWithdrawTokenAccounts).instruction();
 
     await utils.delay(ENV);
 
@@ -78,7 +81,7 @@ async function setToken() {
     // console.log("txSetToken", txSetToken.serializeMessage().toString('hex'));
     // console.log("base58 encoded tx: ", bs.encode(txSetToken.serializeMessage()));
 }
-setToken();
+setWithdrawToken();
 
 
 // {"mintAccount":"4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU","tokenHash":[214,172,161,190,151,41,193,61,103,115,53,22,19,33,100,156,204,174,106,89,21,84,119,37,22,112,15,152,111,148,46,170],"allowed":false}

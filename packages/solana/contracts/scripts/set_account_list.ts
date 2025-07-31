@@ -14,24 +14,48 @@ async function setAccountList() {
     const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
     const lzReceiveTypesAccountsPda = utils.getLzReceiveTypesPda(OAPP_PROGRAM_ID, oappConfigPda);
     const accountListPda = utils.getAccountListPda(OAPP_PROGRAM_ID, oappConfigPda);
-    const tokenSymble = "USDC";
-    const tokenHash = utils.getTokenHash(tokenSymble);
-    const tokenPda = utils.getTokenPda(OAPP_PROGRAM_ID, tokenHash);
+    const usdcSymbol = constants.TOKEN_SYMBOLS[0];
+    const usdtSymbol = constants.TOKEN_SYMBOLS[1];
+    const wsolSymbol = constants.TOKEN_SYMBOLS[2];
+    const usdcIndex = constants.TOKEN_INDEX[usdcSymbol];
+    const usdtIndex = constants.TOKEN_INDEX[usdtSymbol];
+    const wsolIndex = constants.TOKEN_INDEX[wsolSymbol];
+    const usdcMintAccount = utils.getTokenAddress(ENV, usdcSymbol);
+    const usdtMintAccount = utils.getTokenAddress(ENV, usdtSymbol);
+    const wsolMintAccount = utils.getTokenAddress(ENV, wsolSymbol);
+    const usdcTokenHash = utils.getTokenHash(usdcSymbol);
+    const usdtTokenHash = utils.getTokenHash(usdtSymbol);
+    const wsolTokenHash = utils.getTokenHash(wsolSymbol);
+    const usdcWithdrawTokenPda = utils.getWithdrawTokenPda(OAPP_PROGRAM_ID, usdcIndex);
+    const usdtWithdrawTokenPda = utils.getWithdrawTokenPda(OAPP_PROGRAM_ID, usdtIndex);
+    const wsolWithdrawTokenPda = utils.getWithdrawTokenPda(OAPP_PROGRAM_ID, wsolIndex);
     const brokerId = "woofi_pro";
     const brokerHash = utils.getBrokerHash(brokerId);
     const brokerPda = utils.getBrokerPda(OAPP_PROGRAM_ID, brokerHash);
+    console.log("brokerPda", brokerPda);
     const params = {
-        accountList: accountListPda,
-        usdcPda: tokenPda,
-        usdcMint: utils.getUSDCAddress(ENV),
         woofiProPda: brokerPda,
+        withdrawUsdcPda: usdcWithdrawTokenPda,
+        usdcMint: usdcMintAccount,
+        withdrawUsdtPda: usdtWithdrawTokenPda,
+        usdtMint: usdtMintAccount,
+        withdrawWsolPda: wsolWithdrawTokenPda,
+        wsolMint: wsolMintAccount,
     }
-    const ixSetAccountList = await OAppProgram.methods.setAccountList(params).accounts({
+    console.log("params", params);
+    const setAccountListParams = {
         admin: useMultisig ? multisig : wallet.publicKey,
         oappConfig: oappConfigPda,
         lzReceiveTypes: lzReceiveTypesAccountsPda,
         accountsList: accountListPda,
-    }).instruction();
+    }
+    
+    console.log("setAccountListParams", setAccountListParams);
+    const ixSetAccountList = await OAppProgram.methods.setAccountList(params).accounts(setAccountListParams).instruction();
+
+    console.log("ixSetAccountList", ixSetAccountList);
+
+    console.log("brokerPda", brokerPda);
 
     const txSetAccountList = new Transaction().add(ixSetAccountList);
 

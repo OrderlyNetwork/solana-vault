@@ -502,6 +502,7 @@ export function getTokenPda(VAULT_PROGRAM_ID: PublicKey, tokenHash: string): Pub
     )[0];
 }
 
+
 export function getTokenPdaWithBuf(VAULT_PROGRAM_ID: PublicKey, tokenHash: number[]): PublicKey {
     return PublicKey.findProgramAddressSync(
         [Buffer.from(constants.TOKEN_SEED, "utf8"), Buffer.from(tokenHash)],
@@ -528,6 +529,14 @@ export function getWithdrawTokenPda(VAULT_PROGRAM_ID: PublicKey, tokenIndex: num
     )[0];
 }
 
+export function getWithdrawBrokerPda(VAULT_PROGRAM_ID: PublicKey, brokerIndex: number): PublicKey {
+    const bufferIndex = Buffer.alloc(2);
+    bufferIndex.writeUInt16BE(brokerIndex);
+    return PublicKey.findProgramAddressSync(
+        [Buffer.from(constants.BROKER_SEED, "utf8"), bufferIndex],
+        VAULT_PROGRAM_ID
+    )[0];
+}
 
 export function getManagerRolePdaWithBuf(VAULT_PROGRAM_ID: PublicKey, roleHash: number[], managerAddress: PublicKey): PublicKey {
     return PublicKey.findProgramAddressSync(
@@ -551,6 +560,42 @@ export function getUSDCAddress(ENV: String): PublicKey {
     return constants.DEV_USDC_ACCOUNT;
 }
 
+export function getUSDTAddress(ENV: String): PublicKey {
+    if (ENV === "MAIN") {
+        return constants.MAIN_USDT_ACCOUNT;
+    }
+    return constants.DEV_USDT_ACCOUNT;
+}
+
+export function getTokenAddress(ENV: String, tokenSymbol: string): PublicKey {
+    if (ENV === "MAIN") {
+        if (tokenSymbol === constants.TOKEN_SYMBOLS[0]) {
+            return constants.MAIN_USDC_ACCOUNT;
+        }
+        if (tokenSymbol === constants.TOKEN_SYMBOLS[1]) {
+            return constants.MAIN_USDT_ACCOUNT;
+        }
+        if (tokenSymbol === constants.TOKEN_SYMBOLS[2]) {
+            return constants.MAIN_WSOL_ACCOUNT;
+        } else {
+            throw new Error(`Invalid token symbol: ${tokenSymbol}`);
+        }
+    } else {
+        if (tokenSymbol === constants.TOKEN_SYMBOLS[0]) {
+            return constants.DEV_USDC_ACCOUNT;
+        }
+        if (tokenSymbol === constants.TOKEN_SYMBOLS[1]) {
+            return constants.DEV_USDT_ACCOUNT;
+        }
+        if (tokenSymbol === constants.TOKEN_SYMBOLS[2]) {
+            return constants.DEV_WSOL_ACCOUNT;
+        } else if (tokenSymbol === constants.TOKEN_SYMBOLS[3]) {
+            return constants.DEV_WSOL_ACCOUNT;
+        } else {
+            throw new Error(`Invalid token symbol: ${tokenSymbol}`);
+        } 
+    }
+}
 export function getUSDCAccount(usdc: PublicKey, owner: PublicKey): PublicKey {
     const usdcTokenAccount = getAssociatedTokenAddressSync(
         usdc,
@@ -559,6 +604,15 @@ export function getUSDCAccount(usdc: PublicKey, owner: PublicKey): PublicKey {
     );
     console.log(`💶 USDC Account for ${owner}: ${usdcTokenAccount.toBase58()}`);
     return usdcTokenAccount;
+}
+
+export function getSPLTokenAccount(splToken: PublicKey, owner: PublicKey): PublicKey {
+    const splTokenAccount = getAssociatedTokenAddressSync(
+        splToken,
+        owner,
+        true,
+    );
+    return splTokenAccount;
 }
 
 export async function createUSDCAccount(provider: anchor.Provider, wallet: anchor.Wallet, usdc: PublicKey, owner: PublicKey): Promise<PublicKey> {
