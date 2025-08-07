@@ -1,43 +1,42 @@
-import * as anchor from "@coral-xyz/anchor";
-import { PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
-import { OftTools } from "@layerzerolabs/lz-solana-sdk-v2";
-import { Options } from "@layerzerolabs/lz-v2-utilities";
-import * as utils from "./utils";
-import * as constants from "./constants";
+import * as anchor from '@coral-xyz/anchor'
+import { PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction } from '@solana/web3.js'
+import { OftTools } from '@layerzerolabs/lz-solana-sdk-v2'
+import { Options } from '@layerzerolabs/lz-v2-utilities'
+import * as utils from './utils'
+import * as constants from './constants'
 
-import * as bs from "bs58";
-import { publicKey } from "@coral-xyz/anchor/dist/cjs/utils";
-const [provider, wallet, rpc] = utils.setAnchor();
-const ENV = utils.getEnv();
-const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider); 
-
+import * as bs from 'bs58'
+import { publicKey } from '@coral-xyz/anchor/dist/cjs/utils'
+const [provider, wallet, rpc] = utils.setAnchor()
+const ENV = utils.getEnv()
+const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider)
 
 async function setToken() {
-    const multisig = utils.getMultisig(ENV);
-    const useMultisig = false;
-    const tokenSymble = "SOL";
-    console.log("Token Symbol:", tokenSymble);
-    const tokenHash = utils.getTokenHash(tokenSymble);
-    console.log("Token Hash:", tokenHash);
-    const codedTokenHash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'));
-    const mintAccount = utils.getTokenAddress(ENV, tokenSymble);
-    console.log("mintAccount", mintAccount.toBase58());
-    const tokenPda = utils.getTokenPda(OAPP_PROGRAM_ID, tokenHash);
-    console.log("tokenPda", tokenPda.toBase58());
+    const multisig = utils.getMultisig(ENV)
+    const useMultisig = false
+    const tokenSymble = 'SOL'
+    console.log('Token Symbol:', tokenSymble)
+    const tokenHash = utils.getTokenHash(tokenSymble)
+    console.log('Token Hash:', tokenHash)
+    const codedTokenHash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'))
+    const mintAccount = utils.getTokenAddress(ENV, tokenSymble)
+    console.log('mintAccount', mintAccount.toBase58())
+    const tokenPda = utils.getTokenPda(OAPP_PROGRAM_ID, tokenHash)
+    console.log('tokenPda', tokenPda.toBase58())
 
-    const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID);
+    const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID)
 
     const tokenManagerRole = utils.getManagerRoleHash(constants.TOKEN_MANAGER_ROLE)
-    const codedTokenManagerRole = Array.from(Buffer.from(tokenManagerRole.slice(2), 'hex'));
+    const codedTokenManagerRole = Array.from(Buffer.from(tokenManagerRole.slice(2), 'hex'))
     const tokenManagerRolePda = utils.getManagerRolePdaWithBuf(OAPP_PROGRAM_ID, codedTokenManagerRole, wallet.publicKey)
 
-    const allowed = true;
+    const allowed = true
     let setTokenParams = {
         tokenManagerRole: codedTokenManagerRole,
         mintAccount: mintAccount,
         tokenHash: codedTokenHash,
         allowed: allowed,
-    };
+    }
     // console.log("Set Token Params:", setTokenParams);
     const setTokenAccounts = {
         tokenManager: useMultisig ? multisig : wallet.publicKey,
@@ -47,38 +46,32 @@ async function setToken() {
         systemProgram: SystemProgram.programId,
     }
     // console.log("Set Token Accounts:", setTokenAccounts);
-    const ixSetToken = await OAppProgram.methods.setToken(setTokenParams).accounts(setTokenAccounts).instruction();
+    const ixSetToken = await OAppProgram.methods.setToken(setTokenParams).accounts(setTokenAccounts).instruction()
 
-    await utils.delay(ENV);
+    await utils.delay(ENV)
 
-    const txSetToken = new Transaction().add(ixSetToken);
+    const txSetToken = new Transaction().add(ixSetToken)
 
     if (useMultisig) {
-        const txBase58 = await utils.getBase58Tx(provider, wallet.publicKey, txSetToken);
-        console.log("txBase58 for set token:\n", txBase58);
-     } else {
-        console.log(`Setting up Token ${tokenSymble} ...`);
-        const sigSetToken = await sendAndConfirmTransaction(
-            provider.connection,
-            txSetToken,
-            [wallet.payer],
-            {
-                commitment: "confirmed",
-                preflightCommitment: "confirmed"
-            }
-        )
-        console.log("sigSetToken", sigSetToken);
-     }
+        const txBase58 = await utils.getBase58Tx(provider, wallet.publicKey, txSetToken)
+        console.log('txBase58 for set token:\n', txBase58)
+    } else {
+        console.log(`Setting up Token ${tokenSymble} ...`)
+        const sigSetToken = await sendAndConfirmTransaction(provider.connection, txSetToken, [wallet.payer], {
+            commitment: 'confirmed',
+            preflightCommitment: 'confirmed',
+        })
+        console.log('sigSetToken', sigSetToken)
+    }
 
     // txSetToken.recentBlockhash = (await provider.connection.getLatestBlockhash()).blockhash;
     // txSetToken.feePayer = wallet.publicKey;
     // console.log(txSetToken)
     // // console.log(txSetOrderDelivery.serializeMessage().toString('hex'))
-    
+
     // console.log("txSetToken", txSetToken.serializeMessage().toString('hex'));
     // console.log("base58 encoded tx: ", bs.encode(txSetToken.serializeMessage()));
 }
-setToken();
-
+setToken()
 
 // {"mintAccount":"4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU","tokenHash":[214,172,161,190,151,41,193,61,103,115,53,22,19,33,100,156,204,174,106,89,21,84,119,37,22,112,15,152,111,148,46,170],"allowed":false}
