@@ -8,6 +8,7 @@
     "@layerzerolabs/lz-solana-sdk-v2": "2.3.28",
     "@layerzerolabs/lz-v2-utilities": "2.3.28",
     "@solana/spl-token": "^0.4.6",
+    "@solana/web3.js": "^1.95.0",
     "@types/bn.js": "^5.1.0",
     "@types/chai": "^4.3.0",
     "@types/mocha": "^9.1.1",
