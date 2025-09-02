@@ -3,9 +3,9 @@ use anchor_lang::prelude::*;
 use oapp::endpoint::{instructions::SendParams as EndpointSendParams, MessagingReceipt};
 
 use crate::instructions::{
-    validate_account_id, LzMessage, MsgType, VaultDepositParams, BROKER_SEED,
-    ENFORCED_OPTIONS_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED, SOL_VAULT_SEED,
-    OAppSendParams, DepositParams,
+    validate_account_id, DepositParams, LzMessage, MsgType, OAppSendParams, VaultDepositParams,
+    BROKER_SEED, ENFORCED_OPTIONS_SEED, OAPP_SEED, PEER_SEED, SOL_VAULT_SEED, TOKEN_SEED,
+    VAULT_AUTHORITY_SEED,
 };
 
 use crate::errors::VaultError;
@@ -79,7 +79,6 @@ pub struct DepositSol<'info> {
 }
 
 impl<'info> DepositSol<'info> {
-
     pub fn apply(
         ctx: &mut Context<'_, '_, '_, 'info, DepositSol<'info>>,
         deposit_params: &DepositParams,
@@ -92,12 +91,15 @@ impl<'info> DepositSol<'info> {
         ) {
             return Err(VaultError::InvalidAccountId.into());
         }
+        if deposit_params.token_amount == 0 {
+            return Err(VaultError::ZeroDepositAmount.into());
+        }
         let ix = anchor_lang::solana_program::system_instruction::transfer(
             &ctx.accounts.user.key(),
             &ctx.accounts.sol_vault.key(),
             deposit_params.token_amount,
         );
-    
+
         anchor_lang::solana_program::program::invoke(
             &ix,
             &[

@@ -17,6 +17,8 @@ pub enum VaultError {
     InvalidVaultOwner,
     #[msg("Manager role is not allowed")]
     ManagerRoleNotAllowed,
+    #[msg("Deposit amount must be greater than zero")]
+    ZeroDepositAmount,
 }
 
 // OApp errors

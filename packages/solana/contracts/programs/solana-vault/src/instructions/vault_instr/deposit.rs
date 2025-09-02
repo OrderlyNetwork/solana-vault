@@ -119,6 +119,9 @@ impl<'info> Deposit<'info> {
         ) {
             return Err(VaultError::InvalidAccountId.into());
         }
+        if deposit_params.token_amount == 0 {
+            return Err(VaultError::ZeroDepositAmount.into());
+        }
         transfer(
             ctx.accounts.transfer_token_ctx(),
             deposit_params.token_amount,
