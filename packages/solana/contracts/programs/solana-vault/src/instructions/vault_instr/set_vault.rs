@@ -33,11 +33,12 @@ impl SetVault<'_> {
     pub fn apply(ctx: Context<SetVault>, params: &SetVaultParams) -> Result<()> {
         ctx.accounts.vault_authority.bump = ctx.bumps.vault_authority;
         ctx.accounts.vault_authority.owner = params.owner;
-        ctx.accounts.vault_authority.deposit_nonce = params.deposit_nonce;
         ctx.accounts.vault_authority.order_delivery = params.order_delivery;
-        ctx.accounts.vault_authority.inbound_nonce = params.inbound_nonce;
         ctx.accounts.vault_authority.dst_eid = params.dst_eid;
         ctx.accounts.vault_authority.sol_chain_id = params.sol_chain_id;
+        // comment out the following lines if we want to allow updating deposit_nonce and inbound_nonce
+        // ctx.accounts.vault_authority.deposit_nonce = params.deposit_nonce;
+        // ctx.accounts.vault_authority.inbound_nonce = params.inbound_nonce;
         msg!("Set Vault Authority");
         Ok(())
     }
