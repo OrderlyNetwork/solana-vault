@@ -1,7 +1,8 @@
+use crate::constants::TOKEN_MANAGER_ROLE_HASH;
 use crate::errors::VaultError;
 use crate::events::{ResetWithdrawTokenIndex, SetWithdrawTokenIndex};
 use crate::instructions::{bytes32_to_hex, ACCESS_CONTROL_SEED, TOKEN_SEED};
-use crate::state::{WithdrawToken, ManagerRole};
+use crate::state::{ManagerRole, WithdrawToken};
 use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
 
@@ -19,7 +20,7 @@ pub struct SetWithdrawToken<'info> {
     )]
     pub withdraw_token: Account<'info, WithdrawToken>,
     #[account(
-        seeds = [ACCESS_CONTROL_SEED, params.token_manager_role.as_ref(), token_manager.key().as_ref()],
+        seeds = [ACCESS_CONTROL_SEED, TOKEN_MANAGER_ROLE_HASH.as_ref(), token_manager.key().as_ref()],
         bump = manager_role.bump,
         constraint = manager_role.allowed == true @VaultError::ManagerRoleNotAllowed,
     )]
@@ -30,7 +31,10 @@ pub struct SetWithdrawToken<'info> {
 }
 
 impl SetWithdrawToken<'_> {
-    pub fn apply(ctx: &mut Context<SetWithdrawToken>, params: &SetWithdrawTokenParams) -> Result<()> {
+    pub fn apply(
+        ctx: &mut Context<SetWithdrawToken>,
+        params: &SetWithdrawTokenParams,
+    ) -> Result<()> {
         ctx.accounts.withdraw_token.mint_account = ctx.accounts.mint_account.key();
         ctx.accounts.withdraw_token.token_hash = params.token_hash;
         ctx.accounts.withdraw_token.token_decimals = ctx.accounts.mint_account.decimals;
@@ -38,14 +42,22 @@ impl SetWithdrawToken<'_> {
         ctx.accounts.withdraw_token.allowed = params.allowed;
         let token_hash_hex = bytes32_to_hex(&params.token_hash);
         if params.allowed {
-            msg!("Setting withdraw token index {:?}, token hash {:?}", params.token_index, token_hash_hex);
+            msg!(
+                "Setting withdraw token index {:?}, token hash {:?}",
+                params.token_index,
+                token_hash_hex
+            );
             emit!(SetWithdrawTokenIndex {
                 token_index: params.token_index,
                 token_hash: params.token_hash,
                 mint_account: ctx.accounts.mint_account.key(),
             });
         } else {
-            msg!("Resetting withdraw token index {:?}, token hash {:?}", params.token_index, token_hash_hex);
+            msg!(
+                "Resetting withdraw token index {:?}, token hash {:?}",
+                params.token_index,
+                token_hash_hex
+            );
             emit!(ResetWithdrawTokenIndex {
                 token_index: params.token_index,
                 token_hash: params.token_hash,
@@ -59,7 +71,6 @@ impl SetWithdrawToken<'_> {
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct SetWithdrawTokenParams {
-    pub token_manager_role: [u8; 32],
     pub token_hash: [u8; 32],
     pub token_index: u8,
     pub allowed: bool,
