@@ -14,6 +14,8 @@ use crate::state::{
     AllowedBroker, AllowedToken, EnforcedOptions, OAppConfig, Peer, VaultAuthority,
 };
 
+use crate::constants::SOL_TOKEN_HASH;
+
 #[derive(Accounts)]
 #[instruction(deposit_params: DepositParams, oapp_params: OAppSendParams)]
 pub struct DepositSol<'info> {
@@ -69,7 +71,7 @@ pub struct DepositSol<'info> {
     pub allowed_broker: Box<Account<'info, AllowedBroker>>,
 
     #[account(
-        seeds = [TOKEN_SEED, deposit_params.token_hash.as_ref()],
+        seeds = [TOKEN_SEED, SOL_TOKEN_HASH.as_ref()],
         bump = allowed_token.bump,
         constraint = allowed_token.allowed == true @ VaultError::TokenNotAllowed
     )]
@@ -116,7 +118,7 @@ impl<'info> DepositSol<'info> {
             account_id: deposit_params.account_id,
             broker_hash: deposit_params.broker_hash,
             user_address: deposit_params.user_address, //
-            token_hash: deposit_params.token_hash,
+            token_hash: SOL_TOKEN_HASH,
             src_chain_id: ctx.accounts.vault_authority.sol_chain_id,
             token_amount: deposit_params.token_amount as u128,
             src_chain_deposit_nonce: ctx.accounts.vault_authority.deposit_nonce,
