@@ -149,6 +149,7 @@ impl<'info> OAppLzReceive<'info> {
                     &[
                         ctx.accounts.sol_vault.to_account_info(),
                         ctx.accounts.receiver.to_account_info(),
+                        ctx.accounts.system_program.to_account_info(),
                     ],
                     &[&seeds[..]],
                 )?;

@@ -107,6 +107,7 @@ impl<'info> DepositSol<'info> {
             &[
                 ctx.accounts.user.to_account_info(),
                 ctx.accounts.sol_vault.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
             ],
         )?;
 
