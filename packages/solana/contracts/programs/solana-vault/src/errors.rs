@@ -19,6 +19,8 @@ pub enum VaultError {
     ManagerRoleNotAllowed,
     #[msg("Deposit amount must be greater than zero")]
     ZeroDepositAmount,
+    #[msg("Withdraw amount must be no less than withdraw fee")]
+    InsufficientWithdrawAmount,
 }
 
 // OApp errors

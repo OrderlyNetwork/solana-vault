@@ -129,6 +129,10 @@ impl<'info> OAppLzReceive<'info> {
             let withdraw_params = AccountWithdrawSol::decode_packed(&lz_message.payload).unwrap();
 
             let token_index = withdraw_params.token_index;
+            require!(
+                withdraw_params.token_amount >= withdraw_params.fee,
+                VaultError::InsufficientWithdrawAmount,
+            );
             let amount_to_transfer = withdraw_params.token_amount - withdraw_params.fee;
             let vault_withdraw_params: VaultWithdrawParams = withdraw_params
                 .to_vault_withdraw_params(
