@@ -1,4 +1,4 @@
-use crate::constants::{TOKEN_INDEX_USDC, TOKEN_INDEX_USDT, TOKEN_INDEX_WSOL, TOKEN_INDEX_SOL};
+use crate::constants::{TOKEN_INDEX_SOL, TOKEN_INDEX_USDC, TOKEN_INDEX_USDT, TOKEN_INDEX_WSOL};
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program;
@@ -9,14 +9,14 @@ use oapp::endpoint_cpi::LzAccount;
 use crate::errors::OAppError;
 use crate::instructions::AccountWithdrawSol;
 use crate::instructions::{
-    LzMessage, MsgType, ACCOUNT_LIST_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED,
-    VAULT_AUTHORITY_SEED, SOL_VAULT_SEED
+    LzMessage, MsgType, ACCOUNT_LIST_SEED, OAPP_SEED, PEER_SEED, SOL_VAULT_SEED, TOKEN_SEED,
+    VAULT_AUTHORITY_SEED,
 };
 use crate::state::{AccountList, OAppConfig};
 use crate::BROKER_SEED;
 
 // Return accounts list for lz_receive instruction based on the message type
-// Msg.Type: Withdraw  (currently at most 13 accounts, otherwise tx oversize; fix approach: shrink message payload(remove sender, accountId fields))
+// Note: Only 1 byte left for the message payload
 // 0: signer = lz executor
 // 1: peer
 // 2: oapp_config
@@ -112,7 +112,8 @@ impl OAppLzReceiveTypes<'_> {
                 token_mint = ctx.accounts.account_list.usdc_mint;
             } else if token_index == TOKEN_INDEX_USDT {
                 token_mint = ctx.accounts.account_list.usdt_mint;
-            } else if token_index == TOKEN_INDEX_WSOL || token_index == TOKEN_INDEX_SOL {  // SOL is native token, which has no token mint, the wsol_mint is a placeholder then the token is SOL
+            } else if token_index == TOKEN_INDEX_WSOL || token_index == TOKEN_INDEX_SOL {
+                // SOL is native token, which has no token mint, the wsol_mint is a placeholder then the token is SOL
                 token_mint = ctx.accounts.account_list.wsol_mint;
             } else {
                 return Err(OAppError::InvalidTokenIndex.into());

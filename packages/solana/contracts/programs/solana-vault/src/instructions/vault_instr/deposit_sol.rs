@@ -3,9 +3,9 @@ use anchor_lang::prelude::*;
 use oapp::endpoint::{instructions::SendParams as EndpointSendParams, MessagingReceipt};
 
 use crate::instructions::{
-    validate_account_id, LzMessage, MsgType, VaultDepositParams, BROKER_SEED,
-    ENFORCED_OPTIONS_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED, SOL_VAULT_SEED,
-    OAppSendParams, DepositParams,
+    validate_account_id, DepositParams, LzMessage, MsgType, OAppSendParams, VaultDepositParams,
+    BROKER_SEED, ENFORCED_OPTIONS_SEED, OAPP_SEED, PEER_SEED, SOL_VAULT_SEED, TOKEN_SEED,
+    VAULT_AUTHORITY_SEED,
 };
 
 use crate::errors::VaultError;
@@ -13,6 +13,8 @@ use crate::events::{OAppSent, VaultDeposited};
 use crate::state::{
     AllowedBroker, AllowedToken, EnforcedOptions, OAppConfig, Peer, VaultAuthority,
 };
+
+use crate::constants::SOL_TOKEN_HASH;
 
 #[derive(Accounts)]
 #[instruction(deposit_params: DepositParams, oapp_params: OAppSendParams)]
@@ -69,7 +71,7 @@ pub struct DepositSol<'info> {
     pub allowed_broker: Box<Account<'info, AllowedBroker>>,
 
     #[account(
-        seeds = [TOKEN_SEED, deposit_params.token_hash.as_ref()],
+        seeds = [TOKEN_SEED, SOL_TOKEN_HASH.as_ref()],
         bump = allowed_token.bump,
         constraint = allowed_token.allowed == true @ VaultError::TokenNotAllowed
     )]
@@ -79,7 +81,6 @@ pub struct DepositSol<'info> {
 }
 
 impl<'info> DepositSol<'info> {
-
     pub fn apply(
         ctx: &mut Context<'_, '_, '_, 'info, DepositSol<'info>>,
         deposit_params: &DepositParams,
@@ -92,17 +93,21 @@ impl<'info> DepositSol<'info> {
         ) {
             return Err(VaultError::InvalidAccountId.into());
         }
+        if deposit_params.token_amount == 0 {
+            return Err(VaultError::ZeroDepositAmount.into());
+        }
         let ix = anchor_lang::solana_program::system_instruction::transfer(
             &ctx.accounts.user.key(),
             &ctx.accounts.sol_vault.key(),
             deposit_params.token_amount,
         );
-    
+
         anchor_lang::solana_program::program::invoke(
             &ix,
             &[
                 ctx.accounts.user.to_account_info(),
                 ctx.accounts.sol_vault.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
             ],
         )?;
 
@@ -114,7 +119,7 @@ impl<'info> DepositSol<'info> {
             account_id: deposit_params.account_id,
             broker_hash: deposit_params.broker_hash,
             user_address: deposit_params.user_address, //
-            token_hash: deposit_params.token_hash,
+            token_hash: SOL_TOKEN_HASH,
             src_chain_id: ctx.accounts.vault_authority.sol_chain_id,
             token_amount: deposit_params.token_amount as u128,
             src_chain_deposit_nonce: ctx.accounts.vault_authority.deposit_nonce,
