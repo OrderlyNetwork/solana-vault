@@ -14,9 +14,9 @@ async function setAccountList() {
     const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID)
     const lzReceiveTypesAccountsPda = utils.getLzReceiveTypesPda(OAPP_PROGRAM_ID, oappConfigPda)
     const accountListPda = utils.getAccountListPda(OAPP_PROGRAM_ID, oappConfigPda)
-    const usdcSymbol = constants.TOKEN_SYMBOLS[0]
-    const usdtSymbol = constants.TOKEN_SYMBOLS[1]
-    const wsolSymbol = constants.TOKEN_SYMBOLS[3]
+    const usdcSymbol = 'USDC'
+    const usdtSymbol = 'USDT'
+    const wsolSymbol = 'WSOL'
     const usdcIndex = constants.TOKEN_INDEX[usdcSymbol]
     const usdtIndex = constants.TOKEN_INDEX[usdtSymbol]
     const wsolIndex = constants.TOKEN_INDEX[wsolSymbol]

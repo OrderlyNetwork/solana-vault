@@ -393,10 +393,11 @@ export const WITHDRAW_BROKER_INDEX = {
 export const TOKEN_DECIMALS = {
     USDC: 6,
     USDT: 6,
+    WSOL: 9,
     SOL: 9,
 }
 
-export const TOKEN_SYMBOLS = ['USDC', 'USDT', 'SOL', 'WSOL']
+export const TOKEN_SYMBOLS = ['USDC', 'USDT', 'SOL']
 
 // The token index is used to identify the token
 // Native tokens are indexed counter-down from 255

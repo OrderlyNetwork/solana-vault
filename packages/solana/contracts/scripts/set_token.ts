@@ -14,7 +14,7 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider)
 async function setToken() {
     const multisig = utils.getMultisig(ENV)
     const useMultisig = false
-    const tokenSymble = 'SOL'
+    const tokenSymble = 'WSOL'
     console.log('Token Symbol:', tokenSymble)
     const tokenHash = utils.getTokenHash(tokenSymble)
     console.log('Token Hash:', tokenHash)
