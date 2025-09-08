@@ -568,12 +568,17 @@ export type SolanaVault = {
           "isSigner": false
         },
         {
-          "name": "tokenProgram",
-          "isMut": false,
+          "name": "solVault",
+          "isMut": true,
           "isSigner": false,
           "docs": [
             "CHECKED: sol_vault is used for SOL withdrawal"
           ]
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
         },
         {
           "name": "associatedTokenProgram",
@@ -1560,15 +1565,6 @@ export type SolanaVault = {
         "kind": "struct",
         "fields": [
           {
-            "name": "brokerManagerRole",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
             "name": "brokerHash",
             "type": {
               "array": [
@@ -1631,15 +1627,6 @@ export type SolanaVault = {
         "kind": "struct",
         "fields": [
           {
-            "name": "tokenManagerRole",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
             "name": "mintAccount",
             "type": "publicKey"
           },
@@ -1697,15 +1684,6 @@ export type SolanaVault = {
         "kind": "struct",
         "fields": [
           {
-            "name": "brokerManagerRole",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
             "name": "brokerHash",
             "type": {
               "array": [
@@ -1730,15 +1708,6 @@ export type SolanaVault = {
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "tokenManagerRole",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
           {
             "name": "tokenHash",
             "type": {
@@ -2390,6 +2359,16 @@ export type SolanaVault = {
       "code": 6006,
       "name": "ManagerRoleNotAllowed",
       "msg": "Manager role is not allowed"
+    },
+    {
+      "code": 6007,
+      "name": "ZeroDepositAmount",
+      "msg": "Deposit amount must be greater than zero"
+    },
+    {
+      "code": 6008,
+      "name": "InsufficientWithdrawAmount",
+      "msg": "Withdraw amount must be no less than withdraw fee"
     }
   ]
 };
@@ -2964,12 +2943,17 @@ export const IDL: SolanaVault = {
           "isSigner": false
         },
         {
-          "name": "tokenProgram",
-          "isMut": false,
+          "name": "solVault",
+          "isMut": true,
           "isSigner": false,
           "docs": [
             "CHECKED: sol_vault is used for SOL withdrawal"
           ]
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
         },
         {
           "name": "associatedTokenProgram",
@@ -3956,15 +3940,6 @@ export const IDL: SolanaVault = {
         "kind": "struct",
         "fields": [
           {
-            "name": "brokerManagerRole",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
             "name": "brokerHash",
             "type": {
               "array": [
@@ -4027,15 +4002,6 @@ export const IDL: SolanaVault = {
         "kind": "struct",
         "fields": [
           {
-            "name": "tokenManagerRole",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
             "name": "mintAccount",
             "type": "publicKey"
           },
@@ -4093,15 +4059,6 @@ export const IDL: SolanaVault = {
         "kind": "struct",
         "fields": [
           {
-            "name": "brokerManagerRole",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
             "name": "brokerHash",
             "type": {
               "array": [
@@ -4126,15 +4083,6 @@ export const IDL: SolanaVault = {
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "tokenManagerRole",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
           {
             "name": "tokenHash",
             "type": {
@@ -4786,6 +4734,16 @@ export const IDL: SolanaVault = {
       "code": 6006,
       "name": "ManagerRoleNotAllowed",
       "msg": "Manager role is not allowed"
+    },
+    {
+      "code": 6007,
+      "name": "ZeroDepositAmount",
+      "msg": "Deposit amount must be greater than zero"
+    },
+    {
+      "code": 6008,
+      "name": "InsufficientWithdrawAmount",
+      "msg": "Withdraw amount must be no less than withdraw fee"
     }
   ]
 };
