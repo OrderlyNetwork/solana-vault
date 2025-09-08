@@ -51,7 +51,7 @@ export const ACCESS_CONTROL_SEED = 'AccessControl'
 export const BROKER_MANAGER_ROLE = 'BrokerManagerRole'
 export const TOKEN_MANAGER_ROLE = 'TokenManagerRole'
 
-export const ENV: 'DEV' | 'QA' | 'STAGING' | 'MAIN' = 'QA'
+export const ENV: 'DEV' | 'QA' | 'STAGING' | 'MAIN' = 'DEV'
 export const MOCK_OAPP_PROGRAM_ID = new PublicKey('EFLrsQmcfYTSvVrUiP4qruDhbYBtjbQNAhC6tkLJbBtQ')
 export const DEV_OAPP_PROGRAM_ID = new PublicKey('EYJq9eU4GMRUriUJBgGoZ8YLQBXcWaciXuSsEXE7ieQS')
 export const QA_OAPP_PROGRAM_ID = new PublicKey('5zBjLor7vEraAt4zp2H82sy9MSqFoDnNa1Lx6EYKTYRZ')
@@ -68,8 +68,8 @@ export const QA_LOOKUP_TABLE_ADDRESS = new PublicKey('BswrQQoPKAFojTuJutZcBMtigA
 export const STAGING_LOOKUP_TABLE_ADDRESS = new PublicKey('BbGKfxuPwDmu58BjPpd7PMG69TqnZjSpKaLDMgf9E9Dr')
 export const MAIN_LOOKUP_TABLE_ADDRESS = new PublicKey('8iq7xCQt3bLdRRn4A46d5GuaXYinBoiAhbe2sUmZVzwg')
 
-export const DEV_BROKERS = ['woofi_pro']
-export const QA_BROKERS = ['woofi_pro', 'vooi']
+export const DEV_BROKERS = ['woofi_dex', 'root', 'orderly', 'woofi_pro', 'busywhale', '0xfin'] // , 'hyperx', 'ranger'
+export const QA_BROKERS = ['woofi_dex', 'root', 'orderly', 'woofi_pro', 'busywhale', '0xfin']
 export const STAGING_BROKERS = [
     // "root",
     // "orderly",
@@ -271,26 +271,6 @@ export const MAIN_BROKERS = [
     'eolas',
 ]
 
-// The token index is used to identify the token
-// Native tokens are indexed counter-down from 255
-// ERC20/SPL tokens are indexed counter-up from 1
-export const TOKEN_INDEX = {
-    PLACEHOLDER: 0,
-    USDC: 1,
-    USDT: 2,
-    WSOL: 3,
-    SOL: 255,
-}
-
-export const TOKEN_DECIMALS = {
-    USDC: 6,
-    USDT: 6,
-    WSOL: 9,
-    SOL: 9,
-}
-
-export const TOKEN_SYMBOLS = ['USDC', 'USDT', 'WSOL', 'SOL']
-
 export const WITHDRAW_BROKER_INDEX = {
     woofi_dex: 1,
     root: 2,
@@ -408,4 +388,23 @@ export const WITHDRAW_BROKER_INDEX = {
     'citrex-markets': 114,
     kek_ai: 115,
     clypto: 116,
+}
+
+export const TOKEN_DECIMALS = {
+    USDC: 6,
+    USDT: 6,
+    SOL: 9,
+}
+
+export const TOKEN_SYMBOLS = ['USDC', 'USDT', 'SOL', 'WSOL']
+
+// The token index is used to identify the token
+// Native tokens are indexed counter-down from 255
+// ERC20/SPL tokens are indexed counter-up from 1
+export const TOKEN_INDEX = {
+    PLACEHOLDER: 0,
+    USDC: 1,
+    USDT: 2,
+    WSOL: 3,
+    SOL: 255,
 }
