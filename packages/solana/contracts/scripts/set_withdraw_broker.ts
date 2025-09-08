@@ -11,7 +11,7 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider)
 
 async function setWithdrawBroker() {
     const multisig = utils.getMultisig(ENV)
-    const useMultisig = false
+    const useMultisig = true
     const allowedBrokerList = utils.getBrokerList(ENV)
 
     const brokerManager = useMultisig ? multisig : wallet.publicKey
@@ -52,7 +52,7 @@ async function setWithdrawBroker() {
             const brokerStatus = await OAppProgram.account.withdrawBroker.fetch(withdrawBrokerPda)
             if (brokerStatus.allowed) {
                 console.log('Broker already allowed')
-                continue
+                // continue
             }
         } catch (err) {
             console.error(err)
