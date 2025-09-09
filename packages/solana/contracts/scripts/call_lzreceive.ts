@@ -24,7 +24,7 @@ async function callLzReceive() {
     console.log(OAPP_PROGRAM_ID.toString())
 
     const lzReceiveAlertSigs = [
-        'ZAJJ4nc6AsQWubLu8YGvgX3w7vC3mBmuvEYCDG6uPsDrNk2xMzfbuH5dNxdoqP7XEuZjX5DKGwG7Ua9a3C153dL',
+        '4pt1fposzdtU3vWgcTf6w2HuhZR7FAPfyRzrbYgw4T6cifqkcWSu1565pdEFCajhmCwaHi9UDoabxMkoAUPZAKq',
     ]
 
     for (const alertSig of lzReceiveAlertSigs) {

@@ -13,8 +13,8 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider)
 
 async function setToken() {
     const multisig = utils.getMultisig(ENV)
-    const useMultisig = false
-    const tokenSymble = 'WSOL'
+    const useMultisig = true
+    const tokenSymble = 'USDT'
     console.log('Token Symbol:', tokenSymble)
     const tokenHash = utils.getTokenHash(tokenSymble)
     console.log('Token Hash:', tokenHash)
@@ -24,11 +24,10 @@ async function setToken() {
     const tokenPda = utils.getTokenPda(OAPP_PROGRAM_ID, tokenHash)
     console.log('tokenPda', tokenPda.toBase58())
 
-    const oappConfigPda = utils.getOAppConfigPda(OAPP_PROGRAM_ID)
-
     const tokenManagerRole = utils.getManagerRoleHash(constants.TOKEN_MANAGER_ROLE)
     const codedTokenManagerRole = Array.from(Buffer.from(tokenManagerRole.slice(2), 'hex'))
-    const tokenManagerRolePda = utils.getManagerRolePdaWithBuf(OAPP_PROGRAM_ID, codedTokenManagerRole, wallet.publicKey)
+    const tokenManagerKey = useMultisig ? multisig : wallet.publicKey
+    const tokenManagerRolePda = utils.getManagerRolePdaWithBuf(OAPP_PROGRAM_ID, codedTokenManagerRole, tokenManagerKey)
 
     const allowed = true
     let setTokenParams = {
@@ -39,7 +38,7 @@ async function setToken() {
     }
     // console.log("Set Token Params:", setTokenParams);
     const setTokenAccounts = {
-        tokenManager: useMultisig ? multisig : wallet.publicKey,
+        tokenManager: tokenManagerKey,
         mintAccount: mintAccount,
         allowedToken: tokenPda,
         managerRole: tokenManagerRolePda,

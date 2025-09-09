@@ -14,7 +14,7 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider)
 
 async function setWithdrawToken() {
     const multisig = utils.getMultisig(ENV)
-    const useMultisig = false
+    const useMultisig = true
     const tokenList = utils.getTokenList()
     let txSetToken = new Transaction()
     for (const tokenSymble of tokenList) {

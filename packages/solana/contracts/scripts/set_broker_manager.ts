@@ -13,7 +13,7 @@ async function setBrokerManagerRole() {
     console.log('Setting up Broker Manager Role...')
     const multisig = utils.getMultisig(ENV)
     const useMultisig = true
-    const brokerManager = multisig
+    const brokerManager = wallet.publicKey
     const brokerManagerRole = utils.getManagerRoleHash(constants.BROKER_MANAGER_ROLE)
     const codedBrokerManagerRole = Array.from(Buffer.from(brokerManagerRole.slice(2), 'hex'))
     const brokerManagerRolePda = utils.getManagerRolePdaWithBuf(OAPP_PROGRAM_ID, codedBrokerManagerRole, brokerManager)

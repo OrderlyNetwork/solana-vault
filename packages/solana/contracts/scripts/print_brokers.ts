@@ -20,12 +20,12 @@ async function printBroker() {
         console.log('broker hash: ', brokerHash)
         const depositBrokerPda = utils.getBrokerPda(OAPP_PROGRAM_ID, brokerHash)
 
-        const depositBrokerData = await OAppProgram.account.allowedBroker.fetch(depositBrokerPda)
+        // const depositBrokerData = await OAppProgram.account.allowedBroker.fetch(depositBrokerPda)
 
-        console.log('deposit broker pda: ', depositBrokerPda.toString())
+        // console.log('deposit broker pda: ', depositBrokerPda.toString())
 
-        console.log('deposit broker data: ')
-        console.log(' allowed status: ', depositBrokerData.allowed)
+        // console.log('deposit broker data: ')
+        // console.log(' allowed status: ', depositBrokerData.allowed)
 
         const witdhrawBrokerPda = utils.getWithdrawBrokerPda(OAPP_PROGRAM_ID, brokerIndex)
 

@@ -11,7 +11,7 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider)
 
 async function setWithdrawBroker() {
     const multisig = utils.getMultisig(ENV)
-    const useMultisig = true
+    const useMultisig = false
     const allowedBrokerList = utils.getBrokerList(ENV)
 
     const brokerManager = useMultisig ? multisig : wallet.publicKey
@@ -45,6 +45,9 @@ async function setWithdrawBroker() {
         console.log('Broker Hash:', brokerHash)
         const codedBrokerHash = Array.from(Buffer.from(brokerHash.slice(2), 'hex'))
         const brokerIndex = constants.WITHDRAW_BROKER_INDEX[brokerId]
+        if (brokerIndex === undefined) {
+            throw new Error(`Broker Index not found for brokerId: ${brokerId}`)
+        }
         const withdrawBrokerPda = utils.getWithdrawBrokerPda(OAPP_PROGRAM_ID, brokerIndex)
         console.log('Withdraw BrokerPda', withdrawBrokerPda.toBase58())
 
@@ -52,7 +55,7 @@ async function setWithdrawBroker() {
             const brokerStatus = await OAppProgram.account.withdrawBroker.fetch(withdrawBrokerPda)
             if (brokerStatus.allowed) {
                 console.log('Broker already allowed')
-                // continue
+                continue
             }
         } catch (err) {
             console.error(err)
