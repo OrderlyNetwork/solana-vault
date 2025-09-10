@@ -20,22 +20,27 @@ async function printBroker() {
         console.log('broker hash: ', brokerHash)
         const depositBrokerPda = utils.getBrokerPda(OAPP_PROGRAM_ID, brokerHash)
 
-        // const depositBrokerData = await OAppProgram.account.allowedBroker.fetch(depositBrokerPda)
+        try {
+            const depositBrokerData = await OAppProgram.account.allowedBroker.fetch(depositBrokerPda)
 
-        // console.log('deposit broker pda: ', depositBrokerPda.toString())
+            console.log('deposit broker pda: ', depositBrokerPda.toString())
 
-        // console.log('deposit broker data: ')
-        // console.log(' allowed status: ', depositBrokerData.allowed)
+            console.log('deposit broker data: ')
+            console.log(' allowed status: ', depositBrokerData.allowed)
+            console.log(' broker index: ', brokerIndex)
+        } catch (err) {
+            console.log('Broker PDA not exist')
+        }
 
-        const witdhrawBrokerPda = utils.getWithdrawBrokerPda(OAPP_PROGRAM_ID, brokerIndex)
+        // const witdhrawBrokerPda = utils.getWithdrawBrokerPda(OAPP_PROGRAM_ID, brokerIndex)
 
-        const withdrawBrokerData = await OAppProgram.account.withdrawBroker.fetch(witdhrawBrokerPda)
+        // const withdrawBrokerData = await OAppProgram.account.withdrawBroker.fetch(witdhrawBrokerPda)
 
-        console.log('withdraw broker pda: ', witdhrawBrokerPda.toString())
+        // console.log('withdraw broker pda: ', witdhrawBrokerPda.toString())
 
-        console.log('withdraw broker data: ')
-        console.log('  allowed status: ', withdrawBrokerData.allowed)
-        console.log('  broker index: ', withdrawBrokerData.brokerIndex)
+        // console.log('withdraw broker data: ')
+        // console.log('  allowed status: ', withdrawBrokerData.allowed)
+        // console.log('  broker index: ', withdrawBrokerData.brokerIndex)
     }
 }
 printBroker()

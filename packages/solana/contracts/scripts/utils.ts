@@ -577,7 +577,7 @@ export function getTokenAddress(ENV: String, tokenSymbol: string): PublicKey {
             return constants.MAIN_USDC_ACCOUNT
         } else if (tokenSymbol === constants.TOKEN_SYMBOLS[1]) {
             return constants.MAIN_USDT_ACCOUNT
-        } else if (tokenSymbol === constants.TOKEN_SYMBOLS[2]) {
+        } else if (tokenSymbol === constants.TOKEN_SYMBOLS[2] || tokenSymbol === constants.TOKEN_SYMBOLS[3]) {
             return constants.MAIN_WSOL_ACCOUNT
         } else {
             throw new Error(`
