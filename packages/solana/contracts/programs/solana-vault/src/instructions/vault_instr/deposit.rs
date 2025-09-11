@@ -11,6 +11,8 @@ use crate::instructions::{
     ENFORCED_OPTIONS_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED,
 };
 
+use crate::constants::SOL_TOKEN_HASH;
+
 use crate::errors::VaultError;
 use crate::events::{OAppSent, VaultDeposited};
 use crate::state::{
@@ -87,7 +89,7 @@ pub struct Deposit<'info> {
     #[account(
         seeds = [TOKEN_SEED, deposit_params.token_hash.as_ref()],
         bump = allowed_token.bump,
-        constraint = allowed_token.allowed == true @ VaultError::TokenNotAllowed
+        constraint = allowed_token.allowed == true && deposit_params.token_hash != SOL_TOKEN_HASH  @ VaultError::TokenNotAllowed 
     )]
     pub allowed_token: Box<Account<'info, AllowedToken>>,
 

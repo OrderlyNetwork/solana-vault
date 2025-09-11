@@ -104,10 +104,12 @@ describe('Test OAPP messaging', function () {
     let prevUserUSDTBalance
     let currUserSOLBalance
     let prevUserSOLBalance
-    let currVaultWSOLAccountBalance
-    let prevVaultWSOLAccountBalance
-    let currUserWSOLAccountBalance
-    let prevUserWSOLAccountBalance
+    let currVaultWSOLBalance
+    let prevVaultWSOLBalance
+    let currUserWSOLBalance
+    let prevUserWSOLBalance
+    let prevAttackerWSOLBalance
+    let currAttackerWSOLBalance
 
     let currVaultMEMEBalance
     let prevVaultMEMEBalance
@@ -139,6 +141,7 @@ describe('Test OAPP messaging', function () {
         USDT_MINT = helper.USDT_KEY.publicKey
 
         await provider.connection.requestAirdrop(userWallet.publicKey, 1e9)
+        await provider.connection.requestAirdrop(attackerWallet.publicKey, 1e9)
         // Setup Wallets
         userUSDCAccount = await getOrCreateAssociatedTokenAccount(
             provider.connection,
@@ -183,6 +186,13 @@ describe('Test OAPP messaging', function () {
             provider.connection,
             wallet.payer,
             USDC_MINT,
+            attackerWallet.publicKey,
+            true
+        )
+        attackerWSOLAccount = await getOrCreateAssociatedTokenAccount(
+            provider.connection,
+            wallet.payer,
+            NATIVE_MINT,
             attackerWallet.publicKey,
             true
         )
@@ -497,22 +507,11 @@ describe('Test OAPP messaging', function () {
         console.log('✅ Executed deposit USDT')
 
         // console.log('🚀 Starting deposit WSOL tests')
-        // // transform SOL to WSOL
-        // let tx = new Transaction().add(
-        //     // transfer SOL
-        //     SystemProgram.transfer({
-        //         fromPubkey: wallet.publicKey,
-        //         toPubkey: userWSOLAccount.address,
-        //         lamports: DEPOSIT_AMOUNT,
-        //     }),
-        //     // sync wrapped SOL balance
-        //     createSyncNativeInstruction(userWSOLAccount.address)
-        // )
 
-        // await sendAndConfirmTransaction(provider.connection, tx, [wallet.payer])
+        // await setup.swapSolToWsol(wallet, provider, userWSOLAccount, DEPOSIT_AMOUNT)
 
-        // let currUserWSOLAccountBalance = await helper.getTokenBalance(provider.connection, userWSOLAccount.address)
-        // assert.equal(currUserWSOLAccountBalance, DEPOSIT_AMOUNT)
+        // let currUserWSOLBalance = await helper.getTokenBalance(provider.connection, userWSOLAccount.address)
+        // assert.equal(currUserWSOLBalance, DEPOSIT_AMOUNT)
 
         // console.log('✅ Transfer SOL to WSOL')
 
@@ -528,11 +527,11 @@ describe('Test OAPP messaging', function () {
 
         // await setup.deposit(userWallet, solanaVault, depositParams, feeParams, accounts, depositRemainingAccounts)
 
-        // currUserWSOLAccountBalance = await helper.getTokenBalance(provider.connection, userWSOLAccount.address)
-        // assert.equal(currUserWSOLAccountBalance, 0)
+        // currUserWSOLBalance = await helper.getTokenBalance(provider.connection, userWSOLAccount.address)
+        // assert.equal(currUserWSOLBalance, 0)
 
-        // let currVaultWSOLAccountBalance = await helper.getTokenBalance(provider.connection, vaultWSOLAccount.address)
-        // assert.equal(currVaultWSOLAccountBalance, DEPOSIT_AMOUNT)
+        // let currVaultWSOLBalance = await helper.getTokenBalance(provider.connection, vaultWSOLAccount.address)
+        // assert.equal(currVaultWSOLBalance, DEPOSIT_AMOUNT)
 
         // console.log('✅ Check account states after deposit')
         // console.log('✅ Executed deposit WSOL')
@@ -571,6 +570,64 @@ describe('Test OAPP messaging', function () {
         } catch (e) {
             assert.equal(e.error.errorCode.code, 'ConstraintSeeds')
             console.log('👌 Hacker failed to deposit SOL to invalid SolVault PDA')
+        }
+
+        try {
+            console.log('🥷 Hacker tries to deposit WSOL to fake SOL deposit')
+
+            await setup.swapSolToWsol(wallet, provider, attackerWSOLAccount, DEPOSIT_SOL_AMOUNT)
+
+            prevVaultWSOLBalance = await helper.getTokenBalance(provider.connection, vaultWSOLAccount.address)
+            prevAttackerWSOLBalance = await helper.getTokenBalance(provider.connection, attackerWSOLAccount.address)
+            assert.equal(prevVaultWSOLBalance, 0)
+            assert.equal(prevAttackerWSOLBalance, DEPOSIT_SOL_AMOUNT)
+
+            console.log('✅ Transfer SOL to WSOL')
+
+            const allowedSOLTokenPda = utils.getTokenPdaWithBuf(solanaVault.programId, solTokenHash)
+
+            // console.log('✅ Transfer SOL to WSOL')
+            const depositFakeSOLAccounts = {
+                user: attackerWallet.publicKey,
+                userTokenAccount: attackerWSOLAccount.address,
+                vaultAuthority: vaultAuthorityPda,
+                vaultTokenAccount: vaultWSOLAccount.address,
+                depositToken: NATIVE_MINT, // WSOL mint
+                peer: peerPda,
+                enforcedOptions: efOptionsPda,
+                oappConfig: oappConfigPda,
+                allowedBroker: allowedBrokerPda,
+                allowedToken: allowedSOLTokenPda,
+                tokenProgram: TOKEN_PROGRAM_ID,
+                associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                systemProgram: SystemProgram.programId,
+            }
+
+            const depositFakeSolParams = {
+                accountId: attackerAccountId,
+                brokerHash: woofiProBrokerHash,
+                tokenHash: solTokenHash,
+                userAddress: Array.from(attackerWallet.publicKey.toBytes()),
+                tokenAmount: new BN(DEPOSIT_SOL_AMOUNT),
+            }
+            await setup.deposit(
+                attackerWallet,
+                solanaVault,
+                depositFakeSolParams,
+                feeParams,
+                depositFakeSOLAccounts,
+                depositRemainingAccounts
+            )
+
+            console.log('❌ Hacker successfully deposited SOL to invalid SolVault PDA')
+            currVaultWSOLBalance = await helper.getTokenBalance(provider.connection, vaultWSOLAccount.address)
+            currAttackerWSOLBalance = await helper.getTokenBalance(provider.connection, attackerWSOLAccount.address)
+            assert.equal(currAttackerWSOLBalance, 0)
+            assert.equal(currVaultWSOLBalance, DEPOSIT_SOL_AMOUNT)
+        } catch (e) {
+            // console.log(e)
+            assert.equal(e.error.errorCode.code, 'TokenNotAllowed')
+            console.log('👌 Hacker failed to deposit WSOL to fake SOL deposit')
         }
 
         depositSolAccounts = {
@@ -1531,8 +1588,8 @@ describe('Test OAPP messaging', function () {
         //     tokenProgram: TOKEN_PROGRAM_ID,
         // }
 
-        // prevVaultWSOLAccountBalance = await helper.getTokenBalance(provider.connection, vaultWSOLAccount.address)
-        // prevUserWSOLAccountBalance = await helper.getTokenBalance(provider.connection, userWSOLAccount.address)
+        // prevVaultWSOLBalance = await helper.getTokenBalance(provider.connection, vaultWSOLAccount.address)
+        // prevUserWSOLBalance = await helper.getTokenBalance(provider.connection, userWSOLAccount.address)
 
         // await setup.lzReceive(
         //     wallet.payer,
@@ -1549,11 +1606,11 @@ describe('Test OAPP messaging', function () {
         // )
 
         // // Check balance after lzReceive
-        // currVaultWSOLAccountBalance = await helper.getTokenBalance(provider.connection, vaultWSOLAccount.address)
-        // assert.equal(prevVaultWSOLAccountBalance - currVaultWSOLAccountBalance, WITHDRAW_AMOUNT - WITHDRAW_FEE)
+        // currVaultWSOLBalance = await helper.getTokenBalance(provider.connection, vaultWSOLAccount.address)
+        // assert.equal(prevVaultWSOLBalance - currVaultWSOLBalance, WITHDRAW_AMOUNT - WITHDRAW_FEE)
 
-        // currUserWSOLAccountBalance = await helper.getTokenBalance(provider.connection, userWSOLAccount.address)
-        // assert.equal(currUserWSOLAccountBalance - prevUserWSOLAccountBalance, WITHDRAW_AMOUNT - WITHDRAW_FEE)
+        // currUserWSOLBalance = await helper.getTokenBalance(provider.connection, userWSOLAccount.address)
+        // assert.equal(currUserWSOLBalance - prevUserWSOLBalance, WITHDRAW_AMOUNT - WITHDRAW_FEE)
         // console.log('✅ Executed lzReceive instruction to withdraw WSOL successfully')
     })
 
