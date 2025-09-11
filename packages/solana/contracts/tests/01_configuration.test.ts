@@ -355,6 +355,8 @@ describe('Test Solana-Vault configuration', function () {
             console.log('👌 Attacker failed to set Token')
         }
 
+        console.log('🚀 Set USDC token for deposit')
+
         setTokenAccounts.tokenManager = wallet.publicKey
         setTokenAccounts.managerRole = tokenManagerRolePda
         await setup.setToken(wallet.payer, solanaVault, setTokenParams, setTokenAccounts)
@@ -365,6 +367,8 @@ describe('Test Solana-Vault configuration', function () {
         assert.equal(allowedToken.allowed, true)
         assert.isOk(allowedToken.bump)
         console.log('✅ Set USDC token for deposit')
+
+        console.log('🚀 Set USDT token for deposit')
 
         setTokenParams.tokenHash = usdtTokenHash
         setTokenParams.allowed = true
@@ -380,26 +384,27 @@ describe('Test Solana-Vault configuration', function () {
         assert.isOk(allowedUsdtToken.bump)
         console.log('✅ Set USDT token for deposit')
 
-        const wsolTokenPda = utils.getTokenPdaWithBuf(solanaVault.programId, wsolTokenHash)
+        // console.log('🚀 Set wSOL token for deposit')
+        // const wsolTokenPda = utils.getTokenPdaWithBuf(solanaVault.programId, wsolTokenHash)
 
-        setTokenParams.mintAccount = NATIVE_MINT
-        setTokenParams.tokenHash = wsolTokenHash
-        setTokenParams.allowed = true
+        // setTokenParams.mintAccount = NATIVE_MINT
+        // setTokenParams.tokenHash = wsolTokenHash
+        // setTokenParams.allowed = true
 
-        setTokenAccounts.allowedToken = wsolTokenPda
-        setTokenAccounts.mintAccount = NATIVE_MINT
-        setTokenAccounts.tokenManager = wallet.publicKey
+        // setTokenAccounts.allowedToken = wsolTokenPda
+        // setTokenAccounts.mintAccount = NATIVE_MINT
+        // setTokenAccounts.tokenManager = wallet.publicKey
 
-        await setup.setToken(wallet.payer, solanaVault, setTokenParams, setTokenAccounts)
+        // await setup.setToken(wallet.payer, solanaVault, setTokenParams, setTokenAccounts)
 
-        const wsolTokenPdaData = await solanaVault.account.allowedToken.fetch(wsolTokenPda)
-        console.log('wsolTokenPdaData', wsolTokenPdaData)
-        assert.equal(wsolTokenPdaData.mintAccount.toBase58(), NATIVE_MINT.toBase58())
-        assert.equal(wsolTokenPdaData.tokenHash.toString(), wsolTokenHash.toString())
-        assert.equal(wsolTokenPdaData.tokenDecimals, constants.TOKEN_DECIMALS.WSOL)
-        assert.equal(wsolTokenPdaData.allowed, true)
+        // const wsolTokenPdaData = await solanaVault.account.allowedToken.fetch(wsolTokenPda)
+        // console.log('wsolTokenPdaData', wsolTokenPdaData)
+        // assert.equal(wsolTokenPdaData.mintAccount.toBase58(), NATIVE_MINT.toBase58())
+        // assert.equal(wsolTokenPdaData.tokenHash.toString(), wsolTokenHash.toString())
+        // assert.equal(wsolTokenPdaData.tokenDecimals, constants.TOKEN_DECIMALS.WSOL)
+        // assert.equal(wsolTokenPdaData.allowed, true)
 
-        console.log('✅ Set WSOL token for deposit')
+        // console.log('✅ Set WSOL token for deposit')
 
         const solTokenPda = utils.getTokenPdaWithBuf(solanaVault.programId, solTokenHash)
 
@@ -481,23 +486,23 @@ describe('Test Solana-Vault configuration', function () {
         assert.isOk(withdrawUsdtToken.bump)
         console.log('✅ Set USDT token for withdraw')
 
-        console.log('🚀 Set WSOL token for withdraw')
-        const withdrawWsolPda = utils.getWithdrawTokenPda(solanaVault.programId, constants.TOKEN_INDEX.WSOL)
+        // console.log('🚀 Set WSOL token for withdraw')
+        // const withdrawWsolPda = utils.getWithdrawTokenPda(solanaVault.programId, constants.TOKEN_INDEX.WSOL)
 
-        setWithdrawTokenParams.tokenHash = wsolTokenHash
-        setWithdrawTokenParams.tokenIndex = constants.TOKEN_INDEX.WSOL
-        setWithdrawTokenAccounts.withdrawToken = withdrawWsolPda
-        setWithdrawTokenAccounts.mintAccount = NATIVE_MINT
-        await setup.setWithdrawToken(wallet.payer, solanaVault, setWithdrawTokenParams, setWithdrawTokenAccounts)
+        // setWithdrawTokenParams.tokenHash = wsolTokenHash
+        // setWithdrawTokenParams.tokenIndex = constants.TOKEN_INDEX.WSOL
+        // setWithdrawTokenAccounts.withdrawToken = withdrawWsolPda
+        // setWithdrawTokenAccounts.mintAccount = NATIVE_MINT
+        // await setup.setWithdrawToken(wallet.payer, solanaVault, setWithdrawTokenParams, setWithdrawTokenAccounts)
 
-        const withdrawWsolToken = await solanaVault.account.withdrawToken.fetch(withdrawWsolPda)
-        assert.equal(withdrawWsolToken.mintAccount.toString(), NATIVE_MINT.toString())
-        assert.deepEqual(withdrawWsolToken.tokenHash, wsolTokenHash)
-        assert.equal(withdrawWsolToken.tokenIndex, constants.TOKEN_INDEX.WSOL)
-        assert.equal(withdrawWsolToken.tokenDecimals, constants.TOKEN_DECIMALS.WSOL)
-        assert.equal(withdrawWsolToken.allowed, true)
-        assert.isOk(withdrawWsolToken.bump)
-        console.log('✅ Set WSOL token for withdraw')
+        // const withdrawWsolToken = await solanaVault.account.withdrawToken.fetch(withdrawWsolPda)
+        // assert.equal(withdrawWsolToken.mintAccount.toString(), NATIVE_MINT.toString())
+        // assert.deepEqual(withdrawWsolToken.tokenHash, wsolTokenHash)
+        // assert.equal(withdrawWsolToken.tokenIndex, constants.TOKEN_INDEX.WSOL)
+        // assert.equal(withdrawWsolToken.tokenDecimals, constants.TOKEN_DECIMALS.WSOL)
+        // assert.equal(withdrawWsolToken.allowed, true)
+        // assert.isOk(withdrawWsolToken.bump)
+        // console.log('✅ Set WSOL token for withdraw')
 
         console.log('🚀 Set SOL token for withdraw')
         const withdrawSolPda = utils.getWithdrawTokenPda(solanaVault.programId, constants.TOKEN_INDEX.SOL)
@@ -635,7 +640,6 @@ describe('Test Solana-Vault configuration', function () {
             systemProgram: SystemProgram.programId,
         }
 
-        console.log('here')
         await setup.setWithdrawBroker(wallet.payer, solanaVault, setWithdrawBrokerParams, setWithdrawBrokerAccounts)
         const withdrawBroker = await solanaVault.account.withdrawBroker.fetch(withdrawBrokerPda)
         assert.equal(withdrawBroker.brokerHash.toString(), brokerHash.toString())

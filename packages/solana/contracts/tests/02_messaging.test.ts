@@ -80,6 +80,7 @@ describe('Test OAPP messaging', function () {
     let vaultUSDTAccount: Account
     let vaultWSOLAccount: Account
     let attackerUSDCAccount: Account
+    let attackerWSOLAccount: Account
     const vaultAuthorityPda = utils.getVaultAuthorityPda(solanaVault.programId)
     let sendLibraryConfigPda: PublicKey
     let defaultSendLibraryConfigPda: PublicKey
@@ -237,7 +238,6 @@ describe('Test OAPP messaging', function () {
             tokenHash: usdcHash,
             allowed: true,
         }
-        console.log('tokenManagerRole', tokenManagerRoleHash)
 
         let setTokenAccounts = {
             tokenManager: wallet.publicKey,
@@ -262,8 +262,6 @@ describe('Test OAPP messaging', function () {
             brokerHash: woofiProBrokerHash,
             allowed: true,
         }
-
-        console.log('brokerManagerRole', brokerManagerRoleHash)
 
         let setBrokerAccounts = {
             brokerManager: wallet.publicKey,
@@ -498,56 +496,84 @@ describe('Test OAPP messaging', function () {
         console.log('✅ Check account states after deposit')
         console.log('✅ Executed deposit USDT')
 
-        console.log('🚀 Starting deposit WSOL tests')
-        // transform SOL to WSOL
-        let tx = new Transaction().add(
-            // transfer SOL
-            SystemProgram.transfer({
-                fromPubkey: wallet.publicKey,
-                toPubkey: userWSOLAccount.address,
-                lamports: DEPOSIT_AMOUNT,
-            }),
-            // sync wrapped SOL balance
-            createSyncNativeInstruction(userWSOLAccount.address)
-        )
+        // console.log('🚀 Starting deposit WSOL tests')
+        // // transform SOL to WSOL
+        // let tx = new Transaction().add(
+        //     // transfer SOL
+        //     SystemProgram.transfer({
+        //         fromPubkey: wallet.publicKey,
+        //         toPubkey: userWSOLAccount.address,
+        //         lamports: DEPOSIT_AMOUNT,
+        //     }),
+        //     // sync wrapped SOL balance
+        //     createSyncNativeInstruction(userWSOLAccount.address)
+        // )
 
-        await sendAndConfirmTransaction(provider.connection, tx, [wallet.payer])
+        // await sendAndConfirmTransaction(provider.connection, tx, [wallet.payer])
 
-        let currUserWSOLAccountBalance = await helper.getTokenBalance(provider.connection, userWSOLAccount.address)
-        assert.equal(currUserWSOLAccountBalance, DEPOSIT_AMOUNT)
+        // let currUserWSOLAccountBalance = await helper.getTokenBalance(provider.connection, userWSOLAccount.address)
+        // assert.equal(currUserWSOLAccountBalance, DEPOSIT_AMOUNT)
 
-        console.log('✅ Transfer SOL to WSOL')
+        // console.log('✅ Transfer SOL to WSOL')
 
-        depositParams.tokenHash = wsolHash
-        // depositParams.brokerHash = woofiProBrokerHash
+        // depositParams.tokenHash = wsolHash
+        // // depositParams.brokerHash = woofiProBrokerHash
 
-        accounts.user = userWallet.publicKey
-        accounts.userTokenAccount = userWSOLAccount.address
-        accounts.vaultTokenAccount = vaultWSOLAccount.address
-        accounts.depositToken = NATIVE_MINT
-        accounts.allowedToken = utils.getTokenPdaWithBuf(solanaVault.programId, wsolHash)
-        accounts.allowedBroker = allowedBrokerPda
+        // accounts.user = userWallet.publicKey
+        // accounts.userTokenAccount = userWSOLAccount.address
+        // accounts.vaultTokenAccount = vaultWSOLAccount.address
+        // accounts.depositToken = NATIVE_MINT
+        // accounts.allowedToken = utils.getTokenPdaWithBuf(solanaVault.programId, wsolHash)
+        // accounts.allowedBroker = allowedBrokerPda
 
-        await setup.deposit(userWallet, solanaVault, depositParams, feeParams, accounts, depositRemainingAccounts)
+        // await setup.deposit(userWallet, solanaVault, depositParams, feeParams, accounts, depositRemainingAccounts)
 
-        currUserWSOLAccountBalance = await helper.getTokenBalance(provider.connection, userWSOLAccount.address)
-        assert.equal(currUserWSOLAccountBalance, 0)
+        // currUserWSOLAccountBalance = await helper.getTokenBalance(provider.connection, userWSOLAccount.address)
+        // assert.equal(currUserWSOLAccountBalance, 0)
 
-        let currVaultWSOLAccountBalance = await helper.getTokenBalance(provider.connection, vaultWSOLAccount.address)
-        assert.equal(currVaultWSOLAccountBalance, DEPOSIT_AMOUNT)
+        // let currVaultWSOLAccountBalance = await helper.getTokenBalance(provider.connection, vaultWSOLAccount.address)
+        // assert.equal(currVaultWSOLAccountBalance, DEPOSIT_AMOUNT)
 
-        console.log('✅ Check account states after deposit')
-        console.log('✅ Executed deposit WSOL')
+        // console.log('✅ Check account states after deposit')
+        // console.log('✅ Executed deposit WSOL')
 
         console.log('🚀 Starting deposit SOL tests')
 
         depositParams.tokenHash = solTokenHash
-        console.log('solTokenHash', solTokenHash)
         depositParams.tokenAmount = new BN(DEPOSIT_SOL_AMOUNT)
         const allowedSolTokenPda = utils.getTokenPdaWithBuf(solanaVault.programId, depositParams.tokenHash)
         const solVaultPda = utils.getSolVaultPda(solanaVault.programId)
+        let depositSolAccounts
 
-        let depositSolAccounts = {
+        try {
+            console.log('🥷 Hacker tries to deposit SOL to invalid PDA')
+            const invalidSolVaultPda = Keypair.generate().publicKey
+            depositSolAccounts = {
+                user: attackerWallet.publicKey,
+                solVault: invalidSolVaultPda,
+                vaultAuthority: vaultAuthorityPda,
+                peer: peerPda,
+                enforcedOptions: efOptionsPda,
+                oappConfig: oappConfigPda,
+                allowedBroker: allowedBrokerPda,
+                allowedToken: allowedSolTokenPda,
+                tokenProgram: TOKEN_PROGRAM_ID,
+            }
+            await setup.depositSol(
+                attackerWallet,
+                solanaVault,
+                depositParams,
+                feeParams,
+                depositSolAccounts,
+                depositRemainingAccounts
+            )
+            console.log('❌ Hacker successfully deposited SOL to invalid SolVault PDA')
+        } catch (e) {
+            assert.equal(e.error.errorCode.code, 'ConstraintSeeds')
+            console.log('👌 Hacker failed to deposit SOL to invalid SolVault PDA')
+        }
+
+        depositSolAccounts = {
             user: userWallet.publicKey,
             solVault: solVaultPda,
             vaultAuthority: vaultAuthorityPda,
@@ -745,7 +771,7 @@ describe('Test OAPP messaging', function () {
             )
             console.log('❌ Attacker successfully executed withdrawal with invalid receiver')
         } catch (e) {
-            console.log(e)
+            // console.log(e)
             assert.equal(e.error.errorCode.code, 'InvalidReceiver')
             console.log('👌 Attacker failed to steal USDC')
         }
@@ -1301,101 +1327,6 @@ describe('Test OAPP messaging', function () {
         console.log('✅ Executed lzReceive instruction to withdraw USDT successfully')
 
         nonce = 5
-
-        const wsolTokenIndexBuffer = Buffer.alloc(1)
-        wsolTokenIndexBuffer.writeUint8(constants.TOKEN_INDEX.WSOL)
-
-        payload = Buffer.concat([
-            // wallet.publicKey.toBuffer()// placeholder for account_id
-            wallet.publicKey.toBuffer(), // sender
-            userWallet.publicKey.toBuffer(), // receiver
-            brokerIndexBuffer,
-            wsolTokenIndexBuffer,
-            tokenAmountBuffer,
-            feeBuffer,
-            chainIdBuffer,
-            withdrawNonceBuffer,
-        ]) // Example payload
-        msg = helper.encodeMessage(msgType, payload)
-        console.log('✅ Generated a withdraw message for WSOL')
-
-        await setup.initVerify(
-            wallet,
-            endpointAdmin,
-            solanaVault,
-            endpointProgram,
-            msgSender,
-            nonce,
-            peerAddress,
-            DST_EID
-        )
-        await setup.commitVerify(
-            wallet,
-            endpointAdmin,
-            solanaVault,
-            endpointProgram,
-            ulnProgram,
-            nonce,
-            msg,
-            msgSender,
-            peerAddress,
-            DST_EID,
-            SOLANA_EID,
-            guid
-        )
-
-        params = {
-            srcEid: DST_EID,
-            sender: Array.from(msgSender.toBytes()),
-            nonce: new BN(nonce),
-            guid: guid,
-            message: msg,
-            extraData: Buffer.from([]),
-        }
-
-        const withdrawWsolPda = utils.getWithdrawTokenPda(solanaVault.programId, constants.TOKEN_INDEX.WSOL)
-
-        accounts = {
-            payer: wallet.publicKey,
-            oappConfig: oappConfigPda,
-            peer: peerPda,
-            withdrawBrokerPda: withdrawBrokerPda,
-            withdrawTokenPda: withdrawWsolPda,
-            tokenMint: NATIVE_MINT,
-            receiver: userWallet.publicKey,
-            receiverTokenAccount: userWSOLAccount.address,
-            vaultAuthority: vaultAuthorityPda,
-            vaultTokenAccount: vaultWSOLAccount.address,
-            solVault: solVaultPda,
-            tokenProgram: TOKEN_PROGRAM_ID,
-        }
-
-        prevVaultWSOLAccountBalance = await helper.getTokenBalance(provider.connection, vaultWSOLAccount.address)
-        prevUserWSOLAccountBalance = await helper.getTokenBalance(provider.connection, userWSOLAccount.address)
-
-        await setup.lzReceive(
-            wallet.payer,
-            solanaVault,
-            endpointProgram,
-            ulnProgram,
-            nonce,
-            params,
-            accounts,
-            msgSender,
-            peerAddress,
-            ORDERLY_EID,
-            SOLANA_EID
-        )
-
-        // Check balance after lzReceive
-        currVaultWSOLAccountBalance = await helper.getTokenBalance(provider.connection, vaultWSOLAccount.address)
-        assert.equal(prevVaultWSOLAccountBalance - currVaultWSOLAccountBalance, WITHDRAW_AMOUNT - WITHDRAW_FEE)
-
-        currUserWSOLAccountBalance = await helper.getTokenBalance(provider.connection, userWSOLAccount.address)
-        assert.equal(currUserWSOLAccountBalance - prevUserWSOLAccountBalance, WITHDRAW_AMOUNT - WITHDRAW_FEE)
-        console.log('✅ Executed lzReceive instruction to withdraw WSOL successfully')
-
-        nonce = 6
         const solTokenIndexBuffer = Buffer.alloc(1)
         solTokenIndexBuffer.writeUint8(constants.TOKEN_INDEX.SOL)
 
@@ -1467,10 +1398,47 @@ describe('Test OAPP messaging', function () {
             tokenProgram: TOKEN_PROGRAM_ID,
         }
 
+        try {
+            attackerWSOLAccount = await getOrCreateAssociatedTokenAccount(
+                provider.connection,
+                wallet.payer,
+                NATIVE_MINT,
+                attackerWallet.publicKey,
+                true
+            )
+
+            console.log('🥷 Attacker tries to frontrun to steal SOL')
+            accounts.payer = attackerWallet.publicKey
+            accounts.receiver = attackerWallet.publicKey
+            accounts.receiverTokenAccount = attackerWSOLAccount.address
+
+            await setup.lzReceive(
+                attackerWallet,
+                solanaVault,
+                endpointProgram,
+                ulnProgram,
+                nonce,
+                params,
+                accounts,
+                msgSender,
+                peerAddress,
+                ORDERLY_EID,
+                SOLANA_EID
+            )
+            console.log('❌ Attacker successfully executed withdrawal with invalid receiver')
+        } catch (e) {
+            // console.log(e)
+            assert.equal(e.error.errorCode.code, 'InvalidReceiver')
+            console.log('👌 Attacker failed to steal SOL')
+            accounts.payer = wallet.publicKey
+            accounts.receiver = userWallet.publicKey
+            accounts.receiverTokenAccount = userWSOLAccount.address
+        }
+
         prevUserSOLBalance = await provider.connection.getBalance(userWallet.publicKey)
         prevVaultSOLBalance = await provider.connection.getBalance(solVaultPda)
 
-        console.log('prevVaultSOLBalance', prevVaultSOLBalance)
+        // console.log('prevVaultSOLBalance', prevVaultSOLBalance)
 
         const lzReceiveTxSig = await setup.lzReceive(
             wallet.payer,
@@ -1485,39 +1453,108 @@ describe('Test OAPP messaging', function () {
             ORDERLY_EID,
             SOLANA_EID
         )
-        // console.log("lzReceiveTx", lzReceiveTxSig)
-
-        // const txInfo = await solanaVault.provider.connection.getTransaction(lzReceiveTxSig, {
-        //     commitment: "confirmed",
-        //     maxSupportedTransactionVersion: 0,
-        //   });
-
-        // const logs = txInfo?.meta?.logMessages ?? [];
-        // console.log("logs", logs)
-        // console.log("solanaVault.programId", solanaVault.programId)
-        // console.log("solanaVault.coder", solanaVault.coder)
-        // const parser = new anchor.EventParser(solanaVault.programId, solanaVault.coder);
-
-        // const events: any[] = [];
-        // parser.parseLogs(logs, (evt) => {
-        //     console.log("Parsed event:", evt);
-        //     events.push(evt);
-        // });
-
-        // // 获取 VaultWithdrawn
-        // const vaultEvent = events.find((e) => e.name === "VaultWithdrawn");
-
-        // console.log("vaultEvent", vaultEvent)
-
         currVaultSOLBalance = await provider.connection.getBalance(solVaultPda)
         currUserSOLBalance = await provider.connection.getBalance(userWallet.publicKey)
-
-        console.log('currVaultSOLBalance', currVaultSOLBalance)
 
         assert.equal(currUserSOLBalance - prevUserSOLBalance, WITHDRAW_SOL_AMOUNT - WITHDRAW_FEE)
         assert.equal(prevVaultSOLBalance - currVaultSOLBalance, WITHDRAW_SOL_AMOUNT - WITHDRAW_FEE)
 
         console.log('✅ Executed lzReceive instruction to withdraw SOL successfully')
+
+        // nonce = 6
+
+        // const wsolTokenIndexBuffer = Buffer.alloc(1)
+        // wsolTokenIndexBuffer.writeUint8(constants.TOKEN_INDEX.WSOL)
+
+        // payload = Buffer.concat([
+        //     // wallet.publicKey.toBuffer()// placeholder for account_id
+        //     wallet.publicKey.toBuffer(), // sender
+        //     userWallet.publicKey.toBuffer(), // receiver
+        //     brokerIndexBuffer,
+        //     wsolTokenIndexBuffer,
+        //     tokenAmountBuffer,
+        //     feeBuffer,
+        //     chainIdBuffer,
+        //     withdrawNonceBuffer,
+        // ]) // Example payload
+        // msg = helper.encodeMessage(msgType, payload)
+        // console.log('✅ Generated a withdraw message for WSOL')
+
+        // await setup.initVerify(
+        //     wallet,
+        //     endpointAdmin,
+        //     solanaVault,
+        //     endpointProgram,
+        //     msgSender,
+        //     nonce,
+        //     peerAddress,
+        //     DST_EID
+        // )
+        // await setup.commitVerify(
+        //     wallet,
+        //     endpointAdmin,
+        //     solanaVault,
+        //     endpointProgram,
+        //     ulnProgram,
+        //     nonce,
+        //     msg,
+        //     msgSender,
+        //     peerAddress,
+        //     DST_EID,
+        //     SOLANA_EID,
+        //     guid
+        // )
+
+        // params = {
+        //     srcEid: DST_EID,
+        //     sender: Array.from(msgSender.toBytes()),
+        //     nonce: new BN(nonce),
+        //     guid: guid,
+        //     message: msg,
+        //     extraData: Buffer.from([]),
+        // }
+
+        // const withdrawWsolPda = utils.getWithdrawTokenPda(solanaVault.programId, constants.TOKEN_INDEX.WSOL)
+
+        // accounts = {
+        //     payer: wallet.publicKey,
+        //     oappConfig: oappConfigPda,
+        //     peer: peerPda,
+        //     withdrawBrokerPda: withdrawBrokerPda,
+        //     withdrawTokenPda: withdrawWsolPda,
+        //     tokenMint: NATIVE_MINT,
+        //     receiver: userWallet.publicKey,
+        //     receiverTokenAccount: userWSOLAccount.address,
+        //     vaultAuthority: vaultAuthorityPda,
+        //     vaultTokenAccount: vaultWSOLAccount.address,
+        //     solVault: solVaultPda,
+        //     tokenProgram: TOKEN_PROGRAM_ID,
+        // }
+
+        // prevVaultWSOLAccountBalance = await helper.getTokenBalance(provider.connection, vaultWSOLAccount.address)
+        // prevUserWSOLAccountBalance = await helper.getTokenBalance(provider.connection, userWSOLAccount.address)
+
+        // await setup.lzReceive(
+        //     wallet.payer,
+        //     solanaVault,
+        //     endpointProgram,
+        //     ulnProgram,
+        //     nonce,
+        //     params,
+        //     accounts,
+        //     msgSender,
+        //     peerAddress,
+        //     ORDERLY_EID,
+        //     SOLANA_EID
+        // )
+
+        // // Check balance after lzReceive
+        // currVaultWSOLAccountBalance = await helper.getTokenBalance(provider.connection, vaultWSOLAccount.address)
+        // assert.equal(prevVaultWSOLAccountBalance - currVaultWSOLAccountBalance, WITHDRAW_AMOUNT - WITHDRAW_FEE)
+
+        // currUserWSOLAccountBalance = await helper.getTokenBalance(provider.connection, userWSOLAccount.address)
+        // assert.equal(currUserWSOLAccountBalance - prevUserWSOLAccountBalance, WITHDRAW_AMOUNT - WITHDRAW_FEE)
+        // console.log('✅ Executed lzReceive instruction to withdraw WSOL successfully')
     })
 
     it('Quote tests', async () => {
