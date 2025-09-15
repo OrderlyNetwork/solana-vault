@@ -1,6 +1,6 @@
 use crate::constants::TOKEN_INDEX_SOL;
 use crate::errors::{OAppError, VaultError};
-use crate::events::{CreatedATA, FrozenWithdrawn, VaultWithdrawn};
+use crate::events::{CreatedATA, FrozenWithdrawn, VaultWithdrawn, WithdrawSolFailed};
 use crate::instructions::{AccountWithdrawSol, OAppLzReceiveParams, VaultWithdrawParams};
 use crate::instructions::{
     LzMessage, MsgType, BROKER_SEED, OAPP_SEED, PEER_SEED, SOL_VAULT_SEED, TOKEN_SEED,
@@ -141,24 +141,52 @@ impl<'info> OAppLzReceive<'info> {
                 );
 
             if token_index == TOKEN_INDEX_SOL {
-                // transfer SOL to the receiver
-                let ix = anchor_lang::solana_program::system_instruction::transfer(
-                    &ctx.accounts.sol_vault.to_account_info().key(),
-                    &ctx.accounts.receiver.key(),
-                    amount_to_transfer,
-                );
-                let seeds = &[SOL_VAULT_SEED, &[ctx.bumps.sol_vault]];
-                anchor_lang::solana_program::program::invoke_signed(
-                    &ix,
-                    &[
-                        ctx.accounts.sol_vault.to_account_info(),
-                        ctx.accounts.receiver.to_account_info(),
-                        ctx.accounts.system_program.to_account_info(),
-                    ],
-                    &[&seeds[..]],
-                )?;
+                let mut state: u8 = 0;
 
-                emit!(Into::<VaultWithdrawn>::into(vault_withdraw_params.clone()))
+                let rent = Rent::get()?;
+                let balance_after = ctx.accounts.receiver.lamports() + amount_to_transfer;
+
+                if !rent.is_exempt(balance_after, ctx.accounts.receiver.data_len()) {
+                    // indicates the receiver is not rent exempt after the transfer
+                    state = 1;
+                } else if ctx.accounts.receiver.executable {
+                    // indicates the receiver is an executable account
+                    state = 2;
+                }
+
+                if state == 0 {
+                    // transfer SOL to the receiver
+                    let ix = anchor_lang::solana_program::system_instruction::transfer(
+                        &ctx.accounts.sol_vault.to_account_info().key(),
+                        &ctx.accounts.receiver.key(),
+                        amount_to_transfer,
+                    );
+                    let seeds = &[SOL_VAULT_SEED, &[ctx.bumps.sol_vault]];
+                    anchor_lang::solana_program::program::invoke_signed(
+                        &ix,
+                        &[
+                            ctx.accounts.sol_vault.to_account_info(),
+                            ctx.accounts.receiver.to_account_info(),
+                            ctx.accounts.system_program.to_account_info(),
+                        ],
+                        &[&seeds[..]],
+                    )?;
+
+                    emit!(Into::<VaultWithdrawn>::into(vault_withdraw_params.clone()))
+                } else {
+                    emit!(WithdrawSolFailed {
+                        account_id: vault_withdraw_params.account_id,
+                        sender: vault_withdraw_params.sender,
+                        receiver: vault_withdraw_params.receiver,
+                        broker_hash: vault_withdraw_params.broker_hash,
+                        token_hash: vault_withdraw_params.token_hash,
+                        token_amount: vault_withdraw_params.token_amount,
+                        fee: vault_withdraw_params.fee,
+                        chain_id: vault_withdraw_params.chain_id,
+                        withdraw_nonce: vault_withdraw_params.withdraw_nonce,
+                        reason: state,
+                    });
+                }
             } else {
                 // check if the receiver_token_account is the correct associated token account
                 let receiver_ata: Pubkey = get_associated_token_address(

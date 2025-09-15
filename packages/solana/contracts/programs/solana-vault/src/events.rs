@@ -160,6 +160,20 @@ impl From<VaultWithdrawParams> for FrozenWithdrawn {
     }
 }
 
+#[event]
+pub struct WithdrawSolFailed {
+    pub account_id: [u8; 32],
+    pub sender: [u8; 32],
+    pub receiver: [u8; 32],
+    pub broker_hash: [u8; 32],
+    pub token_hash: [u8; 32],
+    pub token_amount: u64,
+    pub fee: u128,
+    pub chain_id: u128,
+    pub withdraw_nonce: u64,
+    pub reason: u8,
+}
+
 // OApp events
 #[event]
 pub struct OAppSent {

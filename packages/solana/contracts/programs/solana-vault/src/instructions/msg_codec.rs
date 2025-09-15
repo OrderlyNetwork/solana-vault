@@ -1,6 +1,6 @@
 // use crate::*;
-use crate::instructions::{to_bytes32, get_account_id, get_usdc_hash};
 use crate::errors::OAppError;
+use crate::instructions::{get_account_id, to_bytes32};
 use anchor_lang::prelude::*;
 
 pub enum MsgType {
@@ -22,7 +22,6 @@ pub struct VaultDepositParams {
 }
 
 impl VaultDepositParams {
-
     pub fn encode(&self) -> Vec<u8> {
         let mut buf = Vec::new();
         buf.extend_from_slice(&self.account_id);
@@ -78,7 +77,6 @@ impl LzMessage {
         }
     }
 
-
     pub fn get_broker_index(encoded: &[u8]) -> Result<u16> {
         let message = LzMessage::decode(encoded)?;
         if message.msg_type == MsgType::Withdraw as u8 {
@@ -100,7 +98,6 @@ impl LzMessage {
     }
 }
 
-
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct AccountWithdrawSol {
     // pub account_id: [u8; 32],
@@ -116,7 +113,6 @@ pub struct AccountWithdrawSol {
 
 // implement the evm abi.encode and decode for AccountWithdrawSol
 impl AccountWithdrawSol {
-
     pub fn get_receiver_address(encoded: &[u8]) -> Result<Pubkey> {
         // Decode the LzMessage to get the payload
         let message = LzMessage::decode(encoded)?;
@@ -129,7 +125,6 @@ impl AccountWithdrawSol {
             return Ok(Pubkey::new_from_array([0u8; 32]));
         }
     }
-
 
     pub fn decode_packed(encoded: &[u8]) -> Result<Self> {
         let mut offset = 0;
@@ -165,17 +160,16 @@ impl AccountWithdrawSol {
             withdraw_nonce,
         })
     }
-
 }
 
-
 impl AccountWithdrawSol {
-    pub fn to_vault_withdraw_params(&self, broker_hash: [u8; 32], token_hash: [u8; 32]) -> VaultWithdrawParams {
+    pub fn to_vault_withdraw_params(
+        &self,
+        broker_hash: [u8; 32],
+        token_hash: [u8; 32],
+    ) -> VaultWithdrawParams {
         VaultWithdrawParams {
-            account_id: get_account_id(
-                &self.sender,
-                &broker_hash,
-            ), // account_withdraw_sol.account_id
+            account_id: get_account_id(&self.sender, &broker_hash), // account_withdraw_sol.account_id
             sender: self.sender,
             receiver: self.receiver,
             broker_hash: broker_hash,
@@ -200,5 +194,3 @@ pub struct VaultWithdrawParams {
     pub chain_id: u128,
     pub withdraw_nonce: u64,
 }
-
-

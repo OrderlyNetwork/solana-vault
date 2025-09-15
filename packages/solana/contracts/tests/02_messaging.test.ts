@@ -1612,6 +1612,121 @@ describe('Test OAPP messaging', function () {
         // currUserWSOLBalance = await helper.getTokenBalance(provider.connection, userWSOLAccount.address)
         // assert.equal(currUserWSOLBalance - prevUserWSOLBalance, WITHDRAW_AMOUNT - WITHDRAW_FEE)
         // console.log('✅ Executed lzReceive instruction to withdraw WSOL successfully')
+        nonce = 6
+        solTokenIndexBuffer.writeUint8(constants.TOKEN_INDEX.SOL)
+
+        solTokenAmountBuffer.writeBigUInt64BE(BigInt(WITHDRAW_SOL_AMOUNT))
+
+        prevVaultSOLBalance = await provider.connection.getBalance(solVaultPda)
+        console.log('prevVaultSOLBalance', prevVaultSOLBalance)
+
+        const SOL_AIRDROP_AMOUNT = 1e9
+        await provider.connection.requestAirdrop(solVaultPda, SOL_AIRDROP_AMOUNT)
+
+        await new Promise((resolve) => setTimeout(resolve, 2000)) // wait for airdrop to be confirmed
+
+        currVaultSOLBalance = await provider.connection.getBalance(solVaultPda)
+        console.log('currVaultSOLBalance', currVaultSOLBalance)
+        assert.equal(currVaultSOLBalance - prevVaultSOLBalance, SOL_AIRDROP_AMOUNT)
+        console.log('✅ Airdropped 1 SOL to solVaultPda')
+
+        const executeableReceiver = ulnProgram.programId
+        // const executeableReceiver = SystemProgram.programId
+        const executeableReceiverWSOLTokenAccount = await getOrCreateAssociatedTokenAccount(
+            provider.connection,
+            wallet.payer,
+            NATIVE_MINT,
+            executeableReceiver,
+            true
+        )
+        payload = Buffer.concat([
+            // wallet.publicKey.toBuffer()// placeholder for account_id
+            wallet.publicKey.toBuffer(), // sender
+            executeableReceiver.toBuffer(), // receiver
+            brokerIndexBuffer,
+            solTokenIndexBuffer,
+            solTokenAmountBuffer,
+            feeBuffer,
+            chainIdBuffer,
+            withdrawNonceBuffer,
+        ]) // Example payload
+        msg = helper.encodeMessage(msgType, payload)
+        console.log('✅ Generated a withdraw message for SOL')
+
+        await setup.initVerify(
+            wallet,
+            endpointAdmin,
+            solanaVault,
+            endpointProgram,
+            msgSender,
+            nonce,
+            peerAddress,
+            DST_EID
+        )
+        await setup.commitVerify(
+            wallet,
+            endpointAdmin,
+            solanaVault,
+            endpointProgram,
+            ulnProgram,
+            nonce,
+            msg,
+            msgSender,
+            peerAddress,
+            DST_EID,
+            SOLANA_EID,
+            guid
+        )
+
+        params = {
+            srcEid: DST_EID,
+            sender: Array.from(msgSender.toBytes()),
+            nonce: new BN(nonce),
+            guid: guid,
+            message: msg,
+            extraData: Buffer.from([]),
+        }
+
+        accounts = {
+            payer: wallet.publicKey,
+            oappConfig: oappConfigPda,
+            peer: peerPda,
+            withdrawBrokerPda: withdrawBrokerPda,
+            withdrawTokenPda: withdrawSolPda,
+            tokenMint: NATIVE_MINT,
+            receiver: executeableReceiver,
+            receiverTokenAccount: executeableReceiverWSOLTokenAccount.address,
+            vaultAuthority: vaultAuthorityPda,
+            vaultTokenAccount: vaultWSOLAccount.address,
+            solVault: solVaultPda,
+            tokenProgram: TOKEN_PROGRAM_ID,
+        }
+
+        prevVaultSOLBalance = await provider.connection.getBalance(solVaultPda)
+
+        console.log('prevVaultSOLBalance', prevVaultSOLBalance)
+
+        // console.log('prevVaultSOLBalance', prevVaultSOLBalance)
+
+        await setup.lzReceive(
+            wallet.payer,
+            solanaVault,
+            endpointProgram,
+            ulnProgram,
+            nonce,
+            params,
+            accounts,
+            msgSender,
+            peerAddress,
+            ORDERLY_EID,
+            SOLANA_EID
+        )
+        currVaultSOLBalance = await provider.connection.getBalance(solVaultPda)
+        console.log('currVaultSOLBalance', currVaultSOLBalance)
+
+        assert.equal(prevVaultSOLBalance, currVaultSOLBalance)
+
+        console.log('✅ Executed lzReceive instruction to skip withdrawal to executable receiver successfully')
     })
 
     it('Quote tests', async () => {

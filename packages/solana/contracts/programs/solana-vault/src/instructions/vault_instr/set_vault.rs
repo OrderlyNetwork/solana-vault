@@ -38,7 +38,7 @@ impl SetVault<'_> {
         ctx.accounts.vault_authority.sol_chain_id = params.sol_chain_id;
         // comment out the following lines if we want to allow updating deposit_nonce and inbound_nonce
         // ctx.accounts.vault_authority.deposit_nonce = params.deposit_nonce;
-        // ctx.accounts.vault_authority.inbound_nonce = params.inbound_nonce;
+        ctx.accounts.vault_authority.inbound_nonce = params.inbound_nonce;
         msg!("Set Vault Authority");
         Ok(())
     }
