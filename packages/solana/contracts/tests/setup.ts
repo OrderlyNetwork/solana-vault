@@ -5,12 +5,20 @@ import { Uln } from '../target/types/uln'
 import { Endpoint } from '../tests/types/endpoint'
 import * as utils from '../scripts/utils'
 import { EVENT_SEED, MESSAGE_LIB_SEED, OAPP_SEED } from '@layerzerolabs/lz-solana-sdk-v2'
-import { ConfirmOptions, PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction } from '@solana/web3.js'
+import {
+    ConfirmOptions,
+    PublicKey,
+    SystemProgram,
+    Transaction,
+    sendAndConfirmTransaction,
+    Connection,
+    Signer,
+    Keypair,
+} from '@solana/web3.js'
 import { createSyncNativeInstruction, getOrCreateAssociatedTokenAccount, Account } from '@solana/spl-token'
 
 import { DST_EID } from '../scripts/constants'
 import * as helper from './helper'
-import { Keypair } from '@solana/web3.js'
 import { getEventAuthorityPda, getOAppConfigPda, getOAppRegistryPda } from '../scripts/utils'
 
 export const confirmOptions: ConfirmOptions = {
@@ -733,4 +741,52 @@ export async function swapSolToWsol(
     )
 
     await sendAndConfirmTransaction(provider.connection, tx, [wallet.payer])
+}
+
+export async function setWallets(
+    connection: Connection,
+    payer: Signer,
+    userWallet: Keypair,
+    attackerWallet: Keypair,
+    USDC_MINT: PublicKey,
+    USDT_MINT: PublicKey,
+    WSOL_MINT: PublicKey
+) {
+    const userUSDCAccount = await getOrCreateAssociatedTokenAccount(connection, payer, USDC_MINT, userWallet.publicKey)
+
+    const userUSDTAccount = await getOrCreateAssociatedTokenAccount(connection, payer, USDT_MINT, userWallet.publicKey)
+
+    const userWSOLAccount = await getOrCreateAssociatedTokenAccount(connection, payer, WSOL_MINT, userWallet.publicKey)
+
+    // const attackerUSDCAccount = await getOrCreateAssociatedTokenAccount(
+    //     connection,
+    //     payer,
+    //     USDC_MINT,
+    //     attackerWallet.publicKey
+    // )
+
+    // const attackerUSDTAccount = await getOrCreateAssociatedTokenAccount(
+    //     connection,
+    //     payer,
+    //     USDT_MINT,
+    //     attackerWallet.publicKey
+    // )
+
+    // const attackerWSOLAccount = await getOrCreateAssociatedTokenAccount(
+    //     connection,
+    //     payer,
+    //     WSOL_MINT,
+    //     attackerWallet.publicKey
+    // )
+
+    return {
+        user: {
+            userUSDCAccount,
+            userUSDTAccount,
+            userWSOLAccount,
+        },
+        // attackerUSDCAccount,
+        // attackerUSDTAccount,
+        // attackerWSOLAccount,
+    }
 }

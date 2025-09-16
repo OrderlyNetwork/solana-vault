@@ -51,7 +51,7 @@ export const ACCESS_CONTROL_SEED = 'AccessControl'
 export const BROKER_MANAGER_ROLE = 'BrokerManagerRole'
 export const TOKEN_MANAGER_ROLE = 'TokenManagerRole'
 
-export const ENV: 'DEV' | 'QA' | 'STAGING' | 'MAIN' = 'STAGING'
+export const ENV: 'DEV' | 'QA' | 'STAGING' | 'MAIN' = 'QA'
 export const MOCK_OAPP_PROGRAM_ID = new PublicKey('EFLrsQmcfYTSvVrUiP4qruDhbYBtjbQNAhC6tkLJbBtQ')
 export const DEV_OAPP_PROGRAM_ID = new PublicKey('EYJq9eU4GMRUriUJBgGoZ8YLQBXcWaciXuSsEXE7ieQS')
 export const QA_OAPP_PROGRAM_ID = new PublicKey('5zBjLor7vEraAt4zp2H82sy9MSqFoDnNa1Lx6EYKTYRZ')
@@ -69,7 +69,7 @@ export const STAGING_LOOKUP_TABLE_ADDRESS = new PublicKey('BbGKfxuPwDmu58BjPpd7P
 export const MAIN_LOOKUP_TABLE_ADDRESS = new PublicKey('8iq7xCQt3bLdRRn4A46d5GuaXYinBoiAhbe2sUmZVzwg')
 
 export const DEV_BROKERS = ['woofi_dex', 'root', 'orderly', 'woofi_pro', 'busywhale', '0xfin'] // , 'hyperx', 'ranger'
-export const QA_BROKERS = ['woofi_dex', 'root', 'orderly', 'woofi_pro', 'busywhale', '0xfin']
+export const QA_BROKERS = ['pnut', 'perpx'] // 'woofi_dex', 'root', 'orderly', 'woofi_pro', 'busywhale', '0xfin',
 export const STAGING_BROKERS = [
     // 'woofi_dex',
     // 'root',

@@ -1,22 +1,11 @@
 import * as anchor from '@coral-xyz/anchor'
-import { BN, Program, Idl } from '@coral-xyz/anchor'
+import { BN } from '@coral-xyz/anchor'
 import { createMint, NATIVE_MINT } from '@solana/spl-token'
-import { Keypair, PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction } from '@solana/web3.js'
+import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js'
 import { assert } from 'chai'
 import { OftTools } from '@layerzerolabs/lz-solana-sdk-v2'
 import * as utils from '../scripts/utils'
 import * as constants from '../scripts/constants'
-import {
-    getBrokerPdaWithBuf,
-    getEnforcedOptionsPda,
-    getLzReceiveTypesPda,
-    getOAppConfigPda,
-    getOAppRegistryPda,
-    getPeerPda,
-    getTokenPdaWithBuf,
-    getVaultAuthorityPda,
-    getAccountListPda,
-} from '../scripts/utils'
 import * as setup from './setup'
 import * as helper from './helper'
 
@@ -36,7 +25,7 @@ describe('Test Solana-Vault configuration', function () {
     const PEER_ADDRESS = Array.from(helper.PEER_ADDRESS)
     let vaultAuthority
     let oappConfigPda: PublicKey
-    const vaultAuthorityPda = getVaultAuthorityPda(solanaVault.programId)
+    const vaultAuthorityPda = utils.getVaultAuthorityPda(solanaVault.programId)
     const newVaultOwner = Keypair.generate()
     const usdcTokenHash = helper.getTokenHash(helper.USDC_SYMBOL)
     const usdtTokenHash = helper.getTokenHash(helper.USDT_SYMBOL)
@@ -131,7 +120,7 @@ describe('Test Solana-Vault configuration', function () {
     })
 
     it('Set vault authority', async () => {
-        const vaultAuthorityPda = getVaultAuthorityPda(solanaVault.programId)
+        const vaultAuthorityPda = utils.getVaultAuthorityPda(solanaVault.programId)
 
         // Only assertions. `initVault()` is already run in test setup
         let vaultAuthority = await solanaVault.account.vaultAuthority.fetch(vaultAuthorityPda)
@@ -200,8 +189,8 @@ describe('Test Solana-Vault configuration', function () {
     })
 
     it('Initialize oapp', async () => {
-        const lzReceiveTypesPda = getLzReceiveTypesPda(solanaVault.programId, oappConfigPda)
-        const oappRegistryPda = getOAppRegistryPda(oappConfigPda)
+        const lzReceiveTypesPda = utils.getLzReceiveTypesPda(solanaVault.programId, oappConfigPda)
+        const oappRegistryPda = utils.getOAppRegistryPda(oappConfigPda)
         const oappConfig = await solanaVault.account.oAppConfig.fetch(oappConfigPda)
         const lzReceiveTypes = await solanaVault.account.oAppLzReceiveTypesAccounts.fetch(lzReceiveTypesPda)
         const oappRegistry = await endpointProgram.account.oAppRegistry.fetch(oappRegistryPda)
@@ -215,11 +204,11 @@ describe('Test Solana-Vault configuration', function () {
 
     it('Set account list', async () => {
         const USDC_INDEX = constants.TOKEN_INDEX.USDC
-        const lzReceiveTypesPda = getLzReceiveTypesPda(solanaVault.programId, oappConfigPda)
-        const accountListPda = getAccountListPda(solanaVault.programId, oappConfigPda)
+        const lzReceiveTypesPda = utils.getLzReceiveTypesPda(solanaVault.programId, oappConfigPda)
+        const accountListPda = utils.getAccountListPda(solanaVault.programId, oappConfigPda)
         const withdrawUsdcPda = utils.getWithdrawTokenPda(solanaVault.programId, USDC_INDEX)
         const withdrawUsdtPda = utils.getWithdrawTokenPda(solanaVault.programId, constants.TOKEN_INDEX.USDT)
-        const brokerPda = getBrokerPdaWithBuf(
+        const brokerPda = utils.getBrokerPdaWithBuf(
             solanaVault.programId,
             Array.from(Buffer.from(woofiBrokerHash.slice(2), 'hex'))
         )
@@ -298,8 +287,8 @@ describe('Test Solana-Vault configuration', function () {
     })
 
     it('Set deposit token and withdraw token', async () => {
-        const allowedUsdcTokenPda = getTokenPdaWithBuf(solanaVault.programId, usdcTokenHash)
-        const allowedUsdtTokenPda = getTokenPdaWithBuf(solanaVault.programId, usdtTokenHash)
+        const allowedUsdcTokenPda = utils.getTokenPdaWithBuf(solanaVault.programId, usdcTokenHash)
+        const allowedUsdtTokenPda = utils.getTokenPdaWithBuf(solanaVault.programId, usdtTokenHash)
         const tokenManagerRoleHash = helper.getManagerRoleHash(constants.TOKEN_MANAGER_ROLE)
         const tokenManagerRolePda = utils.getManagerRolePdaWithBuf(
             solanaVault.programId,
@@ -678,7 +667,7 @@ describe('Test Solana-Vault configuration', function () {
     })
 
     it('Set peer', async () => {
-        const peerPda = getPeerPda(solanaVault.programId, oappConfigPda, DST_EID)
+        const peerPda = utils.getPeerPda(solanaVault.programId, oappConfigPda, DST_EID)
         let peer = await solanaVault.account.peer.fetch(peerPda)
         assert.deepEqual(peer.address, PEER_ADDRESS)
         assert.isOk(peer.bump)
@@ -713,7 +702,7 @@ describe('Test Solana-Vault configuration', function () {
     })
 
     it('Sets rate limit', async () => {
-        const peerPda = getPeerPda(solanaVault.programId, oappConfigPda, DST_EID)
+        const peerPda = utils.getPeerPda(solanaVault.programId, oappConfigPda, DST_EID)
 
         console.log('🥷 Attacker trying to set Rate Limit')
         let setRateLimitParams, setRateLimitAccounts
@@ -746,7 +735,7 @@ describe('Test Solana-Vault configuration', function () {
     })
 
     it('Set enforced options', async () => {
-        const efOptionsPda = getEnforcedOptionsPda(solanaVault.programId, oappConfigPda, DST_EID)
+        const efOptionsPda = utils.getEnforcedOptionsPda(solanaVault.programId, oappConfigPda, DST_EID)
 
         console.log('🥷 Attacker trying to set Enforced Options')
         let setEnforcedOptionsParams, setEnforcedOptionsAccounts
@@ -780,7 +769,7 @@ describe('Test Solana-Vault configuration', function () {
 
     it('Set delegate', async () => {
         const newDelegate = Keypair.generate()
-        const oappRegistryPda = getOAppRegistryPda(oappConfigPda)
+        const oappRegistryPda = utils.getOAppRegistryPda(oappConfigPda)
 
         console.log('🥷 Attacker trying to set Delegate')
         let setDelegateParams, setDelegateAccounts
@@ -825,7 +814,7 @@ describe('Test Solana-Vault configuration', function () {
 
     it('Transfer admin', async () => {
         const newAdmin = Keypair.generate()
-        const oappConfigPda = getOAppConfigPda(solanaVault.programId)
+        const oappConfigPda = utils.getOAppConfigPda(solanaVault.programId)
         console.log('🥷 Attacker trying to transfer Admin')
         let transferAdminParams, transferAdminAccounts
         try {

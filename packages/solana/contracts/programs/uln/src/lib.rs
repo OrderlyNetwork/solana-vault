@@ -11,7 +11,7 @@ pub const SEND_CONFIG_SEED: &[u8] = b"SendConfig";
 pub const RECEIVE_CONFIG_SEED: &[u8] = b"ReceiveConfig";
 pub const CONFIRMATIONS_SEED: &[u8] = b"Confirmations";
 
-declare_id!("279tDX6wTFgrJaRnGEdjik3NLR8B9AKY1pKVFYcxvw7c");
+declare_id!("3HUspNHm1sW6YvgqpTemHa8HmjwwqTEXEAh7weEyBZUn");
 
 #[program]
 pub mod uln {
