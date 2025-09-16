@@ -13,13 +13,15 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider)
 
 async function setToken() {
     const multisig = utils.getMultisig(ENV)
-    const useMultisig = true
-    const tokenSymble = 'USDT'
+    const useMultisig = false
+    const tokenSymble = 'SOL'
     console.log('Token Symbol:', tokenSymble)
     const tokenHash = utils.getTokenHash(tokenSymble)
     console.log('Token Hash:', tokenHash)
     const codedTokenHash = Array.from(Buffer.from(tokenHash.slice(2), 'hex'))
-    const mintAccount = utils.getTokenAddress(ENV, tokenSymble)
+    const zeroAddress = new PublicKey(new Uint8Array(32))
+    console.log(zeroAddress.toBase58())
+    const mintAccount = zeroAddress //native SOL
     console.log('mintAccount', mintAccount.toBase58())
     const tokenPda = utils.getTokenPda(OAPP_PROGRAM_ID, tokenHash)
     console.log('tokenPda', tokenPda.toBase58())
@@ -31,12 +33,12 @@ async function setToken() {
 
     const allowed = true
     let setTokenParams = {
-        tokenManagerRole: codedTokenManagerRole,
+        // tokenManagerRole: codedTokenManagerRole,
         mintAccount: mintAccount,
         tokenHash: codedTokenHash,
         allowed: allowed,
     }
-    // console.log("Set Token Params:", setTokenParams);
+    console.log('Set Token Params:', setTokenParams)
     const setTokenAccounts = {
         tokenManager: tokenManagerKey,
         mintAccount: mintAccount,

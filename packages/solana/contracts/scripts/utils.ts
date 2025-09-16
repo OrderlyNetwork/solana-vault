@@ -580,8 +580,7 @@ export function getTokenAddress(ENV: String, tokenSymbol: string): PublicKey {
         } else if (tokenSymbol === constants.TOKEN_SYMBOLS[2] || tokenSymbol === constants.TOKEN_SYMBOLS[3]) {
             return constants.MAIN_WSOL_ACCOUNT
         } else {
-            throw new Error(`
-              : ${tokenSymbol}`)
+            throw new Error(`Invalid token symbol: ${tokenSymbol}`)
         }
     } else {
         if (tokenSymbol === constants.TOKEN_SYMBOLS[0]) {
