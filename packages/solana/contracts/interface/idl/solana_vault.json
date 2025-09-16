@@ -139,9 +139,7 @@
           "name": "solVault",
           "isMut": true,
           "isSigner": false,
-          "docs": [
-            "CHECKED: sol_vault is used for SOL deposit"
-          ]
+          "docs": ["CHECKED: sol_vault is used for SOL deposit"]
         },
         {
           "name": "peer",
@@ -529,33 +527,25 @@
           "name": "withdrawTokenPda",
           "isMut": false,
           "isSigner": false,
-          "docs": [
-            "CHECK"
-          ]
+          "docs": ["CHECK"]
         },
         {
           "name": "tokenMint",
           "isMut": false,
           "isSigner": false,
-          "docs": [
-            "CHECK"
-          ]
+          "docs": ["CHECK"]
         },
         {
           "name": "receiver",
           "isMut": true,
           "isSigner": false,
-          "docs": [
-            "CHECK"
-          ]
+          "docs": ["CHECK"]
         },
         {
           "name": "receiverTokenAccount",
           "isMut": true,
           "isSigner": false,
-          "docs": [
-            "UNCHECKED"
-          ]
+          "docs": ["UNCHECKED"]
         },
         {
           "name": "vaultAuthority",
@@ -571,9 +561,7 @@
           "name": "solVault",
           "isMut": true,
           "isSigner": false,
-          "docs": [
-            "CHECKED: sol_vault is used for SOL withdrawal"
-          ]
+          "docs": ["CHECKED: sol_vault is used for SOL withdrawal"]
         },
         {
           "name": "tokenProgram",
@@ -884,10 +872,7 @@
           {
             "name": "address",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -913,10 +898,7 @@
           {
             "name": "brokerHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -942,10 +924,7 @@
           {
             "name": "tokenHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -971,10 +950,7 @@
           {
             "name": "roleHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -995,9 +971,7 @@
         "fields": [
           {
             "name": "bump",
-            "docs": [
-              "Bump seed for the vault authority PDA"
-            ],
+            "docs": ["Bump seed for the vault authority PDA"],
             "type": "u8"
           },
           {
@@ -1035,10 +1009,7 @@
           {
             "name": "brokerHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1068,10 +1039,7 @@
           {
             "name": "tokenHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1103,37 +1071,25 @@
           {
             "name": "accountId",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "brokerHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "userAddress",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "tokenHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1175,19 +1131,13 @@
           {
             "name": "sender",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "receiver",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1225,46 +1175,31 @@
           {
             "name": "accountId",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "sender",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "receiver",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "brokerHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "tokenHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1320,10 +1255,7 @@
           {
             "name": "sender",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1333,10 +1265,7 @@
           {
             "name": "guid",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1446,10 +1375,7 @@
           {
             "name": "peer",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           }
         ]
@@ -1503,37 +1429,25 @@
           {
             "name": "accountId",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "brokerHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "tokenHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "userAddress",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1567,10 +1481,7 @@
           {
             "name": "brokerHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1588,10 +1499,7 @@
           {
             "name": "roleHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1633,10 +1541,7 @@
           {
             "name": "tokenHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1686,10 +1591,7 @@
           {
             "name": "brokerHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1711,10 +1613,7 @@
           {
             "name": "tokenHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1824,10 +1723,7 @@
         {
           "name": "brokerHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         }
@@ -1839,10 +1735,7 @@
         {
           "name": "brokerHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         }
@@ -1854,10 +1747,7 @@
         {
           "name": "tokenHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
@@ -1874,10 +1764,7 @@
         {
           "name": "tokenHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
@@ -1899,10 +1786,7 @@
         {
           "name": "tokenHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
@@ -1924,10 +1808,7 @@
         {
           "name": "tokenHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
@@ -1944,10 +1825,7 @@
         {
           "name": "brokerHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
@@ -1964,10 +1842,7 @@
         {
           "name": "brokerHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
@@ -1984,10 +1859,7 @@
         {
           "name": "roleHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
@@ -2039,30 +1911,21 @@
         {
           "name": "accountId",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "receiver",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "receiverTokenAccount",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
@@ -2079,40 +1942,28 @@
         {
           "name": "accountId",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "brokerHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "userAddress",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "tokenHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
@@ -2139,50 +1990,35 @@
         {
           "name": "accountId",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "sender",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "receiver",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "brokerHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "tokenHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
@@ -2214,50 +2050,35 @@
         {
           "name": "accountId",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "sender",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "receiver",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "brokerHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "tokenHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
@@ -2284,15 +2105,77 @@
       ]
     },
     {
+      "name": "WithdrawSolFailed",
+      "fields": [
+        {
+          "name": "accountId",
+          "type": {
+            "array": ["u8", 32]
+          },
+          "index": false
+        },
+        {
+          "name": "sender",
+          "type": {
+            "array": ["u8", 32]
+          },
+          "index": false
+        },
+        {
+          "name": "receiver",
+          "type": {
+            "array": ["u8", 32]
+          },
+          "index": false
+        },
+        {
+          "name": "brokerHash",
+          "type": {
+            "array": ["u8", 32]
+          },
+          "index": false
+        },
+        {
+          "name": "tokenHash",
+          "type": {
+            "array": ["u8", 32]
+          },
+          "index": false
+        },
+        {
+          "name": "tokenAmount",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "fee",
+          "type": "u128",
+          "index": false
+        },
+        {
+          "name": "chainId",
+          "type": "u128",
+          "index": false
+        },
+        {
+          "name": "withdrawNonce",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "reason",
+          "type": "u8",
+          "index": false
+        }
+      ]
+    },
+    {
       "name": "OAppSent",
       "fields": [
         {
           "name": "guid",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
@@ -2309,10 +2192,7 @@
         {
           "name": "guid",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
