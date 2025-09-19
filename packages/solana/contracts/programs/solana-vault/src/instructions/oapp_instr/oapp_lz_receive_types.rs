@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use crate::constants::{TOKEN_INDEX_SOL, TOKEN_INDEX_USDC, TOKEN_INDEX_USDT, TOKEN_INDEX_WSOL};
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program;
@@ -6,26 +6,28 @@ use anchor_spl::associated_token::{get_associated_token_address, ID as ASSOCIATE
 use anchor_spl::token::ID as TOKEN_PROGRAM_ID;
 use oapp::endpoint_cpi::LzAccount;
 
+use crate::errors::OAppError;
 use crate::instructions::AccountWithdrawSol;
 use crate::instructions::{
-    get_usdc_hash, LzMessage, MsgType, ACCOUNT_LIST_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED,
+    LzMessage, MsgType, ACCOUNT_LIST_SEED, OAPP_SEED, PEER_SEED, SOL_VAULT_SEED, TOKEN_SEED,
     VAULT_AUTHORITY_SEED,
 };
 use crate::state::{AccountList, OAppConfig};
 use crate::BROKER_SEED;
 
 // Return accounts list for lz_receive instruction based on the message type
-// Msg.Type: Withdraw  (currently at most 13 accounts, otherwise tx oversize; fix approach: shrink message payload(remove sender, accountId fields))
+// Note: Only 1 byte left for the message payload
 // 0: signer = lz executor
 // 1: peer
 // 2: oapp_config
-// 3: broker_pda
-// 4: token_pda
+// 3: withdraw_broker_pda
+// 4: withdraw_token_pda
 // 5: token_mint
 // 6: receiver
 // 7: receiver_token_account
 // 8: vault_authority
 // 9: vault_token_account
+// 9.1: sol_vault
 // 10: token_program_id
 // 10.1: associated_token_id
 // 10.2: system_program_id
@@ -40,6 +42,7 @@ pub struct OAppLzReceiveTypes<'info> {
         bump = oapp_config.bump
     )]
     pub oapp_config: Account<'info, OAppConfig>,
+
     #[account(
         seeds = [ACCOUNT_LIST_SEED, &oapp_config.key().as_ref()],
         bump = account_list.bump
@@ -90,23 +93,30 @@ impl OAppLzReceiveTypes<'_> {
             let withdraw_params = AccountWithdrawSol::decode_packed(&lz_message.payload).unwrap();
 
             // account 3
-            let (broker_pda, _) = Pubkey::find_program_address(
-                &[BROKER_SEED, withdraw_params.broker_hash.as_ref()],
+            let broker_index = withdraw_params.broker_index;
+            let (withdraw_broker_pda, _) = Pubkey::find_program_address(
+                &[BROKER_SEED, &broker_index.to_be_bytes()],
                 ctx.program_id,
             );
 
             // account 4
-            let (token_pda, _) = Pubkey::find_program_address(
-                &[TOKEN_SEED, get_usdc_hash().as_ref()],
+            let token_index = withdraw_params.token_index;
+            let (withdraw_token_pda, _) = Pubkey::find_program_address(
+                &[TOKEN_SEED, &token_index.to_be_bytes()],
                 ctx.program_id,
             );
 
             // account 5
             let token_mint;
-            if token_pda == ctx.accounts.account_list.usdc_pda {
+            if token_index == TOKEN_INDEX_USDC {
                 token_mint = ctx.accounts.account_list.usdc_mint;
+            } else if token_index == TOKEN_INDEX_USDT {
+                token_mint = ctx.accounts.account_list.usdt_mint;
+            } else if token_index == TOKEN_INDEX_WSOL || token_index == TOKEN_INDEX_SOL {
+                // SOL is native token, which has no token mint, the wsol_mint is a placeholder then the token is SOL
+                token_mint = ctx.accounts.account_list.wsol_mint;
             } else {
-                token_mint = Pubkey::from_str("0x0000").unwrap();
+                return Err(OAppError::InvalidTokenIndex.into());
             }
 
             // account 6
@@ -123,6 +133,9 @@ impl OAppLzReceiveTypes<'_> {
             // account 9
             let vault_token_account = get_associated_token_address(&vault_authority, &token_mint);
 
+            // account 9.1
+            let (sol_vault, _) = Pubkey::find_program_address(&[SOL_VAULT_SEED], ctx.program_id);
+
             // account 10
             let token_program_id = TOKEN_PROGRAM_ID;
 
@@ -138,12 +151,12 @@ impl OAppLzReceiveTypes<'_> {
             // add accounts 3..12
             accounts.extend_from_slice(&[
                 LzAccount {
-                    pubkey: broker_pda,
+                    pubkey: withdraw_broker_pda,
                     is_signer: false,
                     is_writable: false,
                 }, // 3
                 LzAccount {
-                    pubkey: token_pda,
+                    pubkey: withdraw_token_pda,
                     is_signer: false,
                     is_writable: false,
                 }, // 4
@@ -155,7 +168,7 @@ impl OAppLzReceiveTypes<'_> {
                 LzAccount {
                     pubkey: receiver,
                     is_signer: false,
-                    is_writable: false,
+                    is_writable: true,
                 }, // 6
                 LzAccount {
                     pubkey: receiver_token_account,
@@ -172,6 +185,11 @@ impl OAppLzReceiveTypes<'_> {
                     is_signer: false,
                     is_writable: true,
                 }, // 9
+                LzAccount {
+                    pubkey: sol_vault,
+                    is_signer: false,
+                    is_writable: true,
+                }, // 9.1
                 LzAccount {
                     pubkey: token_program_id,
                     is_signer: false,

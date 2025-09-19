@@ -123,6 +123,74 @@
       }
     },
     {
+      "name": "depositSol",
+      "accounts": [
+        {
+          "name": "user",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "vaultAuthority",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "solVault",
+          "isMut": true,
+          "isSigner": false,
+          "docs": ["CHECKED: sol_vault is used for SOL deposit"]
+        },
+        {
+          "name": "peer",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "enforcedOptions",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "oappConfig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "allowedBroker",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "allowedToken",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "depositParams",
+          "type": {
+            "defined": "DepositParams"
+          }
+        },
+        {
+          "name": "oappParams",
+          "type": {
+            "defined": "OAppSendParams"
+          }
+        }
+      ],
+      "returns": {
+        "defined": "MessagingReceipt"
+      }
+    },
+    {
       "name": "initOapp",
       "accounts": [
         {
@@ -265,6 +333,39 @@
       ]
     },
     {
+      "name": "setWithdrawBroker",
+      "accounts": [
+        {
+          "name": "brokerManager",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "withdrawBroker",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "managerRole",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": "SetWithdrawBrokerParams"
+          }
+        }
+      ]
+    },
+    {
       "name": "setToken",
       "accounts": [
         {
@@ -298,6 +399,44 @@
           "name": "params",
           "type": {
             "defined": "SetTokenParams"
+          }
+        }
+      ]
+    },
+    {
+      "name": "setWithdrawToken",
+      "accounts": [
+        {
+          "name": "tokenManager",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "withdrawToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "managerRole",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "mintAccount",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": "SetWithdrawTokenParams"
           }
         }
       ]
@@ -380,44 +519,33 @@
           "isSigner": false
         },
         {
-          "name": "brokerPda",
+          "name": "withdrawBrokerPda",
           "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "CHECK"
-          ]
+          "isSigner": false
         },
         {
-          "name": "tokenPda",
+          "name": "withdrawTokenPda",
           "isMut": false,
           "isSigner": false,
-          "docs": [
-            "CHECK"
-          ]
+          "docs": ["CHECK"]
         },
         {
           "name": "tokenMint",
           "isMut": false,
           "isSigner": false,
-          "docs": [
-            "CHECK"
-          ]
+          "docs": ["CHECK"]
         },
         {
           "name": "receiver",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false,
-          "docs": [
-            "CHECK"
-          ]
+          "docs": ["CHECK"]
         },
         {
           "name": "receiverTokenAccount",
           "isMut": true,
           "isSigner": false,
-          "docs": [
-            "UNCHECKED"
-          ]
+          "docs": ["UNCHECKED"]
         },
         {
           "name": "vaultAuthority",
@@ -428,6 +556,12 @@
           "name": "vaultTokenAccount",
           "isMut": true,
           "isSigner": false
+        },
+        {
+          "name": "solVault",
+          "isMut": true,
+          "isSigner": false,
+          "docs": ["CHECKED: sol_vault is used for SOL withdrawal"]
         },
         {
           "name": "tokenProgram",
@@ -700,7 +834,11 @@
             "type": "u8"
           },
           {
-            "name": "usdcPda",
+            "name": "woofiProPda",
+            "type": "publicKey"
+          },
+          {
+            "name": "withdrawUsdcPda",
             "type": "publicKey"
           },
           {
@@ -708,7 +846,19 @@
             "type": "publicKey"
           },
           {
-            "name": "woofiProPda",
+            "name": "withdrawUsdtPda",
+            "type": "publicKey"
+          },
+          {
+            "name": "usdtMint",
+            "type": "publicKey"
+          },
+          {
+            "name": "withdrawWsolPda",
+            "type": "publicKey"
+          },
+          {
+            "name": "wsolMint",
             "type": "publicKey"
           }
         ]
@@ -722,10 +872,7 @@
           {
             "name": "address",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -751,10 +898,7 @@
           {
             "name": "brokerHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -780,10 +924,7 @@
           {
             "name": "tokenHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -809,10 +950,7 @@
           {
             "name": "roleHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -833,9 +971,7 @@
         "fields": [
           {
             "name": "bump",
-            "docs": [
-              "Bump seed for the vault authority PDA"
-            ],
+            "docs": ["Bump seed for the vault authority PDA"],
             "type": "u8"
           },
           {
@@ -864,6 +1000,66 @@
           }
         ]
       }
+    },
+    {
+      "name": "WithdrawBroker",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "brokerHash",
+            "type": {
+              "array": ["u8", 32]
+            }
+          },
+          {
+            "name": "brokerIndex",
+            "type": "u16"
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WithdrawToken",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mintAccount",
+            "type": "publicKey"
+          },
+          {
+            "name": "tokenHash",
+            "type": {
+              "array": ["u8", 32]
+            }
+          },
+          {
+            "name": "tokenDecimals",
+            "type": "u8"
+          },
+          {
+            "name": "tokenIndex",
+            "type": "u8"
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
     }
   ],
   "types": [
@@ -875,37 +1071,25 @@
           {
             "name": "accountId",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "brokerHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "userAddress",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "tokenHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -935,6 +1119,104 @@
           {
             "name": "payload",
             "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AccountWithdrawSol",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sender",
+            "type": {
+              "array": ["u8", 32]
+            }
+          },
+          {
+            "name": "receiver",
+            "type": {
+              "array": ["u8", 32]
+            }
+          },
+          {
+            "name": "brokerIndex",
+            "type": "u16"
+          },
+          {
+            "name": "tokenIndex",
+            "type": "u8"
+          },
+          {
+            "name": "tokenAmount",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
+          },
+          {
+            "name": "chainId",
+            "type": "u64"
+          },
+          {
+            "name": "withdrawNonce",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultWithdrawParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "accountId",
+            "type": {
+              "array": ["u8", 32]
+            }
+          },
+          {
+            "name": "sender",
+            "type": {
+              "array": ["u8", 32]
+            }
+          },
+          {
+            "name": "receiver",
+            "type": {
+              "array": ["u8", 32]
+            }
+          },
+          {
+            "name": "brokerHash",
+            "type": {
+              "array": ["u8", 32]
+            }
+          },
+          {
+            "name": "tokenHash",
+            "type": {
+              "array": ["u8", 32]
+            }
+          },
+          {
+            "name": "tokenAmount",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u128"
+          },
+          {
+            "name": "chainId",
+            "type": "u128"
+          },
+          {
+            "name": "withdrawNonce",
+            "type": "u64"
           }
         ]
       }
@@ -973,10 +1255,7 @@
           {
             "name": "sender",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -986,10 +1265,7 @@
           {
             "name": "guid",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -999,126 +1275,6 @@
           {
             "name": "extraData",
             "type": "bytes"
-          }
-        ]
-      }
-    },
-    {
-      "name": "AccountWithdrawSol",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "sender",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "receiver",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "brokerHash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "tokenAmount",
-            "type": "u64"
-          },
-          {
-            "name": "fee",
-            "type": "u64"
-          },
-          {
-            "name": "chainId",
-            "type": "u64"
-          },
-          {
-            "name": "withdrawNonce",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "VaultWithdrawParams",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "accountId",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "sender",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "receiver",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "brokerHash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "tokenHash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "tokenAmount",
-            "type": "u64"
-          },
-          {
-            "name": "fee",
-            "type": "u128"
-          },
-          {
-            "name": "chainId",
-            "type": "u128"
-          },
-          {
-            "name": "withdrawNonce",
-            "type": "u64"
           }
         ]
       }
@@ -1145,11 +1301,11 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "accountList",
+            "name": "woofiProPda",
             "type": "publicKey"
           },
           {
-            "name": "usdcPda",
+            "name": "withdrawUsdcPda",
             "type": "publicKey"
           },
           {
@@ -1157,7 +1313,19 @@
             "type": "publicKey"
           },
           {
-            "name": "woofiProPda",
+            "name": "withdrawUsdtPda",
+            "type": "publicKey"
+          },
+          {
+            "name": "usdtMint",
+            "type": "publicKey"
+          },
+          {
+            "name": "withdrawWsolPda",
+            "type": "publicKey"
+          },
+          {
+            "name": "wsolMint",
             "type": "publicKey"
           }
         ]
@@ -1207,10 +1375,7 @@
           {
             "name": "peer",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           }
         ]
@@ -1264,37 +1429,25 @@
           {
             "name": "accountId",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "brokerHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "tokenHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "userAddress",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1326,21 +1479,9 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "brokerManagerRole",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
             "name": "brokerHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1358,10 +1499,7 @@
           {
             "name": "roleHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1397,25 +1535,13 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "tokenManagerRole",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
             "name": "mintAccount",
             "type": "publicKey"
           },
           {
             "name": "tokenHash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1453,6 +1579,50 @@
           {
             "name": "solChainId",
             "type": "u128"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SetWithdrawBrokerParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "brokerHash",
+            "type": {
+              "array": ["u8", 32]
+            }
+          },
+          {
+            "name": "brokerIndex",
+            "type": "u16"
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SetWithdrawTokenParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tokenHash",
+            "type": {
+              "array": ["u8", 32]
+            }
+          },
+          {
+            "name": "tokenIndex",
+            "type": "u8"
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
           }
         ]
       }
@@ -1515,6 +1685,12 @@
           },
           {
             "name": "InvalidAdminTokenAccount"
+          },
+          {
+            "name": "InvalidMessageType"
+          },
+          {
+            "name": "InvalidTokenIndex"
           }
         ]
       }
@@ -1547,10 +1723,7 @@
         {
           "name": "brokerHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         }
@@ -1562,10 +1735,7 @@
         {
           "name": "brokerHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         }
@@ -1577,10 +1747,7 @@
         {
           "name": "tokenHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
@@ -1597,16 +1764,113 @@
         {
           "name": "tokenHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "mintAccount",
           "type": "publicKey",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "SetWithdrawTokenIndex",
+      "fields": [
+        {
+          "name": "tokenIndex",
+          "type": "u8",
+          "index": false
+        },
+        {
+          "name": "tokenHash",
+          "type": {
+            "array": ["u8", 32]
+          },
+          "index": false
+        },
+        {
+          "name": "mintAccount",
+          "type": "publicKey",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "ResetWithdrawTokenIndex",
+      "fields": [
+        {
+          "name": "tokenIndex",
+          "type": "u8",
+          "index": false
+        },
+        {
+          "name": "tokenHash",
+          "type": {
+            "array": ["u8", 32]
+          },
+          "index": false
+        },
+        {
+          "name": "mintAccount",
+          "type": "publicKey",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "SetWithdrawBrokerEvent",
+      "fields": [
+        {
+          "name": "brokerHash",
+          "type": {
+            "array": ["u8", 32]
+          },
+          "index": false
+        },
+        {
+          "name": "brokerIndex",
+          "type": "u16",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "ResetWithdrawBrokerEvent",
+      "fields": [
+        {
+          "name": "brokerHash",
+          "type": {
+            "array": ["u8", 32]
+          },
+          "index": false
+        },
+        {
+          "name": "brokerIndex",
+          "type": "u16",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "SetManager",
+      "fields": [
+        {
+          "name": "roleHash",
+          "type": {
+            "array": ["u8", 32]
+          },
+          "index": false
+        },
+        {
+          "name": "managerAddress",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "allowed",
+          "type": "bool",
           "index": false
         }
       ]
@@ -1647,30 +1911,21 @@
         {
           "name": "accountId",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "receiver",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "receiverTokenAccount",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
@@ -1687,40 +1942,28 @@
         {
           "name": "accountId",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "brokerHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "userAddress",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "tokenHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
@@ -1747,50 +1990,35 @@
         {
           "name": "accountId",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "sender",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "receiver",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "brokerHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "tokenHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
@@ -1822,50 +2050,35 @@
         {
           "name": "accountId",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "sender",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "receiver",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "brokerHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
         {
           "name": "tokenHash",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
@@ -1892,15 +2105,77 @@
       ]
     },
     {
+      "name": "WithdrawSolFailed",
+      "fields": [
+        {
+          "name": "accountId",
+          "type": {
+            "array": ["u8", 32]
+          },
+          "index": false
+        },
+        {
+          "name": "sender",
+          "type": {
+            "array": ["u8", 32]
+          },
+          "index": false
+        },
+        {
+          "name": "receiver",
+          "type": {
+            "array": ["u8", 32]
+          },
+          "index": false
+        },
+        {
+          "name": "brokerHash",
+          "type": {
+            "array": ["u8", 32]
+          },
+          "index": false
+        },
+        {
+          "name": "tokenHash",
+          "type": {
+            "array": ["u8", 32]
+          },
+          "index": false
+        },
+        {
+          "name": "tokenAmount",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "fee",
+          "type": "u128",
+          "index": false
+        },
+        {
+          "name": "chainId",
+          "type": "u128",
+          "index": false
+        },
+        {
+          "name": "withdrawNonce",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "reason",
+          "type": "u8",
+          "index": false
+        }
+      ]
+    },
+    {
       "name": "OAppSent",
       "fields": [
         {
           "name": "guid",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
@@ -1917,10 +2192,7 @@
         {
           "name": "guid",
           "type": {
-            "array": [
-              "u8",
-              32
-            ]
+            "array": ["u8", 32]
           },
           "index": false
         },
@@ -1967,6 +2239,19 @@
       "code": 6006,
       "name": "ManagerRoleNotAllowed",
       "msg": "Manager role is not allowed"
+    },
+    {
+      "code": 6007,
+      "name": "ZeroDepositAmount",
+      "msg": "Deposit amount must be greater than zero"
+    },
+    {
+      "code": 6008,
+      "name": "InsufficientWithdrawAmount",
+      "msg": "Withdraw amount must be no less than withdraw fee"
     }
-  ]
+  ],
+  "metadata": {
+    "address": "EYJq9eU4GMRUriUJBgGoZ8YLQBXcWaciXuSsEXE7ieQS"
+  }
 }

@@ -25,6 +25,32 @@ pub struct ResetAllowedToken {
 }
 
 #[event]
+pub struct SetWithdrawTokenIndex {
+    pub token_index: u8,
+    pub token_hash: [u8; 32],
+    pub mint_account: Pubkey,
+}
+
+#[event]
+pub struct ResetWithdrawTokenIndex {
+    pub token_index: u8,
+    pub token_hash: [u8; 32],
+    pub mint_account: Pubkey,
+}
+
+#[event]
+pub struct SetWithdrawBrokerEvent {
+    pub broker_hash: [u8; 32],
+    pub broker_index: u16,
+}
+
+#[event]
+pub struct ResetWithdrawBrokerEvent {
+    pub broker_hash: [u8; 32],
+    pub broker_index: u16,
+}
+
+#[event]
 pub struct SetManager {
     pub role_hash: [u8; 32],
     pub manager_address: Pubkey,
@@ -132,6 +158,20 @@ impl From<VaultWithdrawParams> for FrozenWithdrawn {
             withdraw_nonce: account_withdraw_params.withdraw_nonce,
         }
     }
+}
+
+#[event]
+pub struct WithdrawSolFailed {
+    pub account_id: [u8; 32],
+    pub sender: [u8; 32],
+    pub receiver: [u8; 32],
+    pub broker_hash: [u8; 32],
+    pub token_hash: [u8; 32],
+    pub token_amount: u64,
+    pub fee: u128,
+    pub chain_id: u128,
+    pub withdraw_nonce: u64,
+    pub reason: u8,
 }
 
 // OApp events

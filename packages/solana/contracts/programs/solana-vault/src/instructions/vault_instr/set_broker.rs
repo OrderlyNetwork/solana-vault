@@ -1,6 +1,7 @@
+use crate::constants::BROKER_MANAGER_ROLE_HASH;
 use crate::errors::VaultError;
 use crate::events::{ResetAllowedBroker, SetAllowedBroker};
-use crate::instructions::{bytes32_to_hex, BROKER_SEED, ACCESS_CONTROL_SEED};
+use crate::instructions::{bytes32_to_hex, ACCESS_CONTROL_SEED, BROKER_SEED};
 use crate::state::{AllowedBroker, ManagerRole};
 use anchor_lang::prelude::*;
 
@@ -18,7 +19,7 @@ pub struct SetBroker<'info> {
     )]
     pub allowed_broker: Account<'info, AllowedBroker>,
     #[account(
-        seeds = [ACCESS_CONTROL_SEED, params.broker_manager_role.as_ref(), broker_manager.key().as_ref()],
+        seeds = [ACCESS_CONTROL_SEED, BROKER_MANAGER_ROLE_HASH.as_ref(), broker_manager.key().as_ref()],
         bump = manager_role.bump,
         constraint = manager_role.allowed == true @VaultError::ManagerRoleNotAllowed,
     )]
@@ -50,7 +51,6 @@ impl SetBroker<'_> {
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct SetBrokerParams {
-    pub broker_manager_role: [u8; 32],
     pub broker_hash: [u8; 32],
     pub allowed: bool,
 }

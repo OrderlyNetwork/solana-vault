@@ -16,6 +16,7 @@ pub struct InitOApp<'info> {
         bump
     )]
     pub oapp_config: Account<'info, OAppConfig>,
+    
     #[account(
         init,
         payer = payer,

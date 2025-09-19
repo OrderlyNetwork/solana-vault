@@ -13,12 +13,20 @@ import {
 import { confirmOptions } from './setup'
 
 import * as utils from '../scripts/utils'
-
+import fs from 'fs'
+import path from 'path'
 
 // constants
 
 export const USDC_SYMBOL = "USDC"
+export const USDT_SYMBOL = "USDT"
+export const WSOL_SYMBOL = "WSOL"
+export const SOL_SYMBOL = "SOL"
 export const WOOFI_PRO_BROKER_ID = "woofi_pro"
+const usdcKeyPath = path.resolve(__dirname, 'keys/usdc_mint.json');
+export const USDC_KEY = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(usdcKeyPath, 'utf8'))))
+const usdtKeyPath = path.resolve(__dirname, 'keys/usdt_mint.json');
+export const USDT_KEY = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(usdtKeyPath, 'utf8'))))
 export const LAYERZERO_ENDPOINT_PROGRAM_ID = new PublicKey('76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6')
 export const ORDERLY_EID = MainnetV2EndpointId.ORDERLY_V2_MAINNET
 export const SOLANA_EID = MainnetV2EndpointId.SOLANA_V2_MAINNET

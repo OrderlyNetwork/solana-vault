@@ -14,6 +14,7 @@ pub struct OAppQuote<'info> {
         bump = oapp_config.bump
     )]
     pub oapp_config: Account<'info, OAppConfig>,
+    
     #[account(
         seeds = [
             PEER_SEED,

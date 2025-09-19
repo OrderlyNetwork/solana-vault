@@ -17,6 +17,10 @@ pub enum VaultError {
     InvalidVaultOwner,
     #[msg("Manager role is not allowed")]
     ManagerRoleNotAllowed,
+    #[msg("Deposit amount must be greater than zero")]
+    ZeroDepositAmount,
+    #[msg("Withdraw amount must be no less than withdraw fee")]
+    InsufficientWithdrawAmount,
 }
 
 // OApp errors
@@ -32,4 +36,6 @@ pub enum OAppError {
     InvalidInboundNonce,
     InvalidReceiverTokenAccount,
     InvalidAdminTokenAccount,
+    InvalidMessageType,
+    InvalidTokenIndex,
 }
