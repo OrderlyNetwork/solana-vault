@@ -11,7 +11,7 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider)
 
 async function setBroker() {
     const multisig = utils.getMultisig(ENV)
-    const useMultisig = false
+    const useMultisig = true
     const allowedBrokerList = utils.getBrokerList(ENV)
 
     const brokerManager = useMultisig ? multisig : wallet.publicKey
@@ -55,61 +55,60 @@ async function setBroker() {
         console.log('Broker Id:', brokerId)
         const brokerHash = utils.getBrokerHash(brokerId)
         console.log('Broker Hash:', brokerHash)
-        const codedBrokerHash = Array.from(Buffer.from(brokerHash.slice(2), 'hex'))
-        const brokerPda = utils.getBrokerPda(OAPP_PROGRAM_ID, brokerHash)
-        console.log('BrokerPda', brokerPda.toBase58())
-
-        try {
-            const brokerStatus = await OAppProgram.account.allowedBroker.fetch(brokerPda)
-            if (brokerStatus.allowed) {
-                console.log('Broker already allowed')
-                continue
-            }
-        } catch (err) {
-            console.log('Broker PDA not exist')
-        }
-
-        const allowed = true
-        setBrokerParams.allowed = allowed
-        setBrokerParams.brokerHash = codedBrokerHash
-        setBrokerAccounts.allowedBroker = brokerPda
-        const ixSetBroker = await OAppProgram.methods
-            .setBroker(setBrokerParams)
-            .accounts(setBrokerAccounts)
-            .instruction()
-        console.log('setBrokerParams', setBrokerParams)
-        console.log('setBrokerAccounts', setBrokerAccounts)
-        txSetBroker.add(ixSetBroker)
-
-        console.log('Broker Id:', brokerId)
         const brokerIndex = constants.WITHDRAW_BROKER_INDEX[brokerId]
         if (brokerIndex === undefined) {
             throw new Error(`Broker Index not found for brokerId: ${brokerId}`)
         }
+        console.log('Broker Index:', brokerIndex)
+        const codedBrokerHash = Array.from(Buffer.from(brokerHash.slice(2), 'hex'))
+        const brokerPda = utils.getBrokerPda(OAPP_PROGRAM_ID, brokerHash)
+        // console.log('BrokerPda', brokerPda.toBase58())
+        const allowed = true
+
+        let brokerStatue = 0 // 0: deposit PDA allowed, 1: deposit PDA not exist,
+        let withdrawBrokerStatue = 0 // 0: withdraw PDA allowed, 1: withdraw PDA not exist
+        try {
+            const brokerStatus = await OAppProgram.account.allowedBroker.fetch(brokerPda)
+            if (brokerStatus.allowed) {
+                console.log('Broker already allowed')
+            }
+        } catch (err) {
+            console.log('Broker PDA not exist, setting deposit Broker PDA')
+            brokerStatue = 1
+
+            setBrokerParams.allowed = allowed
+            setBrokerParams.brokerHash = codedBrokerHash
+            setBrokerAccounts.allowedBroker = brokerPda
+            const ixSetBroker = await OAppProgram.methods
+                .setBroker(setBrokerParams)
+                .accounts(setBrokerAccounts)
+                .instruction()
+            // console.log('setBrokerParams', setBrokerParams)
+            // console.log('setBrokerAccounts', setBrokerAccounts)
+            txSetBroker.add(ixSetBroker)
+        }
+
         const withdrawBrokerPda = utils.getWithdrawBrokerPda(OAPP_PROGRAM_ID, brokerIndex)
         console.log('Withdraw BrokerPda', withdrawBrokerPda.toBase58())
 
         try {
             const brokerStatus = await OAppProgram.account.withdrawBroker.fetch(withdrawBrokerPda)
             if (brokerStatus.allowed) {
-                console.log('Broker already allowed')
-                continue
+                console.log('Wtihdraw Broker already allowed')
             }
         } catch (err) {
-            console.error(err)
-            console.log('Broker PDA not exist')
+            // console.error(err)
+            console.log('Broker PDA not exist, setting withdraw Broker PDA')
+            setWithdrawBrokerParams.allowed = allowed
+            setWithdrawBrokerParams.brokerHash = codedBrokerHash
+            setWithdrawBrokerParams.brokerIndex = brokerIndex
+            setWithdrawBrokerAccounts.withdrawBroker = withdrawBrokerPda
+            const ixSetWithdrawBroker = await OAppProgram.methods
+                .setWithdrawBroker(setWithdrawBrokerParams)
+                .accounts(setWithdrawBrokerAccounts)
+                .instruction()
+            txSetBroker.add(ixSetWithdrawBroker)
         }
-
-        setWithdrawBrokerParams.allowed = allowed
-        setWithdrawBrokerParams.brokerHash = codedBrokerHash
-        setWithdrawBrokerParams.brokerIndex = brokerIndex
-        setWithdrawBrokerAccounts.withdrawBroker = withdrawBrokerPda
-        const ixSetWithdrawBroker = await OAppProgram.methods
-            .setWithdrawBroker(setWithdrawBrokerParams)
-            .accounts(setWithdrawBrokerAccounts)
-            .instruction()
-
-        txSetBroker.add(ixSetWithdrawBroker)
     }
 
     if (useMultisig) {
@@ -117,12 +116,12 @@ async function setBroker() {
         const txBase58 = await utils.getBase58Tx(provider, wallet.publicKey, txSetBroker)
         console.log('txBase58 for set broker:\n', txBase58)
     } else {
-        console.log(`Setting up Broker ...`) // ${brokerId}
-        const sigSetBroker = await sendAndConfirmTransaction(provider.connection, txSetBroker, [wallet.payer], {
-            commitment: 'confirmed',
-            preflightCommitment: 'confirmed',
-        })
-        console.log('sigSetBroker', sigSetBroker)
+        // console.log(`Setting up Broker ...`) // ${brokerId}
+        // const sigSetBroker = await sendAndConfirmTransaction(provider.connection, txSetBroker, [wallet.payer], {
+        //     commitment: 'confirmed',
+        //     preflightCommitment: 'confirmed',
+        // })
+        // console.log('sigSetBroker', sigSetBroker)
     }
 }
 setBroker()

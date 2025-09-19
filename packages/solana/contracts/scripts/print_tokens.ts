@@ -24,16 +24,25 @@ async function printToken() {
 
         console.log('depositTokenPda: ', depositTokenPda.toString())
 
-        const depositTokenData = await OAppProgram.account.allowedToken.fetch(depositTokenPda)
-        console.log('depositTokenData: ')
-        console.log('  mint account: ', depositTokenData.mintAccount.toString())
-        console.log('  allowed status: ', depositTokenData.allowed)
-        console.log('  token decimals: ', depositTokenData.tokenDecimals)
-        console.log('withdrawTokenPda: ', withdrawTokenPda.toString())
-        const withdrawTokenData = await OAppProgram.account.withdrawToken.fetch(withdrawTokenPda)
-        console.log('withdrawTokenData: ')
-        console.log('  token index: ', withdrawTokenData.tokenIndex)
-        console.log('  mint account: ', withdrawTokenData.mintAccount.toString())
+        try {
+            const depositTokenData = await OAppProgram.account.allowedToken.fetch(depositTokenPda)
+            console.log('depositTokenData: ')
+            console.log('  mint account: ', depositTokenData.mintAccount.toString())
+            console.log('  allowed status: ', depositTokenData.allowed)
+            console.log('  token decimals: ', depositTokenData.tokenDecimals)
+            console.log('withdrawTokenPda: ', withdrawTokenPda.toString())
+        } catch (err) {
+            console.log('Deposit Token PDA not exist')
+        }
+
+        try {
+            const withdrawTokenData = await OAppProgram.account.withdrawToken.fetch(withdrawTokenPda)
+            console.log('withdrawTokenData: ')
+            console.log('  token index: ', withdrawTokenData.tokenIndex)
+            console.log('  mint account: ', withdrawTokenData.mintAccount.toString())
+        } catch (err) {
+            console.log('Withdraw Token PDA not exist')
+        }
     }
 }
 printToken()

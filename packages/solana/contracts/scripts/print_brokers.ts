@@ -13,6 +13,7 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider)
 
 async function printBroker() {
     const brokerList = utils.getBrokerList(ENV)
+    // const brokerList = ['ibx', 'trading_strategy']
     for (const brokerId of brokerList) {
         const brokerIndex = constants.WITHDRAW_BROKER_INDEX[brokerId]
         console.log('broker id: ', brokerId)
@@ -27,20 +28,24 @@ async function printBroker() {
 
             console.log('deposit broker data: ')
             console.log(' allowed status: ', depositBrokerData.allowed)
-            console.log(' broker index: ', brokerIndex)
+            // console.log(' broker index: ', brokerIndex)
         } catch (err) {
             console.log('Broker PDA not exist')
         }
 
-        // const witdhrawBrokerPda = utils.getWithdrawBrokerPda(OAPP_PROGRAM_ID, brokerIndex)
+        try {
+            const witdhrawBrokerPda = utils.getWithdrawBrokerPda(OAPP_PROGRAM_ID, brokerIndex)
 
-        // const withdrawBrokerData = await OAppProgram.account.withdrawBroker.fetch(witdhrawBrokerPda)
+            const withdrawBrokerData = await OAppProgram.account.withdrawBroker.fetch(witdhrawBrokerPda)
 
-        // console.log('withdraw broker pda: ', witdhrawBrokerPda.toString())
+            console.log('withdraw broker pda: ', witdhrawBrokerPda.toString())
 
-        // console.log('withdraw broker data: ')
-        // console.log('  allowed status: ', withdrawBrokerData.allowed)
-        // console.log('  broker index: ', withdrawBrokerData.brokerIndex)
+            console.log('withdraw broker data: ')
+            console.log('  allowed status: ', withdrawBrokerData.allowed)
+            console.log('  broker index: ', withdrawBrokerData.brokerIndex)
+        } catch (err) {
+            console.log('Withdraw Broker PDA not exist')
+        }
     }
 }
 printBroker()
