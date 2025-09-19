@@ -11,7 +11,7 @@ const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider)
 
 async function setWithdrawBroker() {
     const multisig = utils.getMultisig(ENV)
-    const useMultisig = true
+    const useMultisig = false
     const allowedBrokerList = utils.getBrokerList(ENV)
 
     const brokerManager = useMultisig ? multisig : wallet.publicKey
