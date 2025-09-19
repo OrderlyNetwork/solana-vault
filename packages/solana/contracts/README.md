@@ -74,13 +74,46 @@ Resume the buffer deployment, please run the following command:
 solana program write-buffer ./target/deploy/solana_vault.so --buffer BUFFER_ADDRESS --buffer-authority ~/.config/solana/id.json
 ```
 
+### Extend
+After deployed the buffer program, we should check if the buffer program exceeds the size of the target program. If yes, then we have to extend the target program to write from the buffer program.
+
+```
+# Check the size of the buffer program
+solana program show BUFFER
+Buffer Address: 4p4PusQvXfefJkymX9dENbU38T8EGqUKB42jSSHHZ65n
+Authority: Zions51qQNUgWNyp4JegUFoMUpgFx43jBUsYmHtDPdr
+Balance: 5.92544472 SOL
+Data Length: 851184 (0xcfcf0) bytes
+
+# Check the size of the target program
+solana program show PROGRAM_ID
+Program Id: 9shwxWDUNhtwkHocsUAmrNAQfBH2DHh4njdAEdHZZkF2
+Owner: BPFLoaderUpgradeab1e11111111111111111111111
+ProgramData Address: ASggmBVnEvKPPQUhXXr41QWo6UTgQEJ4eB9xs9J4zeYa
+Authority: 48usEusxMDBxpjLkyrarHupqodAfxXyoaLDVNDJFvkME
+Last Deployed In Slot: 367023781
+Data Length: 725632 (0xb1280) bytes
+Balance: 5.0516028 SOL
+
+# Extend the target program
+solana program extend PROGRAM_ID 125552
+```
+
 ### Init and Upgrade IDL
 
 To init the IDL, please run the following command:
 
 ```
 anchor idl init --filepath target/idl/solana_vault.json PROGRAM_ID
-anchor idl upgrade --filepath target/idl/solana_vault.json PROGRAM_ID            
+anchor idl upgrade --filepath target/idl/solana_vault.json PROGRAM_ID
+```
+
+### Anchor Test
+
+To run the anchor test, please change the cluster to `localnet` in the `Anchor.toml` file, and run the following command:
+
+```
+anchor test
 ```
 
 ## Setup

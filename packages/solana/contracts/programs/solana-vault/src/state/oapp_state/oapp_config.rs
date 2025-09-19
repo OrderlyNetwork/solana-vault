@@ -50,8 +50,11 @@ pub struct OAppLzReceiveTypesAccounts {
 #[derive(InitSpace)]
 pub struct AccountList {
     pub bump: u8,
-    pub usdc_pda: Pubkey,
-    pub usdc_mint: Pubkey,
     pub woofi_pro_pda: Pubkey,
-    // can add more pda accounts here in the future with different seeds
+    pub withdraw_usdc_pda: Pubkey,
+    pub usdc_mint: Pubkey,
+    pub withdraw_usdt_pda: Pubkey,
+    pub usdt_mint: Pubkey,
+    pub withdraw_wsol_pda: Pubkey,
+    pub wsol_mint: Pubkey,
 }

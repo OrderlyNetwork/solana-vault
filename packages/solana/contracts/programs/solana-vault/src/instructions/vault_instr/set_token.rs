@@ -1,3 +1,4 @@
+use crate::constants::TOKEN_MANAGER_ROLE_HASH;
 use crate::errors::VaultError;
 use crate::events::{ResetAllowedToken, SetAllowedToken};
 use crate::instructions::{bytes32_to_hex, ACCESS_CONTROL_SEED, TOKEN_SEED};
@@ -19,7 +20,7 @@ pub struct SetToken<'info> {
     )]
     pub allowed_token: Account<'info, AllowedToken>,
     #[account(
-        seeds = [ACCESS_CONTROL_SEED, params.token_manager_role.as_ref(), token_manager.key().as_ref()],
+        seeds = [ACCESS_CONTROL_SEED, TOKEN_MANAGER_ROLE_HASH.as_ref(), token_manager.key().as_ref()],
         bump = manager_role.bump,
         constraint = manager_role.allowed == true @VaultError::ManagerRoleNotAllowed,
     )]
@@ -56,7 +57,6 @@ impl SetToken<'_> {
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct SetTokenParams {
-    pub token_manager_role: [u8; 32],
     pub mint_account: Pubkey,
     pub token_hash: [u8; 32],
     pub allowed: bool,

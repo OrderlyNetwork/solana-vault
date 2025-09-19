@@ -20,7 +20,7 @@ const [provider, wallet, rpc] = utils.setAnchor()
 const ENV = utils.getEnv()
 const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider)
 
-async function deposit() {
+async function depositSol() {
     console.log('Setting up Vault...')
     const lookupTableList = utils.printPda(OAPP_PROGRAM_ID, wallet, rpc, ENV)
     const senderAddress = wallet.publicKey
@@ -30,16 +30,13 @@ async function deposit() {
     const receiverAddress = new PublicKey('9TJTNxsieXTSWebMRb5KbMiDDwfLJAeWa76NcPjbao42')
 
     // const receiverAddress = senderAddress;
-    const depositTokenSymbol = 'SOL'
-    const tokenAddress = utils.getTokenAddress(ENV, depositTokenSymbol)
-    const userTokenAccount = utils.getSPLTokenAccount(tokenAddress, senderAddress)
-    console.log('💶 User Token Account', userTokenAccount.toBase58())
+    const depositTokenSymbol = 'USDT'
 
     const vaultAuthorityPda = utils.getVaultAuthorityPda(OAPP_PROGRAM_ID)
     console.log('🔑 Vault Deposit Authority PDA:', vaultAuthorityPda.toBase58())
 
-    const vaultTokenAccount = await utils.getSPLTokenAccount(tokenAddress, vaultAuthorityPda)
-    console.log('💶 Vault Token Account', vaultTokenAccount.toBase58())
+    // const vaultTokenAccount = await utils.getSPLTokenAccount(tokenAddress, vaultAuthorityPda);
+    // console.log("💶 Vault Token Account", vaultTokenAccount.toBase58());
 
     const brokerId = 'woofi_pro'
     const brokerHash = utils.getBrokerHash(brokerId)
@@ -53,12 +50,12 @@ async function deposit() {
     console.log('Sol Account Id:', solAccountId)
     const codedAccountId = Array.from(Buffer.from(solAccountId.slice(2), 'hex'))
 
-    const depositParams = {
+    const depositSolParams = {
         accountId: codedAccountId,
         brokerHash: codedBrokerHash,
         tokenHash: codedTokenHash,
         userAddress: Array.from(receiverAddress.toBuffer()),
-        tokenAmount: new anchor.BN(1_000_000),
+        tokenAmount: new anchor.BN(100_000_000),
     }
 
     const allowedBrokerPda = utils.getBrokerPda(OAPP_PROGRAM_ID, brokerHash)
@@ -70,7 +67,7 @@ async function deposit() {
     const peerPda = lookupTableList[2]
     const enforcedOptionsPda = lookupTableList[5]
     const { nativeFee, lzTokenFee } = await OAppProgram.methods
-        .oappQuote(depositParams)
+        .oappQuote(depositSolParams)
         .accounts({
             oappConfig: oappConfigPda,
             peer: peerPda,
@@ -88,13 +85,13 @@ async function deposit() {
         lzTokenFee: new anchor.BN(0),
     }
     const depositRemainingAccounts = utils.getDepositRemainingAccounts(OAPP_PROGRAM_ID, ENV, wallet)
+    const solVaultPda = utils.getSolVaultPda(OAPP_PROGRAM_ID)
+    console.log('Sol Vault PDA:', solVaultPda.toBase58())
     const ixDepositEntry = await OAppProgram.methods
-        .deposit(depositParams, sendParam)
+        .depositSol(depositSolParams, sendParam)
         .accounts({
-            userTokenAccount: userTokenAccount,
+            solVault: solVaultPda,
             vaultAuthority: vaultAuthorityPda,
-            vaultTokenAccount: vaultTokenAccount,
-            depositToken: tokenAddress,
             user: wallet.publicKey,
             peer: lookupTableList[2],
             enforcedOptions: lookupTableList[5],
@@ -106,8 +103,8 @@ async function deposit() {
         .instruction()
     // await utils.delay(ENV)
     // const ixAddComputeBudget = ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 })
-    // console.log('vaultTokenAccount:', vaultTokenAccount)
-    // console.log('Deposit Entry:')
+
+    // console.log('Deposit Sol Entry:')
 
     // const computeBudgetIx = ComputeBudgetProgram.setComputeUnitPrice({
     //     microLamports: 40000, // set the total priority fee
@@ -125,4 +122,4 @@ async function deposit() {
     // console.log('Explorer Link:', utils.getExplorerTxLink(sigSend))
 }
 
-deposit()
+depositSol()
