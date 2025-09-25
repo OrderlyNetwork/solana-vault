@@ -67,13 +67,14 @@ async function setBroker() {
 
         let brokerStatue = 0 // 0: deposit PDA allowed, 1: deposit PDA not exist,
         let withdrawBrokerStatue = 0 // 0: withdraw PDA allowed, 1: withdraw PDA not exist
+
         try {
             const brokerStatus = await OAppProgram.account.allowedBroker.fetch(brokerPda)
             if (brokerStatus.allowed) {
                 console.log('Broker already allowed')
             }
         } catch (err) {
-            console.log('Broker PDA not exist, setting deposit Broker PDA')
+            console.log('Deposit Broker PDA not exist, setting deposit Broker PDA')
             brokerStatue = 1
 
             setBrokerParams.allowed = allowed
@@ -83,22 +84,25 @@ async function setBroker() {
                 .setBroker(setBrokerParams)
                 .accounts(setBrokerAccounts)
                 .instruction()
-            // console.log('setBrokerParams', setBrokerParams)
-            // console.log('setBrokerAccounts', setBrokerAccounts)
+
             txSetBroker.add(ixSetBroker)
         }
 
         const withdrawBrokerPda = utils.getWithdrawBrokerPda(OAPP_PROGRAM_ID, brokerIndex)
-        console.log('Withdraw BrokerPda', withdrawBrokerPda.toBase58())
 
         try {
             const brokerStatus = await OAppProgram.account.withdrawBroker.fetch(withdrawBrokerPda)
-            if (brokerStatus.allowed) {
+            if (
+                brokerStatus.allowed &&
+                brokerStatus.brokerIndex == brokerIndex &&
+                Buffer.from(brokerStatus.brokerHash as any).toString('hex') == brokerHash.slice(2)
+            ) {
                 console.log('Wtihdraw Broker already allowed')
+            } else {
+                throw new Error('Withdraw Broker PDA not configured, setting withdraw Broker PDA')
             }
         } catch (err) {
-            // console.error(err)
-            console.log('Broker PDA not exist, setting withdraw Broker PDA')
+            console.log('Broker PDA not exist or configured error, setting withdraw Broker PDA')
             setWithdrawBrokerParams.allowed = allowed
             setWithdrawBrokerParams.brokerHash = codedBrokerHash
             setWithdrawBrokerParams.brokerIndex = brokerIndex

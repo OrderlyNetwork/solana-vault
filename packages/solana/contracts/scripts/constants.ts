@@ -191,6 +191,8 @@ export const STAGING_BROKERS = [
     // 'pnut',
     // 'perpx',
     'tako',
+    'app98',
+    'baby_doge',
 ]
 export const MAIN_BROKERS = [
     // // 'woofi_dex', //index 1:  not support on mainnet
@@ -447,6 +449,8 @@ export const WITHDRAW_BROKER_INDEX = {
     pnut: 118,
     perpx: 119,
     tako: 120,
+    app98: 121,
+    baby_doge: 122,
 }
 
 export const TOKEN_DECIMALS = {
