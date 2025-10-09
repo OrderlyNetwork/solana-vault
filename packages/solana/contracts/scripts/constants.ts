@@ -68,7 +68,7 @@ export const QA_LOOKUP_TABLE_ADDRESS = new PublicKey('BswrQQoPKAFojTuJutZcBMtigA
 export const STAGING_LOOKUP_TABLE_ADDRESS = new PublicKey('BbGKfxuPwDmu58BjPpd7PMG69TqnZjSpKaLDMgf9E9Dr')
 export const MAIN_LOOKUP_TABLE_ADDRESS = new PublicKey('8iq7xCQt3bLdRRn4A46d5GuaXYinBoiAhbe2sUmZVzwg')
 
-export const DEV_BROKERS = ['woofi_dex', 'root', 'orderly', 'woofi_pro', 'busywhale', '0xfin'] // , 'hyperx', 'ranger'
+export const DEV_BROKERS = ['baby_doge', 'app988'] // , 'woofi_dex', 'root', 'orderly', 'woofi_pro', 'busywhale', '0xfin'
 export const QA_BROKERS = ['pnut', 'perpx'] // 'woofi_dex', 'root', 'orderly', 'woofi_pro', 'busywhale', '0xfin',
 export const STAGING_BROKERS = [
     // 'woofi_dex',
@@ -450,6 +450,7 @@ export const WITHDRAW_BROKER_INDEX = {
     perpx: 119,
     tako: 120,
     app98: 121,
+    app988: 121,
     baby_doge: 122,
 }
 
