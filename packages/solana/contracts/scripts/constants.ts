@@ -63,6 +63,9 @@ export const QA_MULTISIG = new PublicKey('2WG7UG81NsutAzKDpJp6ZepEisMKrXS9XvMVPh
 export const STAGING_MULTISIG = new PublicKey('48usEusxMDBxpjLkyrarHupqodAfxXyoaLDVNDJFvkME')
 export const MAIN_MULTISIG = new PublicKey('6aQHPsgaSxCGwf1uAVetEmzuz9bpv9Rn4bq9jTg91RH8')
 
+export const STAGING_TS_MULTISIG = new PublicKey('4XUsWf5Q93rwqbcKozbogBmEhdgZWBshbc5cdREWftrE')
+export const MAIN_TS_MULTISIG = new PublicKey('DPh7d8t2cdYtvEiFdzWhzGrjkhxFgu1FCKcXUBCkGKfL')
+
 export const DEV_LOOKUP_TABLE_ADDRESS = new PublicKey('BWp8HaYYhiNHekt3zgQhqoCrRftneGxxfgKmCZ6svHN')
 export const QA_LOOKUP_TABLE_ADDRESS = new PublicKey('BswrQQoPKAFojTuJutZcBMtigAgTghEH4M8ofn3EG2X2')
 export const STAGING_LOOKUP_TABLE_ADDRESS = new PublicKey('BbGKfxuPwDmu58BjPpd7PMG69TqnZjSpKaLDMgf9E9Dr')
@@ -193,6 +196,7 @@ export const STAGING_BROKERS = [
     'tako',
     'app98',
     'baby_doge',
+    'test_broker',
 ]
 export const MAIN_BROKERS = [
     // // 'woofi_dex', //index 1:  not support on mainnet
@@ -452,6 +456,7 @@ export const WITHDRAW_BROKER_INDEX = {
     app98: 121,
     app988: 121,
     baby_doge: 122,
+    test_broker: 123,
 }
 
 export const TOKEN_DECIMALS = {
