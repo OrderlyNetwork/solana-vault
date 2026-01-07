@@ -3,7 +3,7 @@ use crate::errors::{OAppError, VaultError};
 use crate::events::{CreatedATA, FrozenWithdrawn, VaultWithdrawn, WithdrawSolFailed};
 use crate::instructions::{AccountWithdrawSol, OAppLzReceiveParams, VaultWithdrawParams};
 use crate::instructions::{
-    LzMessage, MsgType, BROKER_SEED, OAPP_SEED, PEER_SEED, SOL_VAULT_SEED, TOKEN_SEED,
+    LzMessage, WithdrawType, BROKER_SEED, OAPP_SEED, PEER_SEED, SOL_VAULT_SEED, TOKEN_SEED,
     VAULT_AUTHORITY_SEED,
 };
 use crate::state::{OAppConfig, Peer, VaultAuthority, WithdrawBroker, WithdrawToken};
@@ -125,7 +125,7 @@ impl<'info> OAppLzReceive<'info> {
 
         let lz_message = LzMessage::decode(&params.message).unwrap();
         msg!("msg_type: {:?}", lz_message.msg_type);
-        if lz_message.msg_type == MsgType::Withdraw as u8 {
+        if (lz_message.msg_type == WithdrawType::FromEvmSender as u8) || (lz_message.msg_type == WithdrawType::FromSolSender as u8) {
             let withdraw_params = AccountWithdrawSol::decode_packed(&lz_message.payload).unwrap();
 
             let token_index = withdraw_params.token_index;
@@ -136,8 +136,10 @@ impl<'info> OAppLzReceive<'info> {
             let amount_to_transfer = withdraw_params.token_amount - withdraw_params.fee;
             let vault_withdraw_params: VaultWithdrawParams = withdraw_params
                 .to_vault_withdraw_params(
+                    lz_message.msg_type,
                     ctx.accounts.withdraw_broker_pda.broker_hash,
-                    ctx.accounts.withdraw_token_pda.token_hash,
+                    ctx.accounts.withdraw_token_pda.token_hash
+                    
                 );
 
             if token_index == TOKEN_INDEX_SOL {
@@ -176,6 +178,7 @@ impl<'info> OAppLzReceive<'info> {
                 } else {
                     emit!(WithdrawSolFailed {
                         account_id: vault_withdraw_params.account_id,
+                        sender_chain_type: vault_withdraw_params.sender_chain_type,
                         sender: vault_withdraw_params.sender,
                         receiver: vault_withdraw_params.receiver,
                         broker_hash: vault_withdraw_params.broker_hash,
@@ -244,7 +247,7 @@ impl<'info> OAppLzReceive<'info> {
                 }
             }
         } else {
-            msg!("Invalid message type: {:?}", lz_message.msg_type);
+            return Err(OAppError::InvalidMessageType.into());
         }
 
         Ok(())

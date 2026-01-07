@@ -329,7 +329,8 @@ export const MAIN_BROKERS = [
     // 'whalex',
     // 'pnut',
     // 'perpx',
-    'tako',
+    // 'tako',
+    'clutch-markets'
 ]
 
 export const WITHDRAW_BROKER_INDEX = {
@@ -457,6 +458,7 @@ export const WITHDRAW_BROKER_INDEX = {
     app988: 121,
     baby_doge: 122,
     test_broker: 123,
+    'clutch-markets': 150
 }
 
 export const TOKEN_DECIMALS = {

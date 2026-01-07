@@ -105,6 +105,7 @@ impl From<VaultDepositParams> for VaultDeposited {
 #[event]
 pub struct VaultWithdrawn {
     pub account_id: [u8; 32],
+    pub sender_chain_type: u8,
     pub sender: [u8; 32],
     pub receiver: [u8; 32],
     pub broker_hash: [u8; 32],
@@ -119,6 +120,7 @@ impl From<VaultWithdrawParams> for VaultWithdrawn {
     fn from(account_withdraw_params: VaultWithdrawParams) -> VaultWithdrawn {
         VaultWithdrawn {
             account_id: account_withdraw_params.account_id,
+            sender_chain_type: account_withdraw_params.sender_chain_type,
             sender: account_withdraw_params.sender,
             receiver: account_withdraw_params.receiver,
             broker_hash: account_withdraw_params.broker_hash,
@@ -134,6 +136,7 @@ impl From<VaultWithdrawParams> for VaultWithdrawn {
 #[event]
 pub struct FrozenWithdrawn {
     pub account_id: [u8; 32],
+    pub sender_chain_type: u8,
     pub sender: [u8; 32],
     pub receiver: [u8; 32],
     pub broker_hash: [u8; 32],
@@ -148,6 +151,7 @@ impl From<VaultWithdrawParams> for FrozenWithdrawn {
     fn from(account_withdraw_params: VaultWithdrawParams) -> FrozenWithdrawn {
         FrozenWithdrawn {
             account_id: account_withdraw_params.account_id,
+            sender_chain_type: account_withdraw_params.sender_chain_type,
             sender: account_withdraw_params.sender,
             receiver: account_withdraw_params.receiver,
             broker_hash: account_withdraw_params.broker_hash,
@@ -163,6 +167,7 @@ impl From<VaultWithdrawParams> for FrozenWithdrawn {
 #[event]
 pub struct WithdrawSolFailed {
     pub account_id: [u8; 32],
+    pub sender_chain_type: u8,
     pub sender: [u8; 32],
     pub receiver: [u8; 32],
     pub broker_hash: [u8; 32],
