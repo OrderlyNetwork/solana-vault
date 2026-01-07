@@ -27,10 +27,13 @@ async function depositSol() {
     // flag: 9TJTNxsieXTSWebMRb5KbMiDDwfLJAeWa76NcPjbao42,
     // tony: 9aFZUMoeVRvUnaE34RsHxpcJXvFMPPSWrG3QDNm6Sskf,
     // eric: 4NQEN28HJgWSRKeXB6Apcz6Fn9GHEH1f4Qjhpf4Vwy6B, 7aabN75pTupDnFRWmMQwrgprn1uLVdAr7tzP61yKbGwD
-    const receiverAddress = new PublicKey('9TJTNxsieXTSWebMRb5KbMiDDwfLJAeWa76NcPjbao42')
+    // receiver key of evm address after zeropadding with base58 encoded
+    // const receiverAddress = new PublicKey('1111111111113MVoFVj55sqEY5iN8L3vHMrKzybA')
 
-    // const receiverAddress = senderAddress;
-    const depositTokenSymbol = 'USDT'
+    // const receiverAddress = new PublicKey('1111111111113MVoFVj55sqEY5iN8L3vHMrKzybA')
+
+    const receiverAddress = senderAddress;
+    const depositTokenSymbol = 'SOL'
 
     const vaultAuthorityPda = utils.getVaultAuthorityPda(OAPP_PROGRAM_ID)
     console.log('🔑 Vault Deposit Authority PDA:', vaultAuthorityPda.toBase58())
@@ -101,25 +104,25 @@ async function depositSol() {
         })
         .remainingAccounts(depositRemainingAccounts)
         .instruction()
-    // await utils.delay(ENV)
-    // const ixAddComputeBudget = ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 })
+    await utils.delay(ENV)
+    const ixAddComputeBudget = ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 })
 
-    // console.log('Deposit Sol Entry:')
+    console.log('Deposit Sol Entry:')
 
-    // const computeBudgetIx = ComputeBudgetProgram.setComputeUnitPrice({
-    //     microLamports: 40000, // set the total priority fee
-    // })
+    const computeBudgetIx = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: 40000, // set the total priority fee
+    })
 
-    // const sigSend = await utils.createAndSendV0TxWithTable(
-    //     [ixDepositEntry, ixAddComputeBudget, computeBudgetIx],
-    //     provider,
-    //     wallet,
-    //     lookupTableList,
-    //     ENV
-    // )
+    const sigSend = await utils.createAndSendV0TxWithTable(
+        [ixDepositEntry, ixAddComputeBudget, computeBudgetIx],
+        provider,
+        wallet,
+        lookupTableList,
+        ENV
+    )
 
-    // console.log('LayerZero Scan Link:', utils.getLayerZeroScanLink(sigSend))
-    // console.log('Explorer Link:', utils.getExplorerTxLink(sigSend))
+    console.log('LayerZero Scan Link:', utils.getLayerZeroScanLink(sigSend))
+    console.log('Explorer Link:', utils.getExplorerTxLink(sigSend))
 }
 
 depositSol()

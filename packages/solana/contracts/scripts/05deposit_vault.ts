@@ -27,10 +27,10 @@ async function deposit() {
     // flag: 9TJTNxsieXTSWebMRb5KbMiDDwfLJAeWa76NcPjbao42,
     // tony: 9aFZUMoeVRvUnaE34RsHxpcJXvFMPPSWrG3QDNm6Sskf,
     // eric: 4NQEN28HJgWSRKeXB6Apcz6Fn9GHEH1f4Qjhpf4Vwy6B, 7aabN75pTupDnFRWmMQwrgprn1uLVdAr7tzP61yKbGwD
-    const receiverAddress = new PublicKey('9TJTNxsieXTSWebMRb5KbMiDDwfLJAeWa76NcPjbao42')
+    // const receiverAddress = new PublicKey('9TJTNxsieXTSWebMRb5KbMiDDwfLJAeWa76NcPjbao42')
 
-    // const receiverAddress = senderAddress;
-    const depositTokenSymbol = 'SOL'
+    const receiverAddress = senderAddress;
+    const depositTokenSymbol = 'USDC'
     const tokenAddress = utils.getTokenAddress(ENV, depositTokenSymbol)
     const userTokenAccount = utils.getSPLTokenAccount(tokenAddress, senderAddress)
     console.log('💶 User Token Account', userTokenAccount.toBase58())
@@ -58,7 +58,7 @@ async function deposit() {
         brokerHash: codedBrokerHash,
         tokenHash: codedTokenHash,
         userAddress: Array.from(receiverAddress.toBuffer()),
-        tokenAmount: new anchor.BN(1_000_000),
+        tokenAmount: new anchor.BN(5_000_000),
     }
 
     const allowedBrokerPda = utils.getBrokerPda(OAPP_PROGRAM_ID, brokerHash)
@@ -104,25 +104,25 @@ async function deposit() {
         })
         .remainingAccounts(depositRemainingAccounts)
         .instruction()
-    // await utils.delay(ENV)
-    // const ixAddComputeBudget = ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 })
-    // console.log('vaultTokenAccount:', vaultTokenAccount)
-    // console.log('Deposit Entry:')
+    await utils.delay(ENV)
+    const ixAddComputeBudget = ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 })
+    console.log('vaultTokenAccount:', vaultTokenAccount)
+    console.log('Deposit Entry:')
 
-    // const computeBudgetIx = ComputeBudgetProgram.setComputeUnitPrice({
-    //     microLamports: 40000, // set the total priority fee
-    // })
+    const computeBudgetIx = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: 40000, // set the total priority fee
+    })
 
-    // const sigSend = await utils.createAndSendV0TxWithTable(
-    //     [ixDepositEntry, ixAddComputeBudget, computeBudgetIx],
-    //     provider,
-    //     wallet,
-    //     lookupTableList,
-    //     ENV
-    // )
+    const sigSend = await utils.createAndSendV0TxWithTable(
+        [ixDepositEntry, ixAddComputeBudget, computeBudgetIx],
+        provider,
+        wallet,
+        lookupTableList,
+        ENV
+    )
 
-    // console.log('LayerZero Scan Link:', utils.getLayerZeroScanLink(sigSend))
-    // console.log('Explorer Link:', utils.getExplorerTxLink(sigSend))
+    console.log('LayerZero Scan Link:', utils.getLayerZeroScanLink(sigSend))
+    console.log('Explorer Link:', utils.getExplorerTxLink(sigSend))
 }
 
 deposit()
