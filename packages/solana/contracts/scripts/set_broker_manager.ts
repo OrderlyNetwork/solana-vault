@@ -13,8 +13,9 @@ async function setBrokerManagerRole() {
     console.log('Setting up Broker Manager Role...')
     const multisig = utils.getMultisig(ENV)
     const useMultisig = true
-    const brokerManager = wallet.publicKey
-    // const brokerManager = new PublicKey('9EKPBUT3wCb8cHDsu3eUWZPhKkQsYqRq8YED6GWjZ8Vx')
+    // const brokerManager = wallet.publicKey
+    // const brokerManager = new PublicKey('9EKPBUT3wCb8cHDsu3eUWZPhKkQsYqRq8YED6GWjZ8Vx') // mario
+    const brokerManager = new PublicKey('4XUsWf5Q93rwqbcKozbogBmEhdgZWBshbc5cdREWftrE') // ts squads
     const brokerManagerRole = utils.getManagerRoleHash(constants.BROKER_MANAGER_ROLE)
     const codedBrokerManagerRole = Array.from(Buffer.from(brokerManagerRole.slice(2), 'hex'))
     const brokerManagerRolePda = utils.getManagerRolePdaWithBuf(OAPP_PROGRAM_ID, codedBrokerManagerRole, brokerManager)
@@ -22,7 +23,7 @@ async function setBrokerManagerRole() {
     const setManagerRoleParams = {
         roleHash: codedBrokerManagerRole,
         managerAddress: brokerManager,
-        allowed: false,
+        allowed: true,
     }
     console.log('setManagerRoleParams', setManagerRoleParams)
     const setManagerRoleAccounts = {

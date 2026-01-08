@@ -1663,21 +1663,6 @@ describe('Test OAPP messaging', function () {
             peerAddress,
             DST_EID
         )
-        await setup.commitVerify(
-            wallet,
-            endpointAdmin,
-            solanaVault,
-            endpointProgram,
-            ulnProgram,
-            nonce,
-            msg,
-            msgSender,
-            peerAddress,
-            DST_EID,
-            SOLANA_EID,
-            guid
-        )
-
         params = {
             srcEid: DST_EID,
             sender: Array.from(msgSender.toBytes()),
@@ -1701,6 +1686,59 @@ describe('Test OAPP messaging', function () {
             solVault: solVaultPda,
             tokenProgram: TOKEN_PROGRAM_ID,
         }
+        console.log("🥷 Try to withdraw invalid type of withdrawal")
+        try {
+            
+            const invalidWithdrawType = helper.encodeMessage(2, payload)
+            await setup.commitVerify(
+                wallet,
+                endpointAdmin,
+                solanaVault,
+                endpointProgram,
+                ulnProgram,
+                nonce,
+                invalidWithdrawType,
+                msgSender,
+                peerAddress,
+                DST_EID,
+                SOLANA_EID,
+                guid
+                )
+            params.message = invalidWithdrawType
+
+            await setup.lzReceive(
+                wallet.payer,
+                solanaVault,
+                endpointProgram,
+                ulnProgram,
+                nonce,
+                params,
+                accounts,
+                msgSender,
+                peerAddress,
+                ORDERLY_EID,
+                SOLANA_EID
+            )
+            
+        } catch(e) {
+            assert.equal(e.error.errorCode.code, 'InvalidMessageType')
+            console.log('✅ Failed to withdraw invalid type')
+            params.message = msg
+        }
+        await setup.commitVerify(
+            wallet,
+            endpointAdmin,
+            solanaVault,
+            endpointProgram,
+            ulnProgram,
+            nonce,
+            msg,
+            msgSender,
+            peerAddress,
+            DST_EID,
+            SOLANA_EID,
+            guid
+        )
 
         prevVaultSOLBalance = await provider.connection.getBalance(solVaultPda)
 

@@ -1092,6 +1092,16 @@ export function getMultisig(ENV: String) {
     }
 }
 
+export function getTsMultisig(ENV: String) {
+    if (ENV == 'STAGING') {
+        return constants.STAGING_TS_MULTISIG
+    } else if (ENV == 'MAIN') {
+        return constants.MAIN_TS_MULTISIG
+    } else {
+        throw new Error('Invalid Environment for TS Multisig')
+    }
+}
+
 export async function delay(ENV: String) {
     if (ENV === 'MAIN') {
         // sleep for 5 seconds to wait for the lookup table to be updated

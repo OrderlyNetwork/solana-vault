@@ -10,6 +10,11 @@ pub enum MsgType {
     RebalanceMint,
 }
 
+pub enum WithdrawType {
+    FromEvmSender,
+    FromSolSender
+}
+
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct VaultDepositParams {
     pub account_id: [u8; 32],
@@ -59,7 +64,7 @@ impl LzMessage {
 
     pub fn decode_withdraw_params(encoded: &[u8]) -> Result<AccountWithdrawSol> {
         let message = LzMessage::decode(encoded)?;
-        if message.msg_type == MsgType::Withdraw as u8 {
+        if (message.msg_type == WithdrawType::FromEvmSender as u8 )|| (message.msg_type == WithdrawType::FromSolSender as u8) {
             let withdraw_params = AccountWithdrawSol::decode_packed(&message.payload)?;
             return Ok(withdraw_params);
         } else {
@@ -69,7 +74,7 @@ impl LzMessage {
 
     pub fn get_token_index(encoded: &[u8]) -> Result<u8> {
         let message = LzMessage::decode(encoded)?;
-        if message.msg_type == MsgType::Withdraw as u8 {
+        if (message.msg_type == WithdrawType::FromEvmSender as u8 )|| (message.msg_type == WithdrawType::FromSolSender as u8) {
             let withdraw_params = AccountWithdrawSol::decode_packed(&message.payload)?;
             return Ok(withdraw_params.token_index);
         } else {
@@ -79,7 +84,7 @@ impl LzMessage {
 
     pub fn get_broker_index(encoded: &[u8]) -> Result<u16> {
         let message = LzMessage::decode(encoded)?;
-        if message.msg_type == MsgType::Withdraw as u8 {
+        if (message.msg_type == WithdrawType::FromEvmSender as u8 )|| (message.msg_type == WithdrawType::FromSolSender as u8) {
             let withdraw_params = AccountWithdrawSol::decode_packed(&message.payload)?;
             return Ok(withdraw_params.broker_index);
         } else {
@@ -89,18 +94,19 @@ impl LzMessage {
 
     pub fn get_receiver_address(encoded: &[u8]) -> Result<Pubkey> {
         let message = LzMessage::decode(encoded)?;
-        if message.msg_type == MsgType::Withdraw as u8 {
+        if (message.msg_type == WithdrawType::FromEvmSender as u8 )|| (message.msg_type == WithdrawType::FromSolSender as u8) {
             let withdraw_params = AccountWithdrawSol::decode_packed(&message.payload)?;
             return Ok(Pubkey::new_from_array(withdraw_params.receiver));
         } else {
             return Err(OAppError::InvalidMessageType.into());
         }
     }
+
+    
 }
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct AccountWithdrawSol {
-    // pub account_id: [u8; 32],
     pub sender: [u8; 32],
     pub receiver: [u8; 32],
     pub broker_index: u16,
@@ -118,7 +124,7 @@ impl AccountWithdrawSol {
         let message = LzMessage::decode(encoded)?;
 
         // Decode the payload
-        if message.msg_type == MsgType::Withdraw as u8 {
+        if (message.msg_type == WithdrawType::FromEvmSender as u8 )|| (message.msg_type == WithdrawType::FromSolSender as u8) {
             let withdraw_params = AccountWithdrawSol::decode_packed(&message.payload)?;
             return Ok(Pubkey::new_from_array(withdraw_params.receiver));
         } else {
@@ -165,11 +171,13 @@ impl AccountWithdrawSol {
 impl AccountWithdrawSol {
     pub fn to_vault_withdraw_params(
         &self,
+        sender_chain_type: u8,
         broker_hash: [u8; 32],
-        token_hash: [u8; 32],
+        token_hash: [u8; 32]
     ) -> VaultWithdrawParams {
         VaultWithdrawParams {
             account_id: get_account_id(&self.sender, &broker_hash), // account_withdraw_sol.account_id
+            sender_chain_type: sender_chain_type,
             sender: self.sender,
             receiver: self.receiver,
             broker_hash: broker_hash,
@@ -185,6 +193,7 @@ impl AccountWithdrawSol {
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct VaultWithdrawParams {
     pub account_id: [u8; 32],
+    pub sender_chain_type: u8,
     pub sender: [u8; 32],
     pub receiver: [u8; 32],
     pub broker_hash: [u8; 32],

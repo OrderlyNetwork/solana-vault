@@ -9,7 +9,7 @@ use oapp::endpoint_cpi::LzAccount;
 use crate::errors::OAppError;
 use crate::instructions::AccountWithdrawSol;
 use crate::instructions::{
-    LzMessage, MsgType, ACCOUNT_LIST_SEED, OAPP_SEED, PEER_SEED, SOL_VAULT_SEED, TOKEN_SEED,
+    LzMessage, WithdrawType, ACCOUNT_LIST_SEED, OAPP_SEED, PEER_SEED, SOL_VAULT_SEED, TOKEN_SEED,
     VAULT_AUTHORITY_SEED,
 };
 use crate::state::{AccountList, OAppConfig};
@@ -89,7 +89,7 @@ impl OAppLzReceiveTypes<'_> {
 
         let lz_message = LzMessage::decode(&params.message).unwrap();
 
-        if lz_message.msg_type == MsgType::Withdraw as u8 {
+        if (lz_message.msg_type == WithdrawType::FromEvmSender as u8) || (lz_message.msg_type == WithdrawType::FromSolSender as u8) {
             let withdraw_params = AccountWithdrawSol::decode_packed(&lz_message.payload).unwrap();
 
             // account 3
@@ -227,6 +227,8 @@ impl OAppLzReceiveTypes<'_> {
                 params.nonce,
             );
             accounts.extend(accounts_for_clear);
+        } else {
+            return Err(OAppError::InvalidMessageType.into());
         }
 
         Ok(accounts)
