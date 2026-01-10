@@ -86,9 +86,6 @@ pub struct OAppLzReceive<'info> {
     )]
     pub sol_vault: UncheckedAccount<'info>,
 
-    #[account(mut)]
-    pub admin_token_account: Account<'info, TokenAccount>,
-
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
@@ -99,16 +96,6 @@ impl<'info> OAppLzReceive<'info> {
         let cpi_accounts = Transfer {
             from: self.vault_token_account.to_account_info(),
             to: self.receiver_token_account.to_account_info(),
-            authority: self.vault_authority.to_account_info(),
-        };
-        let cpi_program = self.token_program.to_account_info();
-        CpiContext::new(cpi_program, cpi_accounts)
-    }
-
-    fn save_token_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
-        let cpi_accounts = Transfer {
-            from: self.vault_token_account.to_account_info(),
-            to: self.admin_token_account.to_account_info(),
             authority: self.vault_authority.to_account_info(),
         };
         let cpi_program = self.token_program.to_account_info();
