@@ -25,6 +25,39 @@ pub struct ResetAllowedToken {
 }
 
 #[event]
+pub struct SetWithdrawTokenIndex {
+    pub token_index: u8,
+    pub token_hash: [u8; 32],
+    pub mint_account: Pubkey,
+}
+
+#[event]
+pub struct ResetWithdrawTokenIndex {
+    pub token_index: u8,
+    pub token_hash: [u8; 32],
+    pub mint_account: Pubkey,
+}
+
+#[event]
+pub struct SetWithdrawBrokerEvent {
+    pub broker_hash: [u8; 32],
+    pub broker_index: u16,
+}
+
+#[event]
+pub struct ResetWithdrawBrokerEvent {
+    pub broker_hash: [u8; 32],
+    pub broker_index: u16,
+}
+
+#[event]
+pub struct SetManager {
+    pub role_hash: [u8; 32],
+    pub manager_address: Pubkey,
+    pub allowed: bool,
+}
+
+#[event]
 pub struct Deposited {
     pub user: Pubkey,
     pub amount: u64,
@@ -37,7 +70,7 @@ pub struct Withdrawn {
 }
 
 #[event]
-pub struct EmptyATA {
+pub struct CreatedATA {
     pub account_id: [u8; 32],
     pub receiver: [u8; 32],
     pub receiver_token_account: [u8; 32],
@@ -72,6 +105,7 @@ impl From<VaultDepositParams> for VaultDeposited {
 #[event]
 pub struct VaultWithdrawn {
     pub account_id: [u8; 32],
+    pub sender_chain_type: u8,
     pub sender: [u8; 32],
     pub receiver: [u8; 32],
     pub broker_hash: [u8; 32],
@@ -86,6 +120,7 @@ impl From<VaultWithdrawParams> for VaultWithdrawn {
     fn from(account_withdraw_params: VaultWithdrawParams) -> VaultWithdrawn {
         VaultWithdrawn {
             account_id: account_withdraw_params.account_id,
+            sender_chain_type: account_withdraw_params.sender_chain_type,
             sender: account_withdraw_params.sender,
             receiver: account_withdraw_params.receiver,
             broker_hash: account_withdraw_params.broker_hash,
@@ -101,6 +136,7 @@ impl From<VaultWithdrawParams> for VaultWithdrawn {
 #[event]
 pub struct FrozenWithdrawn {
     pub account_id: [u8; 32],
+    pub sender_chain_type: u8,
     pub sender: [u8; 32],
     pub receiver: [u8; 32],
     pub broker_hash: [u8; 32],
@@ -115,6 +151,7 @@ impl From<VaultWithdrawParams> for FrozenWithdrawn {
     fn from(account_withdraw_params: VaultWithdrawParams) -> FrozenWithdrawn {
         FrozenWithdrawn {
             account_id: account_withdraw_params.account_id,
+            sender_chain_type: account_withdraw_params.sender_chain_type,
             sender: account_withdraw_params.sender,
             receiver: account_withdraw_params.receiver,
             broker_hash: account_withdraw_params.broker_hash,
@@ -125,6 +162,21 @@ impl From<VaultWithdrawParams> for FrozenWithdrawn {
             withdraw_nonce: account_withdraw_params.withdraw_nonce,
         }
     }
+}
+
+#[event]
+pub struct WithdrawSolFailed {
+    pub account_id: [u8; 32],
+    pub sender_chain_type: u8,
+    pub sender: [u8; 32],
+    pub receiver: [u8; 32],
+    pub broker_hash: [u8; 32],
+    pub token_hash: [u8; 32],
+    pub token_amount: u64,
+    pub fee: u128,
+    pub chain_id: u128,
+    pub withdraw_nonce: u64,
+    pub reason: u8,
 }
 
 // OApp events

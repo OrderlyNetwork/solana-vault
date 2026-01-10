@@ -35,7 +35,7 @@ pub mod uln {
     pub fn quote(_ctx: Context<Interface>, _params: QuoteParams) -> Result<MessagingFee> {
         let messaging_fee = MessagingFee {
             native_fee: 1000,
-            lz_token_fee: 900,
+            lz_token_fee: 0,
         };
 
         Ok(messaging_fee)

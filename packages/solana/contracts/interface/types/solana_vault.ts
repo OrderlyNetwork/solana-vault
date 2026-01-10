@@ -123,6 +123,76 @@ export type SolanaVault = {
       }
     },
     {
+      "name": "depositSol",
+      "accounts": [
+        {
+          "name": "user",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "vaultAuthority",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "solVault",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "CHECKED: sol_vault is used for SOL deposit"
+          ]
+        },
+        {
+          "name": "peer",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "enforcedOptions",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "oappConfig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "allowedBroker",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "allowedToken",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "depositParams",
+          "type": {
+            "defined": "DepositParams"
+          }
+        },
+        {
+          "name": "oappParams",
+          "type": {
+            "defined": "OAppSendParams"
+          }
+        }
+      ],
+      "returns": {
+        "defined": "MessagingReceipt"
+      }
+    },
+    {
       "name": "initOapp",
       "accounts": [
         {
@@ -199,10 +269,43 @@ export type SolanaVault = {
       ]
     },
     {
+      "name": "setManagerRole",
+      "accounts": [
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "vaultAuthority",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "managerRole",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": "SetManagerRoleParams"
+          }
+        }
+      ]
+    },
+    {
       "name": "setBroker",
       "accounts": [
         {
-          "name": "admin",
+          "name": "brokerManager",
           "isMut": true,
           "isSigner": true
         },
@@ -212,7 +315,7 @@ export type SolanaVault = {
           "isSigner": false
         },
         {
-          "name": "oappConfig",
+          "name": "managerRole",
           "isMut": false,
           "isSigner": false
         },
@@ -232,10 +335,43 @@ export type SolanaVault = {
       ]
     },
     {
+      "name": "setWithdrawBroker",
+      "accounts": [
+        {
+          "name": "brokerManager",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "withdrawBroker",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "managerRole",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": "SetWithdrawBrokerParams"
+          }
+        }
+      ]
+    },
+    {
       "name": "setToken",
       "accounts": [
         {
-          "name": "admin",
+          "name": "tokenManager",
           "isMut": true,
           "isSigner": true
         },
@@ -245,7 +381,7 @@ export type SolanaVault = {
           "isSigner": false
         },
         {
-          "name": "oappConfig",
+          "name": "managerRole",
           "isMut": false,
           "isSigner": false
         },
@@ -265,6 +401,44 @@ export type SolanaVault = {
           "name": "params",
           "type": {
             "defined": "SetTokenParams"
+          }
+        }
+      ]
+    },
+    {
+      "name": "setWithdrawToken",
+      "accounts": [
+        {
+          "name": "tokenManager",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "withdrawToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "managerRole",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "mintAccount",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": "SetWithdrawTokenParams"
           }
         }
       ]
@@ -347,15 +521,12 @@ export type SolanaVault = {
           "isSigner": false
         },
         {
-          "name": "brokerPda",
+          "name": "withdrawBrokerPda",
           "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "CHECK"
-          ]
+          "isSigner": false
         },
         {
-          "name": "tokenPda",
+          "name": "withdrawTokenPda",
           "isMut": false,
           "isSigner": false,
           "docs": [
@@ -372,7 +543,7 @@ export type SolanaVault = {
         },
         {
           "name": "receiver",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false,
           "docs": [
             "CHECK"
@@ -381,7 +552,10 @@ export type SolanaVault = {
         {
           "name": "receiverTokenAccount",
           "isMut": true,
-          "isSigner": false
+          "isSigner": false,
+          "docs": [
+            "UNCHECKED"
+          ]
         },
         {
           "name": "vaultAuthority",
@@ -394,7 +568,25 @@ export type SolanaVault = {
           "isSigner": false
         },
         {
+          "name": "solVault",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "CHECKED: sol_vault is used for SOL withdrawal"
+          ]
+        },
+        {
           "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
           "isMut": false,
           "isSigner": false
         },
@@ -654,7 +846,11 @@ export type SolanaVault = {
             "type": "u8"
           },
           {
-            "name": "usdcPda",
+            "name": "woofiProPda",
+            "type": "publicKey"
+          },
+          {
+            "name": "withdrawUsdcPda",
             "type": "publicKey"
           },
           {
@@ -662,7 +858,19 @@ export type SolanaVault = {
             "type": "publicKey"
           },
           {
-            "name": "woofiProPda",
+            "name": "withdrawUsdtPda",
+            "type": "publicKey"
+          },
+          {
+            "name": "usdtMint",
+            "type": "publicKey"
+          },
+          {
+            "name": "withdrawWsolPda",
+            "type": "publicKey"
+          },
+          {
+            "name": "wsolMint",
             "type": "publicKey"
           }
         ]
@@ -756,6 +964,31 @@ export type SolanaVault = {
       }
     },
     {
+      "name": "managerRole",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "roleHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "vaultAuthority",
       "type": {
         "kind": "struct",
@@ -790,6 +1023,72 @@ export type SolanaVault = {
           {
             "name": "solChainId",
             "type": "u128"
+          }
+        ]
+      }
+    },
+    {
+      "name": "withdrawBroker",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "brokerHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "brokerIndex",
+            "type": "u16"
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "withdrawToken",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mintAccount",
+            "type": "publicKey"
+          },
+          {
+            "name": "tokenHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "tokenDecimals",
+            "type": "u8"
+          },
+          {
+            "name": "tokenIndex",
+            "type": "u8"
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }
@@ -869,83 +1168,10 @@ export type SolanaVault = {
       }
     },
     {
-      "name": "InitOAppParams",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "admin",
-            "type": "publicKey"
-          },
-          {
-            "name": "accountList",
-            "type": "publicKey"
-          },
-          {
-            "name": "endpointProgram",
-            "type": {
-              "option": "publicKey"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "OAppLzReceiveParams",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "srcEid",
-            "type": "u32"
-          },
-          {
-            "name": "sender",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "nonce",
-            "type": "u64"
-          },
-          {
-            "name": "guid",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "message",
-            "type": "bytes"
-          },
-          {
-            "name": "extraData",
-            "type": "bytes"
-          }
-        ]
-      }
-    },
-    {
       "name": "AccountWithdrawSol",
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "accountId",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
           {
             "name": "sender",
             "type": {
@@ -965,22 +1191,12 @@ export type SolanaVault = {
             }
           },
           {
-            "name": "brokerHash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
+            "name": "brokerIndex",
+            "type": "u16"
           },
           {
-            "name": "tokenHash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
+            "name": "tokenIndex",
+            "type": "u8"
           },
           {
             "name": "tokenAmount",
@@ -1071,6 +1287,70 @@ export type SolanaVault = {
       }
     },
     {
+      "name": "InitOAppParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "publicKey"
+          },
+          {
+            "name": "accountList",
+            "type": "publicKey"
+          },
+          {
+            "name": "endpointProgram",
+            "type": {
+              "option": "publicKey"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "OAppLzReceiveParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "srcEid",
+            "type": "u32"
+          },
+          {
+            "name": "sender",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "guid",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "message",
+            "type": "bytes"
+          },
+          {
+            "name": "extraData",
+            "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
       "name": "MessagingFee",
       "type": {
         "kind": "struct",
@@ -1092,11 +1372,11 @@ export type SolanaVault = {
         "kind": "struct",
         "fields": [
           {
-            "name": "accountList",
+            "name": "woofiProPda",
             "type": "publicKey"
           },
           {
-            "name": "usdcPda",
+            "name": "withdrawUsdcPda",
             "type": "publicKey"
           },
           {
@@ -1104,7 +1384,19 @@ export type SolanaVault = {
             "type": "publicKey"
           },
           {
-            "name": "woofiProPda",
+            "name": "withdrawUsdtPda",
+            "type": "publicKey"
+          },
+          {
+            "name": "usdtMint",
+            "type": "publicKey"
+          },
+          {
+            "name": "withdrawWsolPda",
+            "type": "publicKey"
+          },
+          {
+            "name": "wsolMint",
             "type": "publicKey"
           }
         ]
@@ -1289,6 +1581,31 @@ export type SolanaVault = {
       }
     },
     {
+      "name": "SetManagerRoleParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "roleHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "managerAddress",
+            "type": "publicKey"
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
       "name": "SetOrderDeliveryParams",
       "type": {
         "kind": "struct",
@@ -1362,6 +1679,56 @@ export type SolanaVault = {
       }
     },
     {
+      "name": "SetWithdrawBrokerParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "brokerHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "brokerIndex",
+            "type": "u16"
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SetWithdrawTokenParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tokenHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "tokenIndex",
+            "type": "u8"
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
       "name": "RateLimiter",
       "type": {
         "kind": "struct",
@@ -1413,6 +1780,18 @@ export type SolanaVault = {
           },
           {
             "name": "InvalidInboundNonce"
+          },
+          {
+            "name": "InvalidReceiverTokenAccount"
+          },
+          {
+            "name": "InvalidAdminTokenAccount"
+          },
+          {
+            "name": "InvalidMessageType"
+          },
+          {
+            "name": "InvalidTokenIndex"
           }
         ]
       }
@@ -1510,6 +1889,121 @@ export type SolanaVault = {
       ]
     },
     {
+      "name": "SetWithdrawTokenIndex",
+      "fields": [
+        {
+          "name": "tokenIndex",
+          "type": "u8",
+          "index": false
+        },
+        {
+          "name": "tokenHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "mintAccount",
+          "type": "publicKey",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "ResetWithdrawTokenIndex",
+      "fields": [
+        {
+          "name": "tokenIndex",
+          "type": "u8",
+          "index": false
+        },
+        {
+          "name": "tokenHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "mintAccount",
+          "type": "publicKey",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "SetWithdrawBrokerEvent",
+      "fields": [
+        {
+          "name": "brokerHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "brokerIndex",
+          "type": "u16",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "ResetWithdrawBrokerEvent",
+      "fields": [
+        {
+          "name": "brokerHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "brokerIndex",
+          "type": "u16",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "SetManager",
+      "fields": [
+        {
+          "name": "roleHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "managerAddress",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "allowed",
+          "type": "bool",
+          "index": false
+        }
+      ]
+    },
+    {
       "name": "Deposited",
       "fields": [
         {
@@ -1534,6 +2028,46 @@ export type SolanaVault = {
         },
         {
           "name": "amount",
+          "type": "u64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "CreatedATA",
+      "fields": [
+        {
+          "name": "accountId",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "receiver",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "receiverTokenAccount",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "withdrawNonce",
           "type": "u64",
           "index": false
         }
@@ -1750,6 +2284,86 @@ export type SolanaVault = {
       ]
     },
     {
+      "name": "WithdrawSolFailed",
+      "fields": [
+        {
+          "name": "accountId",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "sender",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "receiver",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "brokerHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "tokenHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "tokenAmount",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "fee",
+          "type": "u128",
+          "index": false
+        },
+        {
+          "name": "chainId",
+          "type": "u128",
+          "index": false
+        },
+        {
+          "name": "withdrawNonce",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "reason",
+          "type": "u8",
+          "index": false
+        }
+      ]
+    },
+    {
       "name": "OAppSent",
       "fields": [
         {
@@ -1820,6 +2434,21 @@ export type SolanaVault = {
       "code": 6005,
       "name": "InvalidVaultOwner",
       "msg": "Vault owner is not the same as the payer"
+    },
+    {
+      "code": 6006,
+      "name": "ManagerRoleNotAllowed",
+      "msg": "Manager role is not allowed"
+    },
+    {
+      "code": 6007,
+      "name": "ZeroDepositAmount",
+      "msg": "Deposit amount must be greater than zero"
+    },
+    {
+      "code": 6008,
+      "name": "InsufficientWithdrawAmount",
+      "msg": "Withdraw amount must be no less than withdraw fee"
     }
   ]
 };
@@ -1949,6 +2578,76 @@ export const IDL: SolanaVault = {
       }
     },
     {
+      "name": "depositSol",
+      "accounts": [
+        {
+          "name": "user",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "vaultAuthority",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "solVault",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "CHECKED: sol_vault is used for SOL deposit"
+          ]
+        },
+        {
+          "name": "peer",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "enforcedOptions",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "oappConfig",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "allowedBroker",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "allowedToken",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "depositParams",
+          "type": {
+            "defined": "DepositParams"
+          }
+        },
+        {
+          "name": "oappParams",
+          "type": {
+            "defined": "OAppSendParams"
+          }
+        }
+      ],
+      "returns": {
+        "defined": "MessagingReceipt"
+      }
+    },
+    {
       "name": "initOapp",
       "accounts": [
         {
@@ -2025,10 +2724,43 @@ export const IDL: SolanaVault = {
       ]
     },
     {
+      "name": "setManagerRole",
+      "accounts": [
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "vaultAuthority",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "managerRole",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": "SetManagerRoleParams"
+          }
+        }
+      ]
+    },
+    {
       "name": "setBroker",
       "accounts": [
         {
-          "name": "admin",
+          "name": "brokerManager",
           "isMut": true,
           "isSigner": true
         },
@@ -2038,7 +2770,7 @@ export const IDL: SolanaVault = {
           "isSigner": false
         },
         {
-          "name": "oappConfig",
+          "name": "managerRole",
           "isMut": false,
           "isSigner": false
         },
@@ -2058,10 +2790,43 @@ export const IDL: SolanaVault = {
       ]
     },
     {
+      "name": "setWithdrawBroker",
+      "accounts": [
+        {
+          "name": "brokerManager",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "withdrawBroker",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "managerRole",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": "SetWithdrawBrokerParams"
+          }
+        }
+      ]
+    },
+    {
       "name": "setToken",
       "accounts": [
         {
-          "name": "admin",
+          "name": "tokenManager",
           "isMut": true,
           "isSigner": true
         },
@@ -2071,7 +2836,7 @@ export const IDL: SolanaVault = {
           "isSigner": false
         },
         {
-          "name": "oappConfig",
+          "name": "managerRole",
           "isMut": false,
           "isSigner": false
         },
@@ -2091,6 +2856,44 @@ export const IDL: SolanaVault = {
           "name": "params",
           "type": {
             "defined": "SetTokenParams"
+          }
+        }
+      ]
+    },
+    {
+      "name": "setWithdrawToken",
+      "accounts": [
+        {
+          "name": "tokenManager",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "withdrawToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "managerRole",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "mintAccount",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": "SetWithdrawTokenParams"
           }
         }
       ]
@@ -2173,15 +2976,12 @@ export const IDL: SolanaVault = {
           "isSigner": false
         },
         {
-          "name": "brokerPda",
+          "name": "withdrawBrokerPda",
           "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "CHECK"
-          ]
+          "isSigner": false
         },
         {
-          "name": "tokenPda",
+          "name": "withdrawTokenPda",
           "isMut": false,
           "isSigner": false,
           "docs": [
@@ -2198,7 +2998,7 @@ export const IDL: SolanaVault = {
         },
         {
           "name": "receiver",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false,
           "docs": [
             "CHECK"
@@ -2207,7 +3007,10 @@ export const IDL: SolanaVault = {
         {
           "name": "receiverTokenAccount",
           "isMut": true,
-          "isSigner": false
+          "isSigner": false,
+          "docs": [
+            "UNCHECKED"
+          ]
         },
         {
           "name": "vaultAuthority",
@@ -2220,7 +3023,25 @@ export const IDL: SolanaVault = {
           "isSigner": false
         },
         {
+          "name": "solVault",
+          "isMut": true,
+          "isSigner": false,
+          "docs": [
+            "CHECKED: sol_vault is used for SOL withdrawal"
+          ]
+        },
+        {
           "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
           "isMut": false,
           "isSigner": false
         },
@@ -2480,7 +3301,11 @@ export const IDL: SolanaVault = {
             "type": "u8"
           },
           {
-            "name": "usdcPda",
+            "name": "woofiProPda",
+            "type": "publicKey"
+          },
+          {
+            "name": "withdrawUsdcPda",
             "type": "publicKey"
           },
           {
@@ -2488,7 +3313,19 @@ export const IDL: SolanaVault = {
             "type": "publicKey"
           },
           {
-            "name": "woofiProPda",
+            "name": "withdrawUsdtPda",
+            "type": "publicKey"
+          },
+          {
+            "name": "usdtMint",
+            "type": "publicKey"
+          },
+          {
+            "name": "withdrawWsolPda",
+            "type": "publicKey"
+          },
+          {
+            "name": "wsolMint",
             "type": "publicKey"
           }
         ]
@@ -2582,6 +3419,31 @@ export const IDL: SolanaVault = {
       }
     },
     {
+      "name": "managerRole",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "roleHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "vaultAuthority",
       "type": {
         "kind": "struct",
@@ -2616,6 +3478,72 @@ export const IDL: SolanaVault = {
           {
             "name": "solChainId",
             "type": "u128"
+          }
+        ]
+      }
+    },
+    {
+      "name": "withdrawBroker",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "brokerHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "brokerIndex",
+            "type": "u16"
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "withdrawToken",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mintAccount",
+            "type": "publicKey"
+          },
+          {
+            "name": "tokenHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "tokenDecimals",
+            "type": "u8"
+          },
+          {
+            "name": "tokenIndex",
+            "type": "u8"
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }
@@ -2695,83 +3623,10 @@ export const IDL: SolanaVault = {
       }
     },
     {
-      "name": "InitOAppParams",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "admin",
-            "type": "publicKey"
-          },
-          {
-            "name": "accountList",
-            "type": "publicKey"
-          },
-          {
-            "name": "endpointProgram",
-            "type": {
-              "option": "publicKey"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "OAppLzReceiveParams",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "srcEid",
-            "type": "u32"
-          },
-          {
-            "name": "sender",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "nonce",
-            "type": "u64"
-          },
-          {
-            "name": "guid",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "message",
-            "type": "bytes"
-          },
-          {
-            "name": "extraData",
-            "type": "bytes"
-          }
-        ]
-      }
-    },
-    {
       "name": "AccountWithdrawSol",
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "accountId",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
           {
             "name": "sender",
             "type": {
@@ -2791,22 +3646,12 @@ export const IDL: SolanaVault = {
             }
           },
           {
-            "name": "brokerHash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
+            "name": "brokerIndex",
+            "type": "u16"
           },
           {
-            "name": "tokenHash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
+            "name": "tokenIndex",
+            "type": "u8"
           },
           {
             "name": "tokenAmount",
@@ -2897,6 +3742,70 @@ export const IDL: SolanaVault = {
       }
     },
     {
+      "name": "InitOAppParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "publicKey"
+          },
+          {
+            "name": "accountList",
+            "type": "publicKey"
+          },
+          {
+            "name": "endpointProgram",
+            "type": {
+              "option": "publicKey"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "OAppLzReceiveParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "srcEid",
+            "type": "u32"
+          },
+          {
+            "name": "sender",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          },
+          {
+            "name": "guid",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "message",
+            "type": "bytes"
+          },
+          {
+            "name": "extraData",
+            "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
       "name": "MessagingFee",
       "type": {
         "kind": "struct",
@@ -2918,11 +3827,11 @@ export const IDL: SolanaVault = {
         "kind": "struct",
         "fields": [
           {
-            "name": "accountList",
+            "name": "woofiProPda",
             "type": "publicKey"
           },
           {
-            "name": "usdcPda",
+            "name": "withdrawUsdcPda",
             "type": "publicKey"
           },
           {
@@ -2930,7 +3839,19 @@ export const IDL: SolanaVault = {
             "type": "publicKey"
           },
           {
-            "name": "woofiProPda",
+            "name": "withdrawUsdtPda",
+            "type": "publicKey"
+          },
+          {
+            "name": "usdtMint",
+            "type": "publicKey"
+          },
+          {
+            "name": "withdrawWsolPda",
+            "type": "publicKey"
+          },
+          {
+            "name": "wsolMint",
             "type": "publicKey"
           }
         ]
@@ -3115,6 +4036,31 @@ export const IDL: SolanaVault = {
       }
     },
     {
+      "name": "SetManagerRoleParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "roleHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "managerAddress",
+            "type": "publicKey"
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
       "name": "SetOrderDeliveryParams",
       "type": {
         "kind": "struct",
@@ -3188,6 +4134,56 @@ export const IDL: SolanaVault = {
       }
     },
     {
+      "name": "SetWithdrawBrokerParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "brokerHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "brokerIndex",
+            "type": "u16"
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SetWithdrawTokenParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tokenHash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "tokenIndex",
+            "type": "u8"
+          },
+          {
+            "name": "allowed",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
       "name": "RateLimiter",
       "type": {
         "kind": "struct",
@@ -3239,6 +4235,18 @@ export const IDL: SolanaVault = {
           },
           {
             "name": "InvalidInboundNonce"
+          },
+          {
+            "name": "InvalidReceiverTokenAccount"
+          },
+          {
+            "name": "InvalidAdminTokenAccount"
+          },
+          {
+            "name": "InvalidMessageType"
+          },
+          {
+            "name": "InvalidTokenIndex"
           }
         ]
       }
@@ -3336,6 +4344,121 @@ export const IDL: SolanaVault = {
       ]
     },
     {
+      "name": "SetWithdrawTokenIndex",
+      "fields": [
+        {
+          "name": "tokenIndex",
+          "type": "u8",
+          "index": false
+        },
+        {
+          "name": "tokenHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "mintAccount",
+          "type": "publicKey",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "ResetWithdrawTokenIndex",
+      "fields": [
+        {
+          "name": "tokenIndex",
+          "type": "u8",
+          "index": false
+        },
+        {
+          "name": "tokenHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "mintAccount",
+          "type": "publicKey",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "SetWithdrawBrokerEvent",
+      "fields": [
+        {
+          "name": "brokerHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "brokerIndex",
+          "type": "u16",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "ResetWithdrawBrokerEvent",
+      "fields": [
+        {
+          "name": "brokerHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "brokerIndex",
+          "type": "u16",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "SetManager",
+      "fields": [
+        {
+          "name": "roleHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "managerAddress",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "allowed",
+          "type": "bool",
+          "index": false
+        }
+      ]
+    },
+    {
       "name": "Deposited",
       "fields": [
         {
@@ -3360,6 +4483,46 @@ export const IDL: SolanaVault = {
         },
         {
           "name": "amount",
+          "type": "u64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "CreatedATA",
+      "fields": [
+        {
+          "name": "accountId",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "receiver",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "receiverTokenAccount",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "withdrawNonce",
           "type": "u64",
           "index": false
         }
@@ -3576,6 +4739,86 @@ export const IDL: SolanaVault = {
       ]
     },
     {
+      "name": "WithdrawSolFailed",
+      "fields": [
+        {
+          "name": "accountId",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "sender",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "receiver",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "brokerHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "tokenHash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          },
+          "index": false
+        },
+        {
+          "name": "tokenAmount",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "fee",
+          "type": "u128",
+          "index": false
+        },
+        {
+          "name": "chainId",
+          "type": "u128",
+          "index": false
+        },
+        {
+          "name": "withdrawNonce",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "reason",
+          "type": "u8",
+          "index": false
+        }
+      ]
+    },
+    {
       "name": "OAppSent",
       "fields": [
         {
@@ -3646,6 +4889,21 @@ export const IDL: SolanaVault = {
       "code": 6005,
       "name": "InvalidVaultOwner",
       "msg": "Vault owner is not the same as the payer"
+    },
+    {
+      "code": 6006,
+      "name": "ManagerRoleNotAllowed",
+      "msg": "Manager role is not allowed"
+    },
+    {
+      "code": 6007,
+      "name": "ZeroDepositAmount",
+      "msg": "Deposit amount must be greater than zero"
+    },
+    {
+      "code": 6008,
+      "name": "InsufficientWithdrawAmount",
+      "msg": "Withdraw amount must be no less than withdraw fee"
     }
   ]
 };

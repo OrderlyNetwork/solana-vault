@@ -17,13 +17,16 @@ uln = "3HUspNHm1sW6YvgqpTemHa8HmjwwqTEXEAh7weEyBZUn"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Mainnet"
-wallet = "/Users/zion/.config/solana/id.json"
+cluster = "devnet"
+#https://mainnet.helius-rpc.com/?api-key=72fe24df-5c15-4e9a-93af-4ebe030c5ead
+#https://devnet.helius-rpc.com/?api-key=72fe24df-5c15-4e9a-93af-4ebe030c5ead
+wallet = "~/.config/solana/id.json"
 
 [scripts]
 ata_owner = "yarn run ts-node scripts/transfer_ata_owner.ts"
 close_ata = "yarn run ts-node scripts/close_ata.ts"
 create_lut = "yarn run ts-node scripts/create_lookuptable.ts"
+deposit_sol = "yarn run ts-node scripts/06deposit_sol.ts"
 deposit_vault = "yarn run ts-node scripts/05deposit_vault.ts"
 init_oapp = "yarn run ts-node scripts/02init_oapp.ts"
 lz_receive = "yarn run ts-node scripts/call_lzreceive.ts"
@@ -35,11 +38,18 @@ quote_deposit = "yarn run ts-node scripts/quote_oapp.ts"
 send_oapp = "yarn run ts-node scripts/send.ts"
 set_account_list = "yarn run ts-node scripts/set_account_list.ts"
 set_broker = "yarn run ts-node scripts/set_broker.ts"
+set_broker_ts = "yarn run ts-node scripts/set_broker_ts.ts"
+set_broker_manager = "yarn run ts-node scripts/set_broker_manager.ts"
 set_option = "yarn run ts-node scripts/set_option.ts"
 set_token = "yarn run ts-node scripts/set_token.ts"
+set_token_manager = "yarn run ts-node scripts/set_token_manager.ts"
+set_withdraw_broker = "yarn run ts-node scripts/set_withdraw_broker.ts"
+set_withdraw_token = "yarn run ts-node scripts/set_withdraw_token.ts"
 setconfig_oapp = "yarn run ts-node scripts/03setconfig_oapp.ts"
 setup_oapp = "yarn run ts-node scripts/01setup_oapp.ts"
 setup_vault = "yarn run ts-node scripts/04setup_vault.ts"
+print_tokens = "yarn run ts-node scripts/print_tokens.ts"
+print_brokers = "yarn run ts-node scripts/print_brokers.ts"
 test = "yarn run ts-mocha -b -p ./tsconfig.json -t 1000000 tests/**/*.test.ts"
 transfer_admin = "yarn run ts-node scripts/transfer_admin.ts"
 
@@ -50,11 +60,11 @@ upgradeable = false
 
 [[test.genesis]]
 address = "76y77prsiCMvXMjuoZ5VRrhG5qYBrUMYTE5WgHqgjEn6"
-program = "endpoint.so"
+program = "tests/mocks/endpoint.so"
 
 [[test.genesis]]
 address = "7a4WjyR8VZ7yZz5XJAKm39BUGn5iT9CKcv2pmG9tdXVH"
-program = "uln.so"
+program = "tests/mocks/uln.so"
 
 [test.validator]
 bind_address = "127.0.0.1"

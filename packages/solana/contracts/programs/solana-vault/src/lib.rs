@@ -9,7 +9,7 @@ use instructions::*;
 
 use oapp::endpoint::MessagingReceipt;
 
-declare_id!("ErBmAD61mGFKvrFNaTJuxoPwqrS8GgtwtqJTJVjFWx9Q");
+declare_id!("9shwxWDUNhtwkHocsUAmrNAQfBH2DHh4njdAEdHZZkF2");
 
 #[program]
 pub mod solana_vault {
@@ -27,6 +27,14 @@ pub mod solana_vault {
         Deposit::apply(&mut ctx, &deposit_params, &oapp_params)
     }
 
+    pub fn deposit_sol<'info>(
+        mut ctx: Context<'_, '_, '_, 'info, DepositSol<'info>>,
+        deposit_params: DepositParams,
+        oapp_params: OAppSendParams,
+    ) -> Result<MessagingReceipt> {
+        DepositSol::apply(&mut ctx, &deposit_params, &oapp_params)
+    }
+
     pub fn init_oapp(mut ctx: Context<InitOApp>, params: InitOAppParams) -> Result<()> {
         InitOApp::apply(&mut ctx, &params)
     }
@@ -38,12 +46,24 @@ pub mod solana_vault {
         SetAccountList::apply(&mut ctx, &params)
     }
 
+    pub fn set_manager_role(mut ctx: Context<SetManagerRole>, params: SetManagerRoleParams) -> Result<()> {
+        SetManagerRole::apply(&mut ctx, &params)
+    }
+
     pub fn set_broker(mut ctx: Context<SetBroker>, params: SetBrokerParams) -> Result<()> {
         SetBroker::apply(&mut ctx, &params)
     }
 
+    pub fn set_withdraw_broker(mut ctx: Context<SetWithdrawBroker>, params: SetWithdrawBrokerParams) -> Result<()> {
+        SetWithdrawBroker::apply(&mut ctx, &params)
+    }
+
     pub fn set_token(mut ctx: Context<SetToken>, params: SetTokenParams) -> Result<()> {
         SetToken::apply(&mut ctx, &params)
+    }
+
+    pub fn set_withdraw_token(mut ctx: Context<SetWithdrawToken>, params: SetWithdrawTokenParams) -> Result<()> {
+        SetWithdrawToken::apply(&mut ctx, &params)
     }
 
     pub fn set_order_delivery(
@@ -60,7 +80,6 @@ pub mod solana_vault {
     pub fn lz_receive(mut ctx: Context<OAppLzReceive>, params: OAppLzReceiveParams) -> Result<()> {
         OAppLzReceive::apply(&mut ctx, &params)
     }
-
     pub fn lz_receive_types(
         ctx: Context<OAppLzReceiveTypes>,
         params: OAppLzReceiveParams,

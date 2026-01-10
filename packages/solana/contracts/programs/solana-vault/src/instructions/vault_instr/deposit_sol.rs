@@ -1,17 +1,12 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    associated_token::AssociatedToken,
-    token::{transfer, Mint, Token, TokenAccount, Transfer},
-};
 
 use oapp::endpoint::{instructions::SendParams as EndpointSendParams, MessagingReceipt};
 
 use crate::instructions::{
-    validate_account_id, LzMessage, MsgType, VaultDepositParams, BROKER_SEED,
-    ENFORCED_OPTIONS_SEED, OAPP_SEED, PEER_SEED, TOKEN_SEED, VAULT_AUTHORITY_SEED,
+    validate_account_id, DepositParams, LzMessage, MsgType, OAppSendParams, VaultDepositParams,
+    BROKER_SEED, ENFORCED_OPTIONS_SEED, OAPP_SEED, PEER_SEED, SOL_VAULT_SEED, TOKEN_SEED,
+    VAULT_AUTHORITY_SEED,
 };
-
-use crate::constants::SOL_TOKEN_HASH;
 
 use crate::errors::VaultError;
 use crate::events::{OAppSent, VaultDeposited};
@@ -19,18 +14,13 @@ use crate::state::{
     AllowedBroker, AllowedToken, EnforcedOptions, OAppConfig, Peer, VaultAuthority,
 };
 
+use crate::constants::SOL_TOKEN_HASH;
+
 #[derive(Accounts)]
 #[instruction(deposit_params: DepositParams, oapp_params: OAppSendParams)]
-pub struct Deposit<'info> {
+pub struct DepositSol<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
-
-    #[account(
-        mut,
-        associated_token::mint = deposit_token,
-        associated_token::authority = user
-    )]
-    pub user_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -39,19 +29,13 @@ pub struct Deposit<'info> {
     )]
     pub vault_authority: Box<Account<'info, VaultAuthority>>,
 
+    /// CHECKED: sol_vault is used for SOL deposit
     #[account(
-        init_if_needed,
-        payer = user,
-        associated_token::mint = deposit_token,
-        associated_token::authority = vault_authority
+        mut,
+        seeds = [SOL_VAULT_SEED],
+        bump
     )]
-    pub vault_token_account: Box<Account<'info, TokenAccount>>,
-
-    #[account(
-        constraint = deposit_token.key() == allowed_token.mint_account @ VaultError::TokenNotAllowed,
-        mint::token_program = token_program
-    )]
-    pub deposit_token: Box<Account<'info, Mint>>,
+    pub sol_vault: UncheckedAccount<'info>,
 
     #[account(
         seeds = [
@@ -87,30 +71,18 @@ pub struct Deposit<'info> {
     pub allowed_broker: Box<Account<'info, AllowedBroker>>,
 
     #[account(
-        seeds = [TOKEN_SEED, deposit_params.token_hash.as_ref()],
+        seeds = [TOKEN_SEED, SOL_TOKEN_HASH.as_ref()],
         bump = allowed_token.bump,
-        constraint = allowed_token.allowed == true && deposit_params.token_hash != SOL_TOKEN_HASH  @ VaultError::TokenNotAllowed 
+        constraint = allowed_token.allowed == true @ VaultError::TokenNotAllowed
     )]
     pub allowed_token: Box<Account<'info, AllowedToken>>,
 
-    pub token_program: Program<'info, Token>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 }
 
-impl<'info> Deposit<'info> {
-    pub fn transfer_token_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
-        let cpi_accounts = Transfer {
-            from: self.user_token_account.to_account_info(),
-            to: self.vault_token_account.to_account_info(),
-            authority: self.user.to_account_info(),
-        };
-        let cpi_program = self.token_program.to_account_info();
-        CpiContext::new(cpi_program, cpi_accounts)
-    }
-
+impl<'info> DepositSol<'info> {
     pub fn apply(
-        ctx: &mut Context<'_, '_, '_, 'info, Deposit<'info>>,
+        ctx: &mut Context<'_, '_, '_, 'info, DepositSol<'info>>,
         deposit_params: &DepositParams,
         oapp_params: &OAppSendParams,
     ) -> Result<MessagingReceipt> {
@@ -124,9 +96,19 @@ impl<'info> Deposit<'info> {
         if deposit_params.token_amount == 0 {
             return Err(VaultError::ZeroDepositAmount.into());
         }
-        transfer(
-            ctx.accounts.transfer_token_ctx(),
+        let ix = anchor_lang::solana_program::system_instruction::transfer(
+            &ctx.accounts.user.key(),
+            &ctx.accounts.sol_vault.key(),
             deposit_params.token_amount,
+        );
+
+        anchor_lang::solana_program::program::invoke(
+            &ix,
+            &[
+                ctx.accounts.user.to_account_info(),
+                ctx.accounts.sol_vault.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+            ],
         )?;
 
         msg!("User deposited : {}", deposit_params.token_amount);
@@ -137,7 +119,7 @@ impl<'info> Deposit<'info> {
             account_id: deposit_params.account_id,
             broker_hash: deposit_params.broker_hash,
             user_address: deposit_params.user_address, //
-            token_hash: deposit_params.token_hash,
+            token_hash: SOL_TOKEN_HASH,
             src_chain_id: ctx.accounts.vault_authority.sol_chain_id,
             token_amount: deposit_params.token_amount as u128,
             src_chain_deposit_nonce: ctx.accounts.vault_authority.deposit_nonce,
@@ -179,19 +161,4 @@ impl<'info> Deposit<'info> {
 
         Ok(receipt)
     }
-}
-
-#[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
-pub struct DepositParams {
-    pub account_id: [u8; 32],
-    pub broker_hash: [u8; 32],
-    pub token_hash: [u8; 32],
-    pub user_address: [u8; 32],
-    pub token_amount: u64,
-}
-
-#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
-pub struct OAppSendParams {
-    pub native_fee: u64,
-    pub lz_token_fee: u64,
 }

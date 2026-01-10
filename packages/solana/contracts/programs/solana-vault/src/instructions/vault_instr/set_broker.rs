@@ -1,28 +1,29 @@
-use crate::errors::OAppError;
+use crate::constants::BROKER_MANAGER_ROLE_HASH;
+use crate::errors::VaultError;
 use crate::events::{ResetAllowedBroker, SetAllowedBroker};
-use crate::instructions::{bytes32_to_hex, BROKER_SEED, OAPP_SEED};
-use crate::state::{AllowedBroker, OAppConfig};
+use crate::instructions::{bytes32_to_hex, ACCESS_CONTROL_SEED, BROKER_SEED};
+use crate::state::{AllowedBroker, ManagerRole};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 #[instruction(params: SetBrokerParams)]
 pub struct SetBroker<'info> {
     #[account(mut)]
-    pub admin: Signer<'info>,
+    pub broker_manager: Signer<'info>,
     #[account(
         init_if_needed,
-        payer = admin,
+        payer = broker_manager,
         space = 8 + AllowedBroker::INIT_SPACE,
         seeds = [BROKER_SEED, params.broker_hash.as_ref()],
         bump
     )]
     pub allowed_broker: Account<'info, AllowedBroker>,
     #[account(
-        seeds = [OAPP_SEED],
-        bump = oapp_config.bump,
-        has_one = admin @OAppError::Unauthorized
+        seeds = [ACCESS_CONTROL_SEED, BROKER_MANAGER_ROLE_HASH.as_ref(), broker_manager.key().as_ref()],
+        bump = manager_role.bump,
+        constraint = manager_role.allowed == true @VaultError::ManagerRoleNotAllowed,
     )]
-    pub oapp_config: Account<'info, OAppConfig>,
+    pub manager_role: Account<'info, ManagerRole>,
     pub system_program: Program<'info, System>,
 }
 

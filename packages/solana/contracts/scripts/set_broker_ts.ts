@@ -9,8 +9,16 @@ const [provider, wallet, rpc] = utils.setAnchor()
 const ENV = utils.getEnv()
 const [OAPP_PROGRAM_ID, OAppProgram] = utils.getDeployedProgram(ENV, provider)
 
+const argConfig = {
+    string: ['env'],
+    boolean: ['ts'],
+}
+
+// use minimist to parse command line arguments
+const argv = require('minimist')(process.argv.slice(4), argConfig)
+
 async function setBroker() {
-    const multisig = utils.getMultisig(ENV)
+    const multisig = utils.getTsMultisig(ENV)
     const useMultisig = true
     const allowedBrokerList = utils.getBrokerList(ENV)
 
@@ -67,6 +75,7 @@ async function setBroker() {
 
         let brokerStatue = 0 // 0: deposit PDA allowed, 1: deposit PDA not exist,
         let withdrawBrokerStatue = 0 // 0: withdraw PDA allowed, 1: withdraw PDA not exist
+
         try {
             const brokerStatus = await OAppProgram.account.allowedBroker.fetch(brokerPda)
             if (brokerStatus.allowed) {
@@ -83,6 +92,7 @@ async function setBroker() {
                 .setBroker(setBrokerParams)
                 .accounts(setBrokerAccounts)
                 .instruction()
+
             txSetBroker.add(ixSetBroker)
         }
 

@@ -16,6 +16,7 @@ cpi = ["no-entrypoint"]
 default = []
 
 [dependencies]
+#jupiter-cpi = { git = "https://github.com/zlog-in/jupiter-cpi.git", branch = "version-update" }
 anchor-lang = { version = "0.29.0", features = ["init-if-needed"] }
 solana-program = "=1.17.31"
 anchor-spl = "=0.29.0"
