@@ -30,7 +30,7 @@ async function deposit() {
     // const receiverAddress = new PublicKey('9TJTNxsieXTSWebMRb5KbMiDDwfLJAeWa76NcPjbao42')
 
     const receiverAddress = senderAddress;
-    const depositTokenSymbol = 'USDC'
+    const depositTokenSymbol = 'USDT'
     const tokenAddress = utils.getTokenAddress(ENV, depositTokenSymbol)
     const userTokenAccount = utils.getSPLTokenAccount(tokenAddress, senderAddress)
     console.log('💶 User Token Account', userTokenAccount.toBase58())
@@ -58,7 +58,7 @@ async function deposit() {
         brokerHash: codedBrokerHash,
         tokenHash: codedTokenHash,
         userAddress: Array.from(receiverAddress.toBuffer()),
-        tokenAmount: new anchor.BN(5_000_000),
+        tokenAmount: new anchor.BN(5_000_000_000),
     }
 
     const allowedBrokerPda = utils.getBrokerPda(OAPP_PROGRAM_ID, brokerHash)

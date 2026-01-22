@@ -1,6 +1,6 @@
 // use crate::*;
 use crate::errors::OAppError;
-use crate::instructions::{get_account_id, to_bytes32};
+use crate::instructions::{to_bytes32};
 use anchor_lang::prelude::*;
 
 pub enum MsgType {
@@ -107,6 +107,7 @@ impl LzMessage {
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct AccountWithdrawSol {
+    pub account_id: [u8; 32],
     pub sender: [u8; 32],
     pub receiver: [u8; 32],
     pub broker_index: u16,
@@ -134,8 +135,8 @@ impl AccountWithdrawSol {
 
     pub fn decode_packed(encoded: &[u8]) -> Result<Self> {
         let mut offset = 0;
-        // let account_id = encoded[offset..offset + 32].try_into().unwrap();
-        // offset += 32;
+        let account_id = encoded[offset..offset + 32].try_into().unwrap();
+        offset += 32;
         let sender = encoded[offset..offset + 32].try_into().unwrap();
         offset += 32;
         let receiver = encoded[offset..offset + 32].try_into().unwrap();
@@ -155,7 +156,7 @@ impl AccountWithdrawSol {
         offset += 8;
         let withdraw_nonce = u64::from_be_bytes(encoded[offset..offset + 8].try_into().unwrap());
         Ok(Self {
-            // account_id,
+            account_id,
             sender,
             receiver,
             broker_index,
@@ -176,7 +177,7 @@ impl AccountWithdrawSol {
         token_hash: [u8; 32]
     ) -> VaultWithdrawParams {
         VaultWithdrawParams {
-            account_id: get_account_id(&self.sender, &broker_hash), // account_withdraw_sol.account_id
+            account_id: self.account_id,
             sender_chain_type: sender_chain_type,
             sender: self.sender,
             receiver: self.receiver,
