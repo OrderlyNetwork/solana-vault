@@ -731,7 +731,7 @@ describe('Test OAPP messaging', function () {
         )
 
         payload = Buffer.concat([
-            // wallet.publicKey.toBuffer()// placeholder for account_id
+            wallet.publicKey.toBuffer(), // placeholder for account_id
             wallet.publicKey.toBuffer(), // sender
             userWallet.publicKey.toBuffer(), // receiver
             brokerIndexBuffer,
@@ -1294,7 +1294,7 @@ describe('Test OAPP messaging', function () {
         usdtTokenIndexBuffer.writeUint8(constants.TOKEN_INDEX.USDT)
 
         payload = Buffer.concat([
-            // wallet.publicKey.toBuffer()// placeholder for account_id
+            wallet.publicKey.toBuffer(), // placeholder for account_id
             wallet.publicKey.toBuffer(), // sender
             userWallet.publicKey.toBuffer(), // receiver
             brokerIndexBuffer,
@@ -1391,7 +1391,7 @@ describe('Test OAPP messaging', function () {
         solTokenAmountBuffer.writeBigUInt64BE(BigInt(WITHDRAW_SOL_AMOUNT))
 
         payload = Buffer.concat([
-            // wallet.publicKey.toBuffer()// placeholder for account_id
+            wallet.publicKey.toBuffer(), // placeholder for account_id
             wallet.publicKey.toBuffer(), // sender
             userWallet.publicKey.toBuffer(), // receiver
             brokerIndexBuffer,
@@ -1524,7 +1524,7 @@ describe('Test OAPP messaging', function () {
         // wsolTokenIndexBuffer.writeUint8(constants.TOKEN_INDEX.WSOL)
 
         // payload = Buffer.concat([
-        //     // wallet.publicKey.toBuffer()// placeholder for account_id
+        //     // wallet.publicKey.toBuffer(), // placeholder for account_id
         //     wallet.publicKey.toBuffer(), // sender
         //     userWallet.publicKey.toBuffer(), // receiver
         //     brokerIndexBuffer,
@@ -1640,7 +1640,7 @@ describe('Test OAPP messaging', function () {
             true
         )
         payload = Buffer.concat([
-            // wallet.publicKey.toBuffer()// placeholder for account_id
+            wallet.publicKey.toBuffer(), // placeholder for account_id
             wallet.publicKey.toBuffer(), // sender
             executeableReceiver.toBuffer(), // receiver
             brokerIndexBuffer,
